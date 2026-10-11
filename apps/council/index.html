@@ -1,0 +1,2181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Council</title>
+<style>
+/* Design plan.
+   Layout: a chamber. In a hearing the green baize table, seen from above, holds one side and the
+   speaker's floor the other; the casebook reads as a bound law report (citation, catchwords, headnote,
+   held, ratio). The boldness is the baize table and its brass needle; everything else is paper and ink. */
+:root {
+  --paper: #EDF0EB;      /* report page: cool grey-green, deliberately not cream */
+  --ink: #18211D;        /* green-black */
+  --baize: #2B5944;      /* the table */
+  --brass: #A8781C;      /* speaker, needle, focus */
+  --claret: #8C2C2A;     /* overruled, struck through */
+  --font-display: "Libre Caslon Display", "Libre Caslon Text", Georgia, "Times New Roman", serif;
+  --font-text: "Libre Caslon Text", Georgia, "Times New Roman", serif;
+  --font-label: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+
+  /* derived tokens */
+  --leaf: #F8FAF6;
+  --muted: #55615A;
+  --rule: #C7CEC5;
+  --rule-strong: #8E998F;
+  --brass-ink: #7A5410;
+  --brass-lit: #D9AE4A;
+  --ink-on-brass: #1E1708;
+  --rim: #3D3127;
+  --on-baize: #E8F0EA;
+  --wash: #E1E7E0;
+  --shadow: 0 1px 0 rgba(24, 33, 29, .06), 0 10px 28px -18px rgba(24, 33, 29, .45);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0F1512; --ink: #E3E9E2; --baize: #285640; --brass: #D3A546; --claret: #E58C80;
+    --leaf: #161E1A; --muted: #9EAAA2; --rule: #2B3630; --rule-strong: #52615A; --brass-ink: #E2BC66;
+    --brass-lit: #E0B451; --rim: #2E241C; --on-baize: #E8F0EA; --wash: #1E2924;
+    --shadow: 0 1px 0 rgba(0, 0, 0, .3), 0 10px 28px -18px rgba(0, 0, 0, .9);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0F1512; --ink: #E3E9E2; --baize: #285640; --brass: #D3A546; --claret: #E58C80;
+  --leaf: #161E1A; --muted: #9EAAA2; --rule: #2B3630; --rule-strong: #52615A; --brass-ink: #E2BC66;
+  --brass-lit: #E0B451; --rim: #2E241C; --on-baize: #E8F0EA; --wash: #1E2924;
+  --shadow: 0 1px 0 rgba(0, 0, 0, .3), 0 10px 28px -18px rgba(0, 0, 0, .9);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-text); font-size: 17px; line-height: 1.55; }
+.council { padding-inline: clamp(16px, 4vw, 40px); padding-block: 0 56px; }
+.frame { max-width: 1240px; margin-inline: auto; }
+h1, h2, h3 { text-wrap: balance; font-weight: 400; }
+p { margin: 0; }
+a { color: inherit; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+.vh { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Masthead: a running head with a double rule, as on a law report page */
+.masthead { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper); }
+.mast { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 6px 24px; padding-block: 16px 8px; border-bottom: 3px double var(--ink); }
+.brand { display: flex; align-items: baseline; gap: 4px 14px; flex-wrap: wrap; }
+.brand-name { font-family: var(--font-display); font-size: 38px; line-height: 1; letter-spacing: .01em; }
+.brand-sub { font-family: var(--font-label); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.tabs { display: flex; gap: 2px 4px; flex-wrap: wrap; margin-inline: -8px; }
+.tab { font-family: var(--font-label); font-size: 14px; font-weight: 500; letter-spacing: .07em; text-transform: uppercase; background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px; min-height: 40px; color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.tab:hover { color: var(--ink); }
+.tab[aria-current="page"] { color: var(--ink); border-bottom-color: var(--brass); }
+.badge { font-size: 12px; font-variant-numeric: tabular-nums; letter-spacing: 0; padding: 0 6px; border-radius: 9px; background: var(--wash); color: var(--ink); line-height: 18px; }
+.badge.due { background: var(--brass-lit); color: var(--ink-on-brass); }
+@media (max-width: 640px) {
+  .masthead { position: static; }
+  .brand-name { font-size: 32px; }
+  .tabs { width: 100%; margin-inline: 0; justify-content: space-between; flex-wrap: nowrap; }
+  .tab { font-size: 12.5px; letter-spacing: .05em; padding-inline: 0; gap: 4px; }
+}
+
+.example-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; padding-block: 10px; border-bottom: 1px solid var(--rule); font-size: 15px; }
+.example-bar p { max-width: 60rem; }
+.tag { display: inline-block; font-family: var(--font-label); font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; border: 1px solid var(--brass); color: var(--brass-ink); padding: 0 6px; border-radius: 2px; line-height: 18px; vertical-align: middle; font-style: normal; }
+
+/* Buttons */
+.btn { font-family: var(--font-label); font-weight: 600; font-size: 14px; letter-spacing: .05em; text-transform: uppercase; padding: 10px 16px; min-height: 44px; border: 1.5px solid var(--ink); background: transparent; color: var(--ink); border-radius: 2px; cursor: pointer; text-align: center; }
+.btn:hover { background: var(--wash); }
+.btn-primary { background: var(--ink); color: var(--paper); }
+.btn-primary:hover { background: var(--ink); opacity: .88; }
+.btn-danger { border-color: var(--claret); color: var(--claret); }
+.btn-danger-solid { border-color: var(--claret); background: var(--claret); color: var(--paper); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn-text { background: none; border: 0; padding: 4px 0; min-height: 32px; font-family: var(--font-label); font-size: 14px; letter-spacing: .03em; color: var(--ink); text-decoration: underline; text-decoration-color: var(--brass); text-underline-offset: 3px; cursor: pointer; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; }
+
+/* Shared type */
+.kicker, .legend, .field > label, .k { font-family: var(--font-label); font-size: 13px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.legend { display: block; margin: 0 0 8px; padding: 0; }
+.view-head { padding-block: 28px 8px; display: grid; gap: 8px; }
+.view-title { font-family: var(--font-display); font-size: clamp(34px, 5vw, 52px); line-height: 1.05; margin: 0; }
+.lede { font-size: 18px; max-width: 40rem; color: var(--ink); }
+.hint { font-size: 14.5px; color: var(--muted); max-width: 40rem; }
+.err { color: var(--claret); font-size: 15px; }
+.err:empty { display: none; }
+.status { font-family: var(--font-label); font-size: 14px; color: var(--muted); }
+
+/* The chamber: table on one side, speaker's floor on the other */
+.chamber { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 24px 48px; align-items: start; margin-top: 24px; }
+.table-col { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 92px); }
+@media (max-width: 880px) {
+  .chamber { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .table-col { position: static; }
+}
+.table-svg { display: block; width: 100%; height: auto; max-width: 500px; margin-inline: auto; }
+.t-shadow { fill: var(--ink); opacity: .10; }
+.t-rim { fill: var(--rim); }
+.t-top { fill: var(--baize); }
+.t-inlay { fill: none; stroke: var(--brass); stroke-width: 1.2; opacity: .6; }
+.seat { cursor: pointer; }
+.s-disc { fill: var(--leaf); stroke: var(--ink); stroke-width: 1.5; }
+.s-glyph { fill: var(--ink); font-family: var(--font-text); font-style: italic; font-size: 17px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.s-label { fill: var(--ink); font-family: var(--font-label); font-size: 16px; text-anchor: middle; }
+.seat.is-done .s-disc { fill: var(--ink); }
+.seat.is-done .s-glyph { fill: var(--paper); }
+.seat.is-passed .s-disc { stroke: var(--muted); stroke-dasharray: 4 3; }
+.seat.is-passed .s-glyph { fill: var(--muted); }
+.seat.is-current .s-disc { fill: var(--brass-lit); stroke: var(--brass); stroke-width: 2.5; }
+.seat.is-current .s-glyph { fill: var(--ink-on-brass); }
+.seat.is-current .s-label { font-weight: 600; }
+.seat.is-focus .s-disc { stroke: var(--brass); stroke-width: 3.5; }
+.seat.is-ghost { cursor: default; }
+.seat.is-ghost .s-disc { fill: none; stroke: var(--rule-strong); stroke-dasharray: 3 4; }
+.s-halo { fill: none; stroke: var(--brass); stroke-width: 2; transform-box: fill-box; transform-origin: center; animation: halo 2.4s ease-out infinite; }
+@keyframes halo { from { transform: scale(1); opacity: .85; } to { transform: scale(1.45); opacity: 0; } }
+.s-dissent { fill: var(--claret); }
+.s-dissent-t { fill: var(--paper); font-family: var(--font-label); font-size: 11px; font-weight: 600; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.chair-r { fill: var(--leaf); stroke: var(--brass); stroke-width: 2; }
+.chair-t { fill: var(--ink); font-family: var(--font-label); font-size: 13px; font-weight: 600; letter-spacing: .1em; text-anchor: middle; dominant-baseline: central; }
+.needle { transition: transform .7s cubic-bezier(.3, .7, .2, 1); }
+.nd-blade { fill: var(--brass-lit); stroke: var(--rim); stroke-width: 1; }
+.nd-tail { fill: var(--on-baize); opacity: .55; }
+.nd-hub { fill: var(--brass); stroke: var(--rim); stroke-width: 1.5; }
+.table-cap { text-align: center; font-family: var(--font-label); font-size: 14px; color: var(--muted); margin-top: 4px; }
+.table-cap b { color: var(--ink); font-weight: 600; }
+
+.order { list-style: none; margin: 12px auto 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 18px; max-width: 30rem; }
+.order button { display: flex; gap: 8px; align-items: baseline; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--rule); padding: 6px 4px; font-family: var(--font-text); font-size: 15px; color: var(--ink); cursor: pointer; min-height: 36px; }
+.order button:hover { background: var(--wash); }
+.order .n { font-family: var(--font-label); font-variant-numeric: tabular-nums; color: var(--muted); min-width: 1.2em; }
+.order .st { margin-left: auto; font-family: var(--font-label); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); white-space: nowrap; }
+.order button[aria-current="true"] { background: var(--wash); }
+.order button[aria-current="true"] .st { color: var(--brass-ink); font-weight: 600; }
+@media (min-width: 600px) and (max-width: 880px) { .order { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: none; } }
+
+/* Open matter header and steps */
+.matter-head { padding-block: 24px 0; }
+.matter-title { font-family: var(--font-display); font-size: clamp(32px, 5.2vw, 54px); line-height: 1.05; margin: 4px 0 0; overflow-wrap: anywhere; }
+.matter-title .re { font-style: normal; }
+.steps { list-style: none; display: flex; flex-wrap: wrap; gap: 0 18px; padding: 0; margin: 16px 0 0; border-bottom: 1px solid var(--rule); }
+.steps button { font-family: var(--font-label); font-size: 14px; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 0; min-height: 40px; color: var(--muted); cursor: pointer; }
+.steps button[aria-current="step"] { color: var(--ink); border-bottom-color: var(--ink); }
+.steps button:disabled { opacity: .45; cursor: default; }
+.steps .n { font-variant-numeric: tabular-nums; margin-right: 5px; color: var(--brass-ink); }
+
+/* Speaker's floor */
+.stage { max-width: 41rem; display: grid; gap: 14px; align-content: start; }
+.speaker { font-family: var(--font-display); font-size: clamp(30px, 4vw, 44px); line-height: 1.08; margin: 0; }
+.speaker:focus { outline: none; }
+.strand { font-style: italic; color: var(--muted); margin-top: -6px; }
+.framing { font-size: 19px; line-height: 1.6; }
+.questions { margin: 0; padding-left: 1.3em; display: grid; gap: 8px; }
+.questions li { font-style: italic; font-size: 18px; line-height: 1.5; }
+.questions li::marker { font-style: normal; font-family: var(--font-label); color: var(--brass-ink); }
+.terms { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; margin: 0; padding-block: 10px; border-block: 1px solid var(--rule); font-size: 15px; }
+.terms dt { font-style: italic; font-weight: 700; }
+.terms dd { margin: 0; color: var(--muted); }
+@media (max-width: 520px) { .terms { grid-template-columns: minmax(0, 1fr); gap: 0; } .terms dd { margin-bottom: 6px; } }
+.dissent-note { font-family: var(--font-label); font-size: 13px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--claret); }
+.matter-sum { border-block: 1px solid var(--rule); padding-block: 8px; font-size: 15.5px; }
+.matter-sum summary { cursor: pointer; font-family: var(--font-label); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); min-height: 32px; display: flex; align-items: center; }
+.matter-sum .facts { margin-top: 8px; }
+
+/* Forms */
+.form { display: grid; gap: 22px; max-width: 42rem; }
+.field { display: grid; gap: 6px; min-width: 0; border: 0; padding: 0; margin: 0; }
+fieldset.field { min-width: 0; }
+input[type="text"], input[type="date"], textarea, select { font-family: var(--font-text); font-size: 17px; line-height: 1.45; color: var(--ink); background: var(--leaf); border: 1px solid var(--rule-strong); border-radius: 2px; padding: 10px 12px; width: 100%; min-width: 0; }
+textarea { resize: vertical; min-height: 4.6em; }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
+.prefixed { display: flex; align-items: center; gap: 10px; }
+.prefixed > span { font-family: var(--font-display); font-size: 24px; }
+input[type="range"] { width: 100%; accent-color: var(--brass); min-height: 32px; }
+.scale-ends { display: flex; justify-content: space-between; font-family: var(--font-label); font-size: 13px; color: var(--muted); }
+output { font-family: var(--font-label); color: var(--ink); text-transform: none; letter-spacing: 0; margin-left: 6px; font-variant-numeric: tabular-nums; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { position: relative; display: inline-flex; }
+.chip input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; width: 100%; height: 100%; }
+.chip span { display: inline-flex; align-items: center; min-height: 40px; padding: 6px 13px; border: 1px solid var(--rule-strong); border-radius: 2px; font-family: var(--font-label); font-size: 15px; background: var(--leaf); }
+.chip input:checked + span { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.chip input:focus-visible + span { outline: 3px solid var(--brass); outline-offset: 2px; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 16px; }
+.ratio-line { display: grid; grid-template-columns: 6.2rem minmax(0, 1fr); gap: 12px; align-items: start; }
+.ratio-line label { font-family: var(--font-label); font-size: 14px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); padding-top: 12px; text-align: right; }
+@media (max-width: 520px) { .ratio-line { grid-template-columns: minmax(0, 1fr); gap: 2px; } .ratio-line label { text-align: left; } }
+.confirm { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px 14px; border: 1px solid var(--claret); background: var(--leaf); }
+.confirm p { flex: 1 1 16rem; font-size: 15.5px; }
+
+/* Precedent */
+.prec-list { display: grid; gap: 14px; }
+.prec { padding: 14px 16px; background: var(--leaf); border: 1px solid var(--rule); display: grid; gap: 10px; }
+.prec-cite { font-size: 16px; }
+.prec-cite .cite { font-family: var(--font-label); font-size: 14px; font-variant-numeric: tabular-nums; margin-left: 4px; }
+.why { display: block; font-family: var(--font-label); font-size: 13px; color: var(--muted); margin-top: 2px; }
+.prec-ratio { font-size: 16px; line-height: 1.5; }
+/* When / I / because: upright small caps, so the "I" never reads as a slash */
+.w { font-family: var(--font-label); font-style: normal; font-size: .7em; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); vertical-align: .08em; }
+
+/* Roster */
+.bench-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding-block: 6px; border-block: 1px solid var(--rule); }
+.bench-count { font-family: var(--font-label); font-size: 15px; font-variant-numeric: tabular-nums; }
+.roster { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: 0 22px; }
+.seat-pick { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 0 12px; align-items: center; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--rule); padding: 9px 4px; color: var(--ink); cursor: pointer; min-height: 56px; }
+.seat-pick:hover { background: var(--wash); }
+.seat-pick .g { grid-row: span 2; width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--ink); display: grid; place-items: center; font-style: italic; font-size: 15px; }
+.seat-pick .nm { font-size: 16.5px; line-height: 1.3; }
+.seat-pick .sd { grid-column: 2; font-size: 13.5px; color: var(--muted); line-height: 1.35; }
+.seat-pick .on { grid-column: 3; grid-row: 1 / span 2; font-family: var(--font-label); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.seat-pick[aria-pressed="true"] { background: var(--wash); }
+.seat-pick[aria-pressed="true"] .g { background: var(--brass-lit); border-color: var(--brass); color: var(--ink-on-brass); }
+.seat-pick[aria-pressed="true"] .on { color: var(--ink); font-weight: 600; }
+
+/* Record and transcript */
+.intro-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 40px; padding-block: 24px 0; }
+.intro { font-size: 18px; line-height: 1.6; max-width: 46rem; }
+.citation { font-family: var(--font-label); font-size: 15px; letter-spacing: .03em; font-variant-numeric: tabular-nums; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; color: var(--ink); }
+.citation .sep { color: var(--muted); }
+.transcript { list-style: none; margin: 4px 0 0; padding: 0; }
+.transcript > li { padding-block: 18px; border-top: 1px solid var(--rule); display: grid; gap: 8px; scroll-margin-top: 110px; }
+.transcript > li.is-focus { background: linear-gradient(var(--wash), var(--wash)) no-repeat; background-size: 100% 100%; box-shadow: -12px 0 0 var(--wash), 12px 0 0 var(--wash); }
+.tr-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.tr-name { font-family: var(--font-display); font-size: 24px; line-height: 1.2; }
+.tr-q { font-style: italic; }
+.tr-answer { font-size: 16.5px; }
+.tr-answer .k { color: var(--ink); margin-right: 8px; }
+.tr-passed { font-family: var(--font-label); font-size: 14px; color: var(--muted); }
+.ruling-block { border-top: 3px double var(--ink); padding-top: 18px; display: grid; gap: 12px; }
+
+/* Casebook and principles: a side column (title, index) and the reports */
+.split { display: grid; grid-template-columns: minmax(0, 19rem) minmax(0, 1fr); gap: 24px 56px; align-items: start; }
+.split-side { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 92px); max-height: calc(100dvh - 110px); overflow-y: auto; display: grid; gap: 14px; padding-block: 28px 8px; }
+.split-side .view-head { padding-block: 0; }
+.split-side .lede { font-size: 17px; }
+.split-main { min-width: 0; padding-top: 34px; display: grid; gap: 22px; align-content: start; }
+@media (max-width: 880px) {
+  .split { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .split-side { position: static; max-height: none; overflow: visible; }
+  .split-main { padding-top: 0; }
+}
+.toc { margin-top: 6px; }
+.toc ol { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--ink); }
+.toc button { display: grid; gap: 1px; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--rule); padding: 8px 2px; font-family: var(--font-text); font-size: 15.5px; color: var(--ink); cursor: pointer; }
+.toc button:hover { background: var(--wash); }
+.toc .c { font-family: var(--font-label); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.toc .struck { text-decoration: line-through; text-decoration-color: var(--claret); }
+.reports { min-width: 0; }
+.report { padding-block: 26px; border-bottom: 1px solid var(--rule); display: grid; gap: 12px; scroll-margin-top: 110px; }
+.report:first-child { padding-top: 4px; }
+.report.flash { animation: flash 2.4s ease-out; }
+@keyframes flash { from { background: var(--wash); } to { background: transparent; } }
+.case-name { font-family: var(--font-display); font-size: clamp(26px, 3.4vw, 36px); line-height: 1.12; margin: 0; overflow-wrap: anywhere; }
+.case-name .re { font-style: normal; }
+.catchwords { font-style: italic; color: var(--muted); font-size: 16px; }
+.headnote { max-width: 42rem; }
+.facts { display: grid; grid-template-columns: 10.5rem minmax(0, 1fr); gap: 6px 16px; margin: 0; font-size: 15.5px; max-width: 46rem; }
+.facts dt { font-family: var(--font-label); font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); padding-top: 3px; }
+.facts dd { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
+@media (max-width: 560px) { .facts { grid-template-columns: minmax(0, 1fr); gap: 0; } .facts dd { margin-bottom: 8px; } }
+.held { max-width: 42rem; }
+.held .k, .annot .k { color: var(--ink); font-weight: 600; margin-right: 6px; }
+.ratio { padding: 14px 18px; background: var(--leaf); border: 1px solid var(--rule); max-width: 44rem; display: grid; gap: 6px; box-shadow: var(--shadow); }
+.ratio-text { font-size: 19px; line-height: 1.5; }
+.ratio .meta { font-family: var(--font-label); font-size: 13.5px; color: var(--muted); }
+.ratio.is-overruled { box-shadow: none; }
+.ratio.is-overruled .ratio-text { text-decoration: line-through; text-decoration-color: var(--claret); text-decoration-thickness: 1.5px; color: var(--muted); }
+.overruled-note { color: var(--claret); font-size: 15.5px; }
+.annot { font-size: 15.5px; max-width: 44rem; }
+.annot ul { margin: 4px 0 0; padding-left: 1.1em; display: grid; gap: 4px; }
+.review-box { padding: 16px; background: var(--leaf); border: 1px solid var(--rule-strong); max-width: 44rem; display: grid; gap: 14px; }
+.due-list { display: grid; gap: 14px; margin-top: 8px; }
+.cite-link { background: none; border: 0; padding: 0; font-family: var(--font-text); font-style: italic; font-size: inherit; color: var(--ink); text-decoration: underline; text-decoration-color: var(--brass); text-underline-offset: 3px; cursor: pointer; text-align: left; }
+
+/* Principles */
+.pgroup { margin-bottom: 26px; }
+.pgroup h2 { font-family: var(--font-label); font-size: 14px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; border-bottom: 1px solid var(--ink); padding-bottom: 6px; margin: 0; }
+.plist { list-style: none; padding: 0; margin: 0; }
+.plist li { padding-block: 18px; border-bottom: 1px solid var(--rule); display: grid; gap: 6px; }
+.ptext { font-size: clamp(19px, 2.3vw, 24px); line-height: 1.45; max-width: 46rem; }
+.psrc { font-family: var(--font-label); font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline; }
+.psrc .cite-link { font-size: 15.5px; }
+
+/* Records */
+.records { display: grid; gap: 40px; max-width: 46rem; margin-top: 12px; }
+.records section { display: grid; gap: 12px; }
+.records h2 { font-family: var(--font-display); font-size: 28px; margin: 0; }
+.mono { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 13px; line-height: 1.45; min-height: 12em; }
+
+.foot { margin-top: 56px; padding-top: 14px; border-top: 1px solid var(--rule); font-family: var(--font-label); font-size: 13.5px; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .s-halo { animation: none; opacity: .7; }
+  .needle { transition: none; }
+  .report.flash { animation: none; }
+  html { scroll-behavior: auto; }
+}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=Libre+Caslon+Display&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap">
+</head>
+<body>
+<div class="council" id="app">
+  <header class="masthead">
+    <div class="frame mast">
+      <div class="brand">
+        <span class="brand-name">Council</span>
+        <span class="brand-sub">A casebook of your own decisions</span>
+      </div>
+      <nav class="tabs" aria-label="Sections">
+        <button type="button" class="tab" data-action="nav" data-view="hearing">Hearing</button>
+        <button type="button" class="tab" data-action="nav" data-view="casebook">Casebook <span class="badge" id="badge-cases"></span></button>
+        <button type="button" class="tab" data-action="nav" data-view="principles">Principles</button>
+        <button type="button" class="tab" data-action="nav" data-view="records">Records</button>
+      </nav>
+    </div>
+  </header>
+  <div class="frame example-bar" id="example-bar" hidden>
+    <p><span class="tag">Example</span> The two cases in this casebook are examples, written to show how Council works. They are not yours.</p>
+    <button type="button" class="btn" data-action="clear-examples">Clear examples and start my own</button>
+  </div>
+  <main id="main">
+    <section class="view" id="view-hearing" aria-label="Hearing"></section>
+    <section class="view" id="view-casebook" aria-label="Casebook" hidden></section>
+    <section class="view" id="view-principles" aria-label="Principles" hidden></section>
+    <section class="view" id="view-records" aria-label="Records" hidden></section>
+  </main>
+  <footer class="frame foot">Everything stays in this browser. Nothing is sent anywhere. Records lets you copy all of it out as JSON.</footer>
+</div>
+<script>
+(function () {
+'use strict';
+
+/* ---------- Matter types ---------- */
+const TYPES = [
+  { id: 'stay', label: 'Stay or go', hint: 'a job, a place, a relationship, a group' },
+  { id: 'risk', label: 'Security or risk', hint: 'the safe option against the uncertain one' },
+  { id: 'duty', label: 'Duty or desire', hint: 'what you owe against what you want' },
+  { id: 'conflict', label: 'Conflict with someone', hint: 'a disagreement or rupture with a person' },
+  { id: 'forgive', label: 'Forgiveness', hint: 'whether and how to forgive' },
+  { id: 'money', label: 'Money and time', hint: 'earning, spending, where the hours go' },
+  { id: 'truth', label: 'Telling the truth', hint: 'saying something hard, or keeping it back' },
+  { id: 'commit', label: 'Commitment', hint: 'making, keeping or ending a promise' },
+  { id: 'calling', label: 'A calling', hint: 'work or a path that keeps pulling at you' },
+  { id: 'care', label: 'Caring for someone', hint: 'a parent, child, partner or friend who needs you' }
+];
+
+/* ---------- Seats ----------
+   t[type] = [framing, question, question?]. An empty framing falls back to seat.f.
+   dissent = [framing, question]; {leaning}, {affected}, {admired} are filled in per case. */
+const SEATS = [];
+
+SEATS.push({
+  id: 'stoic', kind: 'tradition', name: 'The Stoic', short: 'Stoic', glyph: 'St',
+  strand: 'Epictetus, Seneca, Marcus Aurelius',
+  desc: 'What is up to you, and what is not',
+  terms: [
+    ['prohairesis', 'your faculty of choice; for Epictetus the one thing that is fully yours'],
+    ['the dichotomy of control', 'some things are up to us (judgements, intentions, actions) and some are not'],
+    ['preferred indifferents', 'health, money, reputation: reasonable to prefer, but not good in themselves']
+  ],
+  dissent: ["I've been asked to argue against {leaning}. A Stoic would ask whether that leaning rests on an outcome outside your control. If it does, you may be choosing a hoped-for result rather than an act you can stand behind.",
+    "If this went badly for reasons you couldn't control, would you still say it was the right act?"],
+  t: {
+    stay: ["Sort the matter into two piles. The organisation, the market and what people will think sit outside your prohairesis, your power of choice. Your judgement and your conduct sit inside it. Decide from the second pile.",
+      "If you list only what is up to you in each option, which list are you prouder of?",
+      "Are you trying to escape a feeling that would come with you either way?"],
+    risk: ["Security and risk are both indifferents: reasonable to want or avoid, never the good itself. Seneca advised setting aside a few days to live on very little, and asking whether this was the condition you feared (Letters 18, paraphrased).",
+      "What is the worst realistic outcome of the risky option, and could you bear it with your character intact?",
+      "Is the security you want protecting your conduct, or only your comfort?"],
+    duty: ["Epictetus taught that your duties are found in your roles: child, partner, citizen, colleague (Discourses 2.10). Desire is not the enemy, but it has to answer to what your roles ask. The Stoics called this kathēkon, the fitting act.",
+      "Which of your roles does this duty belong to, and did you take that role on freely?",
+      "If the desire won, how would you act in that role afterward?"],
+    conflict: ["Epictetus held that people are disturbed by their judgements about things rather than the things themselves (Enchiridion 5). The other person's act is outside you. Your reading of it and your reply are yours.",
+      "What judgement have you added to what they actually did?",
+      "What reply would you be content to have made, whatever they do next?"],
+    forgive: ["Marcus Aurelius began his days expecting to meet the ungrateful and the unkind, and reminded himself that they act from not knowing better (Meditations 2.1, paraphrased). Forgiving is partly a correction of your own judgement.",
+      "What do you understand about why they did it, that they may not understand themselves?",
+      "Is the grudge still doing anything for you, or are you carrying it out of habit?"],
+    money: ["Money is a preferred indifferent: useful, worth some effort, never worth your character. Seneca, who was very rich, argued that wealth should be held loosely enough that you could lose it without losing yourself (paraphrased).",
+      "What is the money for, specifically?",
+      "Would you spend this time the same way if no one could see what it earned you?"],
+    truth: ["Your honesty is your own conduct; the other person's reaction is not. You can still choose the time and the words with care, but you cannot manage their feelings by deceiving them and stay just.",
+      "Are you protecting them, or protecting yourself from their reaction?",
+      "What would you say if you trusted them to bear the truth?"],
+    commit: ["Epictetus told anyone who wanted to compete at Olympia to look first at everything that comes before and after: the diet, the training, the defeats (Enchiridion 29, paraphrased). Count the cost before you promise.",
+      "Have you looked at the dull and difficult parts, as well as the start?",
+      "Which parts of keeping it will be up to you, and which will depend on luck?"],
+    calling: ["Marcus wrote of rising in the morning to do the work of a human being (Meditations 5.1). Ask what your nature is suited to and how it serves the common good. A Stoic calling always includes other people.",
+      "Who besides you would be better off if you answered this?",
+      "What in your temperament keeps pointing this way?"],
+    care: ["Hierocles pictured our duties as circles around the self: family, community, humanity, and suggested drawing the outer circles inward. Caring for someone is that work at close range. Keeping yourself able to do it is part of the duty.",
+      "What does this person need from you, as distinct from what you fear they need?",
+      "What would make your care sustainable for a year, not just a week?"]
+  }
+});
+
+SEATS.push({
+  id: 'daoist', kind: 'tradition', name: 'The Daoist sage', short: 'Daoist', glyph: 'Da',
+  strand: 'Laozi (Daodejing) and Zhuangzi',
+  desc: 'Where the grain runs, and where you are forcing',
+  terms: [
+    ['wu wei', 'acting without forcing, the way water finds its level'],
+    ['ziran', '“self-so”: what a thing is when it is left to itself'],
+    ['pu', 'the uncarved block; simplicity before shaping']
+  ],
+  dissent: ["I've been asked to argue against {leaning}. A Daoist would ask whether that leaning is the grain of the wood or a plan you've laid on top of it. A pull can feel natural only because you've rehearsed it many times.",
+    "If you set the question down for a month and came back to it, would you still lean the same way?"],
+  t: {
+    stay: ["Zhuangzi tells of Cook Ding, whose knife stayed sharp for nineteen years because he cut along the natural joints of the ox and never hacked. Ask where the joints are in this decision.",
+      "Which option asks you to keep forcing yourself, day after day?",
+      "When are you most at ease where you are now, and what does that tell you?"],
+    risk: ["The Daodejing praises water: soft and low, yet it wears down stone. Security that needs constant guarding is a strain of its own. So is risk taken to prove something.",
+      "Which choice would you make if you had nothing to prove?",
+      "What are you holding so tightly that it tires you?"],
+    duty: ["Laozi was wary of rules pressed on people from outside: when the Dao is lost, he says, we fall back on virtue, then on duty, then on ritual (Daodejing 38, paraphrased). The sage asks what is natural here.",
+      "Did this duty grow out of your life, or is it a shape someone else carved for you?",
+      "What would happen if you stopped pushing in either direction for a week?"],
+    conflict: ["The Daodejing says a good warrior is not angry and a good fighter does not lose their temper (68, paraphrased). Yielding is not the same as losing; water goes around the rock and still arrives.",
+      "What would giving way on the small point make possible on the large one?",
+      "Are you trying to win, or to be done with it?"],
+    forgive: ["Zhuangzi's empty boat: if an empty boat drifts into yours, you don't shout at it. If someone is sitting in it, you shout. Much of the anger comes from the idea that someone is there to blame.",
+      "If you saw what happened as a drifting boat, what would be left of the hurt?",
+      "What are you holding that you could set down without anyone's permission?"],
+    money: ["“Knowing you have enough is wealth” (Daodejing 33, a common rendering). Zhuangzi's gnarled tree lived to a great age because no carpenter wanted its wood. Not every hour has to be useful.",
+      "How much is enough, as a number?",
+      "What would you do with the hours if they didn't need to be useful?"],
+    truth: ["The Daodejing ends by observing that true words are not pretty and pretty words are not true (81, paraphrased). Plain speech is usually enough.",
+      "What is the plainest true sentence you could say?",
+      "Are you dressing it up for their sake or for yours?"],
+    commit: ["The sage keeps commitments the way a river keeps to its course: by following the slope rather than by straining. Ask whether this commitment runs with your nature or needs a dam to hold it.",
+      "When you picture keeping this promise in five years, is it effortful or natural?",
+      "What would make it lighter to carry without making it smaller?"],
+    calling: ["Ziran means self-so: the way a thing is when nothing is pushing it. In this light a calling is less a voice from outside than the shape you take when you stop forcing.",
+      "What do you do when no one is asking anything of you?",
+      "Is this something you'd grow into, or a mould you'd have to cut yourself down to fit?"],
+    care: ["The Daodejing describes the sage who does the work and does not dwell on it or claim it (ch. 2, paraphrased). Good care is often like that: quiet, unforced, not keeping score.",
+      "Where is your care forcing things that would go better if left alone?",
+      "What do they need that only comes from you being rested?"]
+  }
+});
+
+SEATS.push({
+  id: 'desert', kind: 'tradition', name: 'The Desert Mother', short: 'Desert Mother', glyph: 'Am',
+  strand: 'Amma Syncletica, Amma Theodora, Amma Sarah: early Christian contemplatives, Egypt, 4th to 5th century',
+  desc: 'Stillness, staying put, and your own share',
+  terms: [
+    ['amma', '“mother”: a woman recognised as a spiritual elder in the desert'],
+    ['hesychia', 'stillness; an inner quiet kept on purpose'],
+    ['logismoi', 'the persistent thoughts that pull at you, which the desert monks learned to notice and name']
+  ],
+  dissent: ["I'm asked to speak against {leaning}. The desert would ask whether this is one of the logismoi: a thought that keeps returning because it flatters or soothes you, and has not yet been tested in stillness.",
+    "Have you sat with this leaning in silence, without arguing for it, and is it still there afterward?"],
+  t: {
+    stay: ["Amma Syncletica warned that a bird who keeps leaving her eggs makes them cold and barren, and so does a person who keeps moving from place to place (paraphrased). The elders also said: sit in your cell, and your cell will teach you everything. Restlessness is not always guidance.",
+      "Have you stayed long enough, and quietly enough, to learn what this place has to teach you?",
+      "Does the wish to go come mostly when you are tired or low?"],
+    risk: ["Amma Theodora compared us to trees that bear fruit only after standing through winter storms (paraphrased). Hardship can be faithful ground. So can a leap. The question is what the choice is in service of.",
+      "Which option asks more trust of you, and which asks more courage? Are they the same one?",
+      "What would you choose if you weren't afraid of looking foolish?"],
+    duty: ["The desert distrusted both self-will and showy sacrifice. Duty done to be seen as good is still self-will. A desire held humbly can be honest.",
+      "If no one ever knew you had done this duty, would you still do it?",
+      "Could you bring this desire into prayer or plain silence without hiding any of it?"],
+    conflict: ["The elders were slow to judge others. Their habit was to look first for their own share of the fault, and only then to speak.",
+      "What is your share in this, even if it is the smaller one?",
+      "Could you say what you need without first proving them wrong?"],
+    forgive: ["When a brother was to be judged, Abba Moses walked into the meeting carrying a leaking jug of water, and said his own sins were running out behind him while he came to judge another (paraphrased from the Sayings of the Desert Fathers).",
+      "What would you be like if you were judged the way you are judging them?",
+      "Is forgiveness here one act, or something you will need to keep choosing?"],
+    money: ["The desert mothers chose poverty to be free, not to suffer. Their question about money is always whether it leaves you freer to pay attention, or less.",
+      "What does this money let you stop paying attention to, and what does it make you watch more closely?",
+      "Where is the time going that you say you lack?"],
+    truth: ["The desert valued speech that came out of silence: fewer words, meant more. Truth spoken in order to wound was, to them, another form of pride.",
+      "Have you been quiet long enough to know what is true here?",
+      "Are you telling this truth to heal something or to win something?"],
+    commit: ["Stability was a vow in the desert: you stayed with your cell, your elder, your rule, while feelings came and went. Commitment was the practice of staying.",
+      "Can you keep this when the feeling that made you want it is gone?",
+      "Who will hold you to it kindly?"],
+    calling: ["The elders were cautious about grand callings. A young monk eager for great deeds was often told to weave baskets and pray. A calling is tested first by small faithfulness.",
+      "What is the smallest version of this calling you could do faithfully, starting this week?",
+      "If it stayed obscure for good, would you still want it?"],
+    care: ["Abba Antony taught that our life and our death are with our neighbour (paraphrased). The desert treated care for another person as part of prayer, never a lesser task.",
+      "What does the person in your care actually ask of you, in their own words?",
+      "Where can you find some stillness inside the caring, so it doesn't turn bitter?"]
+  }
+});
+
+SEATS.push({
+  id: 'ignatian', kind: 'tradition', name: 'The Ignatian director', short: 'Ignatian', glyph: 'Ig',
+  strand: 'Ignatius of Loyola, the Spiritual Exercises; Jesuit discernment',
+  desc: 'Consolation, desolation, and the inner weather of a choice',
+  terms: [
+    ['consolation', 'an inner movement toward life, hope, love and peace'],
+    ['desolation', 'an inner movement toward turning in: restless, heavy, drained, closed'],
+    ['indifference', 'inner freedom: holding the options loosely enough to choose well, which is not the same as not caring']
+  ],
+  dissent: ["I'm asked to argue against {leaning}. Ignatius warned that a bad spirit can come as an angel of light, offering good-seeming reasons that lead somewhere worse (Spiritual Exercises 332, paraphrased). Look at where this leaning ends up, not only how it begins.",
+    "Follow this leaning forward a year. Does the path end in more love, hope and freedom, or less?"],
+  t: {
+    stay: ["Ignatius advised that in a time of desolation you should make no change to a decision made in consolation (rules for discernment, paraphrased). Notice the inner weather you are deciding in.",
+      "When you imagine going, do you feel consolation or desolation? And when you imagine staying?",
+      "Did this wish first come in a dark stretch, or has it lasted through good ones too?"],
+    risk: ["Ignatian indifference means being free enough of both security and risk that you could choose either. From that freedom, choose.",
+      "What would you need to let go of to be equally willing to take either path?",
+      "Which option, imagined in detail, leaves you more alive and more generous?"],
+    duty: ["Ignatius suggests two exercises: imagine a stranger in your exact position and the advice you would give them (Exercises 185), and imagine yourself at the end of your life, looking back on this choice (186).",
+      "What would you advise a stranger with this exact duty and this exact desire?",
+      "Picture the end of your life. Which choice do you want to have made here?"],
+    conflict: ["The Examen reviews a stretch of time for where you were drawn toward love and where you pulled away. Run it over this conflict before deciding what to do.",
+      "In the conflict, when did you feel most like yourself? When least?",
+      "What response would leave you in consolation a week later?"],
+    forgive: ["In the Exercises you look honestly at your own failures and receive mercy before you are asked to give it. Forgiveness starts from knowing yourself forgiven.",
+      "When have you been forgiven something you didn't deserve to be?",
+      "If you forgave them, what would you still want to protect?"],
+    money: ["The Principle and Foundation (Exercises 23) asks that we use created things as far as they help us toward our purpose, and let them go as far as they hinder. Money and time are created things in that sense.",
+      "Does this use of money or time help you toward what you're for, or away from it?",
+      "If you sat quietly with each option for ten minutes, which would leave you more at peace?"],
+    truth: ["The Exercises compare the enemy to someone who wants their advances kept secret (Exercises 326, paraphrased). Things kept hidden tend to grow; bringing them carefully into the light weakens them.",
+      "What has the secrecy cost you so far?",
+      "Who is the right person to say this to first?"],
+    commit: ["Ignatius calls a choice made well an election, and asks you to bring it back to prayer to be confirmed. A commitment is confirmed by the peace that follows, more than by the excitement before.",
+      "After you imagined saying yes, what did you feel the next morning?",
+      "What would confirm this commitment for you, and what would call it into question?"],
+    calling: ["The magis, “the more”, is about choosing what serves the greater good, not about doing more. Ignatius also took desire seriously: your deepest desires, examined, are part of how you are guided.",
+      "Under the wish for this calling, what is the desire underneath it?",
+      "Whom would it serve, and how would you know?"],
+    care: ["The Jesuits speak of being contemplatives in action, finding God in all things, including the tired and repetitive parts of caring. Notice the consolations in it as well as the cost.",
+      "Where in caring for them have you felt consolation recently, even briefly?",
+      "What desolation have you been pushing through that someone ought to know about?"]
+  }
+});
+
+SEATS.push({
+  id: 'quaker', kind: 'tradition', name: 'The Quaker clearness member', short: 'Quaker', glyph: 'Q',
+  strand: 'Religious Society of Friends; clearness committees as Parker Palmer describes them',
+  desc: 'Only honest, open questions; never advice',
+  terms: [
+    ['clearness', 'being clear in yourself about a step, as distinct from being certain of how it will turn out'],
+    ['way opens', 'when circumstances seem to confirm a leading; “way closes” when they don\'t'],
+    ['honest, open question', 'a question the asker could not know the answer to, asked with no advice hidden in it']
+  ],
+  dissent: ["I've been seated as dissent. A clearness committee member doesn't argue or advise, so I'll press with questions from the side you are leaning away from: {leaning}.",
+    "What would someone who chose the other way understand that you might be avoiding?"],
+  t: {
+    stay: ["I'm not here to advise you, only to ask. Take your time; silence is fine. Friends speak of way opening: sometimes clarity arrives as circumstances, sometimes as a settled quiet.",
+      "What has way opening, or closing, looked like in this so far?",
+      "When you say the word “stay” aloud, what happens in your body? And “go”?"],
+    risk: ["Only questions from me. Answer what you can and let the rest sit.",
+      "What does security mean to you, in your own words?",
+      "What would it take for you to feel clear, as opposed to certain?"],
+    duty: ["I'll ask, not advise. Friends hold that there is that of God in everyone, which includes you, so your own inner guide gets a hearing here.",
+      "Where did you first learn that this was your duty?",
+      "What does your desire know that your duty doesn't?"],
+    conflict: ["Questions only. The Quaker peace testimony starts close to home, in how we speak to the person across the table.",
+      "What do you think the other person is most afraid of?",
+      "What would you need in order to speak to them from a quiet place?"],
+    forgive: ["I'll ask, and you can answer or not.",
+      "What would forgiving them ask of you, concretely?",
+      "What has holding on to this given you?"],
+    money: ["Questions only. Friends speak of simplicity as clearing away whatever gets in the way of the life you mean to lead.",
+      "What would simplicity look like in this choice?",
+      "What would you do with the time if it were already paid for?"],
+    truth: ["I won't tell you what to do. Friends hold a testimony of integrity: letting your inner and outer lives match. I'll ask about that.",
+      "Where are your inner and outer lives out of step right now?",
+      "What do you imagine happens after you tell the truth?"],
+    commit: ["Questions only. Friends test a leading over time and in company before acting on it.",
+      "Who in your life has watched this commitment form, and what have they noticed?",
+      "What would you like to be true a year into keeping it?"],
+    calling: ["Questions only. Friends speak of leadings: a pull that persists, can be tested, and tends to involve service.",
+      "How long has this leading persisted, and has it changed shape?",
+      "What part of it feels like yours to do, rather than anyone's?"],
+    care: ["I'll ask, not advise. Answer only what feels true.",
+      "What do you most want them to feel when you care for them?",
+      "What would you say you need, if someone asked you gently?"]
+  }
+});
+
+SEATS.push({
+  id: 'mussar', kind: 'tradition', name: 'The Mussar teacher', short: 'Mussar', glyph: 'Mu',
+  strand: 'Jewish ethical practice: Rabbi Israel Salanter, Cheshbon HaNefesh, Alan Morinis',
+  desc: 'Which soul-trait is out of measure',
+  terms: [
+    ['middot', 'soul-traits such as patience, humility or generosity; each has a right measure, and too much or too little is the problem'],
+    ['cheshbon ha-nefesh', 'an accounting of the soul: a regular, honest review of your traits'],
+    ['bechirah point', 'the place where your real freedom to choose lies right now (Rabbi Eliyahu Dessler)']
+  ],
+  dissent: ["I'm assigned to argue against {leaning}. Mussar would ask which trait is driving it. A pull can come from a good middah out of measure: generosity tipping into self-erasure, or courage into recklessness.",
+    "Which of your traits gains most if you follow this leaning, and is it in its right measure?"],
+  t: {
+    stay: ["Mussar asks which middah, which soul-trait, is out of measure here. Restlessness can be too little savlanut, patience. Staying too long can be too little bitachon, trust.",
+      "Which trait, if it were in better balance, would make this decision clearer?",
+      "Where exactly is your bechirah point here: what is really open to you, and what isn't?"],
+    risk: ["Bitachon is trust: doing your part fully and then letting go of the outcome. Mussar teachers warn against reckless trust and also against the anxious grip that lets nothing happen.",
+      "Have you done your full share of the effort in both options?",
+      "Is the fear here in proportion, or has it grown past its measure?"],
+    duty: ["A good trait in excess becomes a fault. Too much duty turns into resentment; too much desire turns into selfishness. Each middah needs its measure.",
+      "Is this duty growing your chesed, your loving-kindness, or has it slid into resentment?",
+      "What is the right measure for your desire here, neither crushed nor in charge?"],
+    conflict: ["Kavod, honour, is owed to every person, including the one you are in conflict with. Anavah, humility, means taking up neither too much space nor too little.",
+      "Are you taking up too much space in this conflict, or too little?",
+      "How would you speak to them if you guarded their dignity as carefully as yours?"],
+    forgive: ["In Jewish teaching forgiveness is usually tied to teshuvah: the person who did harm acknowledges it and changes. Mussar also asks about your own heart: is what you are holding out of measure with what happened?",
+      "Have they made teshuvah, and does your forgiveness depend on it?",
+      "What is the right measure of distance or closeness now?"],
+    money: ["Pirkei Avot asks who is rich, and answers: the one who rejoices in their portion (Avot 4:1). Mussar treats this contentment, histapkut, as a trait you can practise.",
+      "What is your portion right now, and can you name what is good in it?",
+      "Is this about need, or about measuring yourself against other people?"],
+    truth: ["Emet, truth, is a middah with its own measure. The rabbis allowed some departure from exact truth for the sake of peace (Talmud, Yevamot 65b), but they did not treat it lightly.",
+      "Is this a case for truth, or one where peace outweighs exactness? How do you know?",
+      "What would emet in the right measure sound like, said kindly?"],
+    commit: ["Zerizut is alacrity: doing what you have committed to with energy instead of dragging it out. Seder is order. A commitment lives in small daily traits like these.",
+      "What daily practice would make this commitment real, rather than a resolution?",
+      "Which of your traits will test it most?"],
+    calling: ["Mussar teaches that each soul has its own curriculum: the particular traits it is here to work on. A calling may be where your curriculum is.",
+      "What trait would this calling force you to grow?",
+      "Is the draw to it about service or recognition, and in what proportion?"],
+    care: ["Chesed is giving what is needed without counting the return. Mussar teachers also warn that chesed without limits turns into something else.",
+      "What does chesed look like here in its right measure?",
+      "What are you giving that they didn't ask for?"]
+  }
+});
+
+SEATS.push({
+  id: 'sufi', kind: 'tradition', name: 'The Sufi', short: 'Sufi', glyph: 'Su',
+  strand: 'Rabia al-Adawiyya, al-Ghazali, Rumi',
+  desc: 'The heart, the grasping self, and trust',
+  terms: [
+    ['nafs', 'the grasping self that wants its own way'],
+    ['tawakkul', 'trust in God after you have done your part'],
+    ['ihsan', 'doing what is beautiful; worshipping as though you see God']
+  ],
+  dissent: ["I am seated to speak against {leaning}. A Sufi teacher would ask whether this is the voice of the heart or the nafs dressed as the heart. The nafs is clever, and often argues for what it wants in spiritual language.",
+    "If your nafs got nothing at all from this leaning, would you still want it?"],
+  t: {
+    stay: ["Al-Ghazali, at the height of his career teaching in Baghdad, found he could no longer speak to lecture. He left his post, and later wrote that his teaching had been driven partly by the wish for fame (Deliverance from Error, paraphrased). The question was what his heart was turned toward.",
+      "What is your heart turned toward in this place, and what would it be turned toward elsewhere?",
+      "Is the nafs, the grasping self, asking to leave or asking to stay?"],
+    risk: ["A well-known hadith tells a man to tie his camel and then trust in God. Tawakkul means doing your part, then releasing the result.",
+      "What is your share of the work here, your tying of the camel?",
+      "What would it mean to let go of the outcome after that?"],
+    duty: ["Adab is right conduct: courtesy toward God, people and things. In the Sufi orders, adab toward a duty was itself devotion. Desire is examined, not despised: does it come from the nafs or from the heart?",
+      "Can you tell whether this desire comes from the nafs or the heart? How?",
+      "What would doing this duty with full adab look like?"],
+    conflict: ["Sufi teachers speak of polishing the mirror of the heart. In a conflict the other person sometimes shows you a mark on the mirror you hadn't seen. That doesn't make them right.",
+      "What did this conflict show you about yourself?",
+      "What would sabr, patient endurance, look like here, and when would it become giving in?"],
+    forgive: ["Among the names of God in Islam are al-Ghafur, the Forgiving, and al-Afuw, the Pardoner, the one who erases the record. Sufis try to take on these qualities in a human measure.",
+      "Could you erase this from the record, even if you still remember it?",
+      "What would you hope to be forgiven for, in your own life?"],
+    money: ["Rabia al-Adawiyya is said to have prayed that she would not worship out of fear of hell or hope of paradise, only for love (paraphrased). Ask the same of your work: for whose sake?",
+      "If the payment vanished, would anything in this work still be worth doing?",
+      "What does shukr, gratitude for what you already have, tell you here?"],
+    truth: ["The Sufis prized sidq, sincerity: being the same inside and out. Truthfulness begins with not deceiving yourself.",
+      "What is the truth you have been avoiding telling yourself, before telling anyone else?",
+      "How could you say it with both sidq and gentleness?"],
+    commit: ["On the Sufi path a seeker gives a pledge, bay'a, to a teacher, meant to be kept through dryness and doubt. Love shows itself in staying.",
+      "What is this commitment a pledge to, under the surface?",
+      "When the sweetness fades, what will keep you?"],
+    calling: ["The Masnavi opens with the reed flute crying for the reed bed it was cut from (Rumi, paraphrased). For the Sufis, longing can point toward home.",
+      "What does this longing point back to?",
+      "Does the calling ask you to become more yourself, or less ruled by your nafs? Can it be both?"],
+    care: ["Ihsan, in the hadith of Gabriel, is to worship God as though you see Him, knowing that He sees you even if you don't (paraphrased). Care given with ihsan is attentive, unhurried and done well.",
+      "What would doing one small act of care beautifully look like this week?",
+      "Who cares for you while you care for them?"]
+  }
+});
+
+SEATS.push({
+  id: 'buddhist', kind: 'tradition', name: 'The Buddhist teacher', short: 'Buddhist', glyph: 'Bu',
+  strand: 'Theravada and Zen teachers; the Pali suttas',
+  desc: 'Craving, impermanence, and the second arrow',
+  terms: [
+    ['dukkha', 'unsatisfactoriness; the friction that comes with grasping'],
+    ['tanha', 'craving, literally “thirst”'],
+    ['upekkha', 'equanimity: steadiness that still cares'],
+    ['metta', 'loving-kindness; wishing someone well']
+  ],
+  dissent: ["I've been asked to speak against {leaning}. A Buddhist teacher would look for craving in it: the hope that this choice will finally make things settled. No choice can do that.",
+    "What are you hoping this leaning will end, and is that something any choice could end?"],
+  t: {
+    stay: ["Everything here is anicca, impermanent: the job, the place, the people, and you. No place will finally satisfy; that is dukkha. So look at how much tanha, craving, is in the choice either way.",
+      "If either choice will bring its own set of discomforts, which discomforts would you rather have?",
+      "How much of the pull is toward something, and how much is away from something?"],
+    risk: ["Clinging to safety and craving the new are both forms of the same thirst. The middle way is choosing with a clear mind, driven neither by fear of loss nor by appetite.",
+      "What fear sits under the security option? What appetite sits under the risk?",
+      "If you sat with this for ten minutes of quiet breathing, what would remain?"],
+    duty: ["Sila, ethical conduct, is the ground of practice, and duties kept with care are part of it. Desire is not evil in itself; craving that won't let go is what causes suffering.",
+      "Which option causes the least harm to the most people, yourself included?",
+      "Can you hold this desire lightly enough to look at it?"],
+    conflict: ["The Sallatha Sutta describes two arrows: the first is the pain that happens, the second is the pain we add by how we react. Much of a conflict is second arrows.",
+      "What was the first arrow here, and which have you added since?",
+      "Could you wish them well, metta, and still hold your ground?"],
+    forgive: ["Modern teachers often compare resentment to holding a hot coal you mean to throw at someone. That line is widely credited to the Buddha but is not in the suttas. The suttas do teach that hatred is not ended by hatred (Dhammapada 5).",
+      "What would letting this go give back to you?",
+      "Can you forgive without needing them to change?"],
+    money: ["Right livelihood asks how you earn, not only how much. The Sigalovada Sutta advises dividing wealth: a part to enjoy, two parts for your work, a part kept back for hard times (paraphrased).",
+      "Does the way you earn this money cause harm?",
+      "What would enough look like, so the craving has a limit?"],
+    truth: ["Right speech, in one sutta, is spoken at the right time, true, gentle, beneficial and with a mind of goodwill (Anguttara Nikaya 5.198, paraphrased). Truth alone is not enough; timing and kindness count.",
+      "Is it true, is it beneficial, and is this the right time?",
+      "What would you say if your only aim were their well-being?"],
+    commit: ["Commitments are made by a self that will change. So make them with awareness, and expect to renew them knowingly.",
+      "What part of you is making this commitment, and will that part still be here?",
+      "How would you renew it each year?"],
+    calling: ["Zen teachers point to ordinary work, drawing water and carrying firewood, as the practice itself. A calling may be found in how you work as much as in what the work is.",
+      "Could you do your current work in the spirit of this calling?",
+      "Is the wish for a calling also a wish to become someone else?"],
+    care: ["Karuna, compassion, includes yourself. Teachers pair it with upekkha, equanimity: caring fully while accepting that you can't control how things go for the other person.",
+      "What can you change for them, and what do you need to accept?",
+      "Where has compassion for yourself gone missing?"]
+  }
+});
+
+SEATS.push({
+  id: 'confucian', kind: 'tradition', name: 'The Confucian', short: 'Confucian', glyph: 'Ko',
+  strand: 'Kongzi (Confucius) in the Analects, and Mengzi',
+  desc: 'Roles, relationships and what is fitting',
+  terms: [
+    ['ren', 'humaneness; the goodness that shows up between people'],
+    ['li', 'ritual propriety: the forms that carry respect'],
+    ['yi', 'rightness; what is fitting, whatever the gain'],
+    ['junzi', 'the exemplary person, the one others can model themselves on']
+  ],
+  dissent: ["I am asked to argue against {leaning}. A Confucian would ask whom you have consulted. A choice made alone, even a good one, can neglect the relationships it changes.",
+    "Who would be most affected by this leaning, and what would they say if asked fairly?"],
+  t: {
+    stay: ["For Kongzi a person exists in relationships: child, parent, friend, colleague, neighbour. Leaving changes all of them. Ask what you owe each, and what each owes you.",
+      "Who would be affected by your going, and have you spoken to them the way you would want to be spoken to?",
+      "In which place could you practise ren more fully?"],
+    risk: ["The Analects say the junzi is calm and at ease while the petty person is always anxious (7.37, paraphrased). The calm comes from yi, rightness, rather than from safety.",
+      "Which option is more fitting, setting gain aside?",
+      "Who depends on your stability, and have they had a say?"],
+    duty: ["Confucian ethics is largely about duties within relationships, but they run both ways. A good parent, a good ruler and a good friend each owe something too.",
+      "In this relationship, is the duty being returned?",
+      "What would the most humane way of meeting this duty look like?"],
+    conflict: ["Shu, reciprocity: “Do not impose on others what you yourself do not desire” (Analects 15.24). Li gives a disagreement a form, so that it doesn't turn into disrespect.",
+      "What would you want done to you, if you were in their place?",
+      "What setting, what timing and what words would make this conversation respectful?"],
+    forgive: ["Someone asked Kongzi about repaying injury with kindness. He asked what, then, you would repay kindness with, and said to repay injury with uprightness and kindness with kindness (Analects 14.34, paraphrased).",
+      "What would uprightness toward them look like: neither revenge nor pretending?",
+      "What does the relationship need to become fitting again?"],
+    money: ["Kongzi said the junzi understands what is right and the petty person understands what is profitable (Analects 4.16, paraphrased). He did not despise wealth, only wealth gained without yi.",
+      "Is this money gained in a way you'd be comfortable having your parents or children see?",
+      "What would the time give the people you are responsible for?"],
+    truth: ["Zhengming, the rectification of names: things should be called what they are. When names are not correct, Kongzi said, speech does not fit and affairs go wrong (Analects 13.3, paraphrased).",
+      "What is the accurate name for what is happening?",
+      "Given your relationships, who has the right to hear it first?"],
+    commit: ["Kongzi said he did not see how a person without xin, trustworthiness, could get on, any more than a cart without a yoke-pin (Analects 2.22, paraphrased). Commitments are what make you reliable to others.",
+      "Who will rely on you because of this commitment?",
+      "Are you ready to keep it as an act of xin on the days you would rather not?"],
+    calling: ["Kongzi described his own path in stages: at fifteen he set his heart on learning, and at fifty he understood tianming, the mandate of heaven (Analects 2.4). A calling ripens through study and practice.",
+      "What have you set your heart on learning, and for how long?",
+      "How would answering this serve the people around you?"],
+    care: ["Kongzi said that filial care today is taken to mean feeding your parents, but even dogs and horses are fed; without respect, what is the difference? (Analects 2.7, paraphrased). Xiao, filial devotion, is more than provision.",
+      "How do you show respect in the caring, as well as provide?",
+      "What part of this care is yours, and what could others in the family carry?"]
+  }
+});
+
+SEATS.push({
+  id: 'epicurean', kind: 'tradition', name: 'The Epicurean', short: 'Epicurean', glyph: 'Ep',
+  strand: 'Epicurus (Letter to Menoeceus, Principal Doctrines) and Lucretius',
+  desc: 'Tranquillity, simple pleasures, and friends',
+  terms: [
+    ['ataraxia', 'tranquillity; an untroubled mind'],
+    ['natural and necessary desires', 'food, shelter, friendship; as against empty ones like fame or luxury, which have no limit'],
+    ['philia', 'friendship, which Epicurus counted the greatest support of a happy life']
+  ],
+  dissent: ["I'm seated to argue against {leaning}. An Epicurean would count the cost in tranquillity. Many choices that look brave or right are paid for in years of worry.",
+    "What peace would this leaning cost you, and have you counted it honestly?"],
+  t: {
+    stay: ["Epicurus would ask what you gain and lose in ataraxia, tranquillity. Some pains are worth choosing for a greater pleasure later; some pleasures bring greater pains (Letter to Menoeceus, paraphrased).",
+      "Where would your friendships be, if you went?",
+      "Is the pull toward a natural desire, or an empty one like status?"],
+    risk: ["The fourfold remedy, as later Epicureans summed it up: the gods are not to be feared, death is nothing to fear, what is good is easy to get, what is terrible is easy to endure (paraphrased). Risk costs peace of mind. Spend it only on something you need.",
+      "What do you actually need here, as opposed to what would be nice?",
+      "How much sleep would each option cost you?"],
+    duty: ["The Epicureans kept away from ambition and public life and lived in the Garden with friends. Duties to friends, though, they took very seriously.",
+      "Is this a duty to a friend, or to an idea of yourself?",
+      "What pleasure does the desire promise, honestly, and will it last?"],
+    conflict: ["Epicureans valued friendship above almost everything and avoided needless disturbance. They would ask whether this conflict is worth the peace it is costing.",
+      "How much of your peace is this conflict taking each week?",
+      "Is there a way through that keeps the friendship?"],
+    forgive: ["For an Epicurean, resentment is a pain you keep choosing. Where it is safe, forgiveness is often the more pleasant life.",
+      "What does the resentment cost you in tranquillity?",
+      "Would forgiving them bring you peace, or only bring them back into your life?"],
+    money: ["Epicurus lived simply and held that the wealth nature requires is limited and easy to get, while the wealth of empty opinion has no limit (Principal Doctrines 15, paraphrased).",
+      "Which part of this money serves natural desires, and which serves empty ones?",
+      "What does a simple pleasure, like a long meal with friends, cost you in time this way?"],
+    truth: ["Epicureans prized parrhesia, frank speech, among friends; Philodemus wrote a whole treatise on it. Truth told within a friendship, kindly, keeps the friendship sound.",
+      "Is this a friendship that can bear frank speech?",
+      "What will the hidden truth cost your peace over time?"],
+    commit: ["The Epicurean test is the long calculation: over a life, will this bring more pleasure and less pain? Commitments to friends usually pass.",
+      "Over ten years, does this commitment bring more steadiness or more strain?",
+      "Is it with people you would choose as friends?"],
+    calling: ["“Live unnoticed” (lathe biosas) was an Epicurean motto. A calling that promises recognition deserves suspicion; one that promises a quiet, useful life among friends deserves less.",
+      "Does this calling bring you closer to a quiet life with friends, or further from it?",
+      "Would you want it if no one ever praised you for it?"],
+    care: ["On his last day, in great pain, Epicurus wrote to a friend that the memory of their conversations outweighed it (letter to Idomeneus, paraphrased). Care for friends sat at the centre of his idea of a good life.",
+      "What small pleasures can you still share with them in this?",
+      "What do you need, so that caring doesn't take all your tranquillity?"]
+  }
+});
+
+SEATS.push({
+  id: 'existentialist', kind: 'tradition', name: 'The existentialist', short: 'Existentialist', glyph: 'Ex',
+  strand: 'Albert Camus, Simone de Beauvoir, and Viktor Frankl alongside them',
+  desc: 'Freedom, bad faith, and meaning you make',
+  terms: [
+    ['bad faith', 'pretending you have no choice when you do (Sartre and de Beauvoir)'],
+    ['the absurd', 'Camus: the gap between our wish for meaning and the world\'s silence'],
+    ['freedom', 'for de Beauvoir, willing your own freedom means willing other people\'s too']
+  ],
+  dissent: ["I've been seated against {leaning}. The existentialist question: are you choosing it, or letting it happen because it's the direction you were already drifting? From the inside, drift feels like choice.",
+    "If you had to defend this leaning as fully yours, with no appeal to circumstances, could you?"],
+  t: {
+    stay: ["No one is going to tell you which is correct. The temptation is to act as if circumstances decided, which Sartre and de Beauvoir called bad faith. Either way, you are choosing.",
+      "What are you telling yourself you “have to” do, that you are actually choosing?",
+      "Which choice would you be willing to own completely, including how it turns out?"],
+    risk: ["Frankl wrote that when everything else is taken, one freedom remains: to choose your attitude in any set of circumstances (Man's Search for Meaning, paraphrased). Security can be lost. That freedom can't.",
+      "If the risky option failed, what attitude would you want to meet the failure with?",
+      "Is the security protecting something meaningful, or postponing the question?"],
+    duty: ["De Beauvoir argued in The Ethics of Ambiguity that to will yourself free is also to will others free. The useful question is whose freedom each option serves.",
+      "Whose freedom does the duty protect? Whose does the desire?",
+      "Are you using duty to avoid a choice, or choosing duty?"],
+    conflict: ["Camus wrote that the rebel's “no” also affirms a limit, something worth defending (The Rebel, paraphrased). Your anger may be pointing at a value.",
+      "What value is your anger defending?",
+      "Can you refuse what they did without denying them as a person?"],
+    forgive: ["After the camps, Frankl rejected the idea of collective guilt and insisted on judging people one by one. Forgiveness, in this light, is a choice about what you will make of what happened.",
+      "What do you want to make of what happened to you?",
+      "If you don't forgive, what does that choice commit you to?"],
+    money: ["Camus ends The Myth of Sisyphus: “One must imagine Sisyphus happy.” Work you can't escape can still be lived with clear eyes. Work you could put down is a choice.",
+      "Which of your hours are a boulder you have chosen, and which could you put down?",
+      "What would you do with the time if you stopped needing it to justify you?"],
+    truth: ["Bad faith includes lying to yourself. Telling someone else the truth usually starts there.",
+      "What would you have to admit to yourself, if you told this truth?",
+      "What kind of person do you become by keeping it hidden?"],
+    commit: ["For the existentialists a commitment has to be renewed by acting on it; it doesn't hold itself up.",
+      "Are you ready to choose this again on the days it's hard?",
+      "Is the commitment a way of not having to choose any more?"],
+    calling: ["Frankl found meaning in three places: a deed or work, love for someone, and the stance you take toward suffering you can't avoid (paraphrased). He wrote of people kept going by an unfinished work, or a person waiting for them.",
+      "What unfinished work is waiting for you?",
+      "If no one ever validated this choice, would it still mean something to you?"],
+    care: ["Frankl describes holding on in the camps by thinking of his wife. Care can be a meaning in itself. It can also become a way of disappearing.",
+      "Is caring for them giving your life meaning, or replacing it?",
+      "What do you choose to keep of yourself while you do it?"]
+  }
+});
+
+SEATS.push({
+  id: 'gita', kind: 'tradition', name: 'The Gita teacher', short: 'Gita', glyph: 'Gi',
+  strand: 'Bhagavad Gita, as taught by modern teachers such as Eknath Easwaran',
+  desc: 'Your own duty, and action without clinging to results',
+  terms: [
+    ['svadharma', 'your own dharma: the duty fitted to your nature and place'],
+    ['karma yoga', 'acting fully while letting go of attachment to the results'],
+    ['samatva', 'evenness of mind in success and failure']
+  ],
+  dissent: ["I'm asked to argue against {leaning}. The Gita describes three gunas, qualities that colour action: sattva (clarity), rajas (restless appetite) and tamas (inertia). A leaning can come from any of them.",
+    "Does this leaning come from clarity, from restlessness, or from wanting to avoid effort?"],
+  t: {
+    stay: ["The Gita opens with Arjuna on the battlefield, wanting to lay down his bow and walk away. Krishna's answer turns on svadharma: Arjuna's own duty, fitted to his nature and his place.",
+      "Which option is closer to your svadharma, even if you would do it imperfectly?",
+      "Like Arjuna, do you want to leave because the duty is painful, or because it isn't yours?"],
+    risk: ["Krishna tells Arjuna that his right is to the action alone, never to its fruits (Gita 2.47, a common rendering). Do the work well and let go of the outcome.",
+      "If you couldn't know the outcome, which action would you still choose?",
+      "How much of the fear is about the fruit rather than the action?"],
+    duty: ["“Better your own dharma, imperfectly done, than another's done well” (Gita 3.35, a common rendering). The question is whose duty this really is.",
+      "Is this duty yours, or one you took on because someone else should have?",
+      "Is the desire pointing toward your own dharma, or away from it?"],
+    conflict: ["The Gita is set at the start of a war between cousins. Krishna teaches samatva, evenness: acting in conflict without hatred, and without being thrown by gain or loss.",
+      "What is the right action here, however they respond?",
+      "Can you act without needing to win?"],
+    forgive: ["The Gita lists kshama, forgiveness, among the qualities of a person of divine nature (16.3). It comes partly from seeing others as bound by their conditioning, as you are by yours.",
+      "What conditioning, theirs and yours, led to this?",
+      "What would kshama look like as an action, not only a feeling?"],
+    money: ["Karma yoga allows for work and earning. The danger is being bound by desire for the fruit. Work offered as service, without clinging, does not bind.",
+      "Could you do this work as an offering rather than a transaction?",
+      "What would change if you cared less about the money and more about doing it well?"],
+    truth: ["The Gita counts as a discipline of speech words that cause no distress and are truthful, pleasant and beneficial (17.15, paraphrased).",
+      "Can you say it so that it is true, kind and beneficial at once?",
+      "What would doing your duty in speech mean here?"],
+    commit: ["Krishna praises dhriti, the steady resolve that holds mind and senses on course (Gita 18.33, paraphrased). Commitment is the long practice of it.",
+      "What will steady you when your mind wavers?",
+      "Is this commitment part of your svadharma?"],
+    calling: ["Svadharma is the Gita's version of a calling: work that fits your nature and your place. Krishna says each person reaches perfection through devotion to their own work (18.45, paraphrased).",
+      "What work comes out of your nature, the way heat comes from fire?",
+      "Could you do it without needing to succeed at it?"],
+    care: ["Seva, selfless service, is karma yoga at its most intimate. The Gita asks that it be done without attachment to the result and without pride in the giving.",
+      "Can you care for them without needing them to get better or be grateful?",
+      "What would rest look like as part of the duty, rather than a break from it?"]
+  }
+});
+
+/* Personal seats. Framing defaults to seat.f; {affected} and {admired} are the names the chair gives. */
+SEATS.push({
+  id: 'future80', kind: 'personal', name: 'You at 80', short: 'You at 80', glyph: '80',
+  strand: 'A personal seat: your older self',
+  desc: 'Looking back on this from the far end',
+  f: "You at eighty, looking back. You have lived with whatever you chose here for decades, and most of the details have faded.",
+  dissent: ["You at eighty has been seated against {leaning}. Look back from the far end and argue the other side.",
+    "Looking back from eighty, what might you regret about this leaning?"],
+  t: {
+    stay: ['', "What will you be glad you risked, and what will you be glad you protected?"],
+    risk: ['', "Which version of yourself do you want to remember being in this: the careful one or the bold one?"],
+    duty: ['', "Which will you regret more at eighty: the duty you skipped, or the desire you never followed?"],
+    conflict: ["At eighty, many conflicts look small. Some don't. You at eighty knows which kind this was.", "Will this matter in twenty years? If it will, what will you want to have said?"],
+    forgive: ['', "Who will still be alive when you are eighty, and what do you want things to be like between you?"],
+    money: ['', "At eighty, would you rather have had this money or this time?"],
+    truth: ['', "What will you wish you had said while there was time?"],
+    commit: ['', "At eighty, will you be proud you kept this, or relieved you never made it?"],
+    calling: ['', "At eighty, what will you wish you had at least tried?"],
+    care: ['', "At eighty, how will you want to remember these years of caring?"]
+  }
+});
+
+SEATS.push({
+  id: 'child10', kind: 'personal', name: 'You at 10', short: 'You at 10', glyph: '10',
+  strand: 'A personal seat: your younger self',
+  desc: 'What you wanted before you learned to argue yourself out of it',
+  f: "You at ten. Answer the way you would have at ten, then notice what has changed since.",
+  dissent: ["You at ten has been seated against {leaning}. Children notice when adults talk themselves into things.",
+    "What would ten-year-old you find disappointing about this leaning?"],
+  t: {
+    stay: ['', "What would ten-year-old you think of where you are now?"],
+    risk: ['', "What did you want to be at ten, and what was brave about it?"],
+    duty: ['', "Who did you want to make proud at ten, and do they still get a vote?"],
+    conflict: ['', "What did fairness mean to you when you were ten?"],
+    forgive: ['', "How did you make up with friends at ten? What did it take?"],
+    money: ['', "At ten, what did you do with a free afternoon?"],
+    truth: ['', "What would ten-year-old you think of not telling?"],
+    commit: ['', "What did you stick with as a child, and why?"],
+    calling: ['', "What could you do for hours at ten without anyone making you?"],
+    care: ['', "Who looked after you at ten, and what did it feel like?"]
+  }
+});
+
+SEATS.push({
+  id: 'affected', kind: 'personal', name: 'The person most affected', short: 'Most affected', glyph: '',
+  strand: 'A personal seat: the person this lands on',
+  desc: 'You name them; answer as if they were listening',
+  f: "This seat is held for {affected}. Answer as if they were listening, and be fair to them.",
+  dissent: ["This seat, held for {affected}, has been assigned to argue against {leaning}. Make their strongest case.",
+    "What would {affected} lose if you went ahead with this leaning?"],
+  t: {
+    stay: ['', "What would {affected} gain and lose if you went, and if you stayed?", "Have you asked {affected}, or only imagined their answer?"],
+    risk: ['', "How much of the risk falls on {affected}, and have they agreed to carry it?"],
+    duty: ['', "Does {affected} actually want you to do this duty, or do you assume they do?"],
+    conflict: ["This seat is held for {affected}. Try to speak from their side of the table.", "How would {affected} describe what happened?", "What does {affected} need from you in order to move on?"],
+    forgive: ['', "What would {affected} say they are sorry for, if they were being fully honest?"],
+    money: ['', "How does {affected} experience the time you spend earning?"],
+    truth: ['', "Would {affected} rather know? How do you know?"],
+    commit: ['', "What is {affected} counting on you for, if you commit?"],
+    calling: ['', "What would answering this calling ask of {affected}?"],
+    care: ['', "What does {affected} wish you understood about being cared for?"]
+  }
+});
+
+SEATS.push({
+  id: 'admired', kind: 'personal', name: 'Someone you admire', short: 'Admired', glyph: '',
+  strand: 'A personal seat: a person whose life you respect',
+  desc: 'You name them; think of how they actually lived',
+  f: "{admired} has a seat. Think about how they have actually lived, as far as you know it, rather than guessing what they would say.",
+  dissent: ["{admired} has been seated against {leaning}. Picture how they would push back.",
+    "Why might {admired} choose the other way?"],
+  t: {
+    stay: ['', "When has {admired} stayed, or left, and what can you learn from how they did it?"],
+    risk: ['', "What risks did {admired} take, and which did they refuse?"],
+    duty: ['', "How did {admired} weigh duty against desire in their own life?"],
+    conflict: ['', "How would {admired} handle this conversation?"],
+    forgive: ['', "What would {admired} do with this hurt?"],
+    money: ['', "What did {admired} spend their time on, when they could choose?"],
+    truth: ['', "Would {admired} say it? How?"],
+    commit: ['', "What did {admired} commit to and keep?"],
+    calling: ['', "How did {admired} find their work?"],
+    care: ['', "How does {admired} care for people?"]
+  }
+});
+
+SEATS.push({
+  id: 'critic', kind: 'personal', name: 'Your harshest critic', short: 'Critic', glyph: 'Cr',
+  strand: 'A personal seat: a person you know, or a voice you carry',
+  desc: 'Let it speak, then decide what is fair in it',
+  f: "Your harshest critic. It might be a person you know or a voice you carry. Let it speak, then decide what is fair in it.",
+  dissent: ["Your harshest critic has been seated against {leaning}, which suits them. Let them make their best case, then judge it.",
+    "Your critic says this leaning is the easy way out, or the vain one. What is their best argument?"],
+  t: {
+    stay: ['', "What would your critic say you are running from, or hiding in?"],
+    risk: ['', "What would your critic say if this went wrong? Is any of it true?"],
+    duty: ['', "Your critic says you are doing this to look good. What is true in that, and what isn't?"],
+    conflict: ['', "What would your critic say your part in this is?"],
+    forgive: ['', "Your critic says you forgive too easily, or too little. Which, and is it fair?"],
+    money: ['', "Your critic calls you greedy, or careless with money. Which stings, and why?"],
+    truth: ['', "What would your critic say you are afraid of being found out for?"],
+    commit: ['', "What would your critic say about your record with commitments?"],
+    calling: ['', "Your critic says this calling is vanity. Answer them."],
+    care: ['', "Your critic says you are not doing enough. What would enough actually be?"]
+  }
+});
+
+const SEAT = {};
+SEATS.forEach(function (s) { SEAT[s.id] = s; });
+const TYPE = {};
+TYPES.forEach(function (t) { TYPE[t.id] = t; });
+
+/* A suggested bench for each type: traditions that read the matter differently, plus a personal seat or two. */
+const DEFAULT_BENCH = {
+  stay: { seats: ['stoic', 'daoist', 'ignatian', 'quaker', 'gita', 'future80', 'affected'], dissent: 'stoic' },
+  risk: { seats: ['epicurean', 'stoic', 'daoist', 'existentialist', 'buddhist', 'child10', 'critic'], dissent: 'epicurean' },
+  duty: { seats: ['gita', 'confucian', 'existentialist', 'mussar', 'desert', 'affected'], dissent: 'existentialist' },
+  conflict: { seats: ['buddhist', 'confucian', 'quaker', 'mussar', 'stoic', 'affected'], dissent: 'confucian' },
+  forgive: { seats: ['desert', 'buddhist', 'mussar', 'sufi', 'stoic', 'affected'], dissent: 'mussar' },
+  money: { seats: ['epicurean', 'stoic', 'buddhist', 'mussar', 'daoist', 'future80'], dissent: 'stoic' },
+  truth: { seats: ['buddhist', 'confucian', 'quaker', 'mussar', 'existentialist', 'affected'], dissent: 'confucian' },
+  commit: { seats: ['confucian', 'gita', 'ignatian', 'existentialist', 'epicurean', 'affected'], dissent: 'epicurean' },
+  calling: { seats: ['gita', 'ignatian', 'sufi', 'daoist', 'existentialist', 'child10', 'critic'], dissent: 'critic' },
+  care: { seats: ['confucian', 'buddhist', 'desert', 'stoic', 'epicurean', 'affected', 'future80'], dissent: 'epicurean' }
+};
+
+const CONF = ['Tentative', 'Fairly sure', 'Confident', 'Certain'];
+const HELD = { held: 'Held', qualified: 'Held with qualification', failed: 'Did not hold' };
+const REVIEW_CHOICES = [[0, 'No review'], [30, 'In 30 days'], [90, 'In 90 days'], [180, 'In 6 months']];
+const DAY = 864e5;
+
+/* Example cases: dates are set relative to today so the review loop is visible on first load. */
+function makeExamples() {
+  const now = Date.now();
+  const ago = function (d) { return new Date(now - d * DAY).toISOString(); };
+  const saturday = {
+    id: 'ex-saturday', example: true, status: 'ruled', step: 'done', closed: true,
+    createdAt: ago(421), ruledAt: ago(420), no: 1,
+    title: 'The Saturday contract', type: 'money',
+    decision: 'Whether to take a standing Saturday contract from a former client: about £900 a month extra for a year, working most Saturday mornings.',
+    options: 'Take it for the full year\nTake it for three months and then stop\nTurn it down',
+    leaning: 'Take it, we could use the money', strength: 4,
+    seats: ['epicurean', 'buddhist', 'mussar', 'future80', 'affected', 'stoic'], affected: 'Sam', admired: '', dissent: 'stoic', turn: 5,
+    answers: {
+      epicurean: { done: true, text: "Honestly most of it would go on the kitchen and a better holiday. Neither is a need. Saturday mornings are when we take the kids to the pool and have pancakes after. That's the long meal with friends, I suppose." },
+      buddhist: { done: true, text: "The work itself is fine, no harm in it. Enough: we cover everything now with about £300 a month spare. So this is past enough." },
+      mussar: { done: true, passed: true, text: '' },
+      future80: { done: true, text: "The time. Not close, when it's put like that. The kids are seven and nine." },
+      affected: { done: true, text: "Sam said a year of Saturdays alone with both kids was a lot to ask, and reminded me we agreed last spring to stop saying yes to things by default." },
+      stoic: { done: true, text: "If I took it and it went badly, I'd know I chose it for the money and nothing I could defend. That settled it more than anything else." }
+    },
+    prec: {},
+    ruling: { held: 'Turned it down. Told the client I can do the occasional weekday evening at the same rate if something urgent comes up.', when: 'extra paid work would take the hours I keep for the people I live with', i: 'turn it down unless we actually need the money', because: "the extra money disappears into ordinary spending and the hours don't come back", conf: 3 },
+    review: { days: 90, due: ago(330), done: true, doneAt: ago(326), held: 'held', outcome: "Said no to two more Saturday offers since. Didn't miss the money. The pool on Saturday mornings became fixed, and Sam started a Sunday class with the time that freed up." },
+    overruledBy: null, overruleReason: '', overruledAt: null
+  };
+  const firm = {
+    id: 'ex-firm', example: true, status: 'ruled', step: 'done', closed: true,
+    createdAt: ago(106), ruledAt: ago(100), no: 2,
+    title: 'Leaving the firm', type: 'stay',
+    decision: 'Whether to leave my job as a structural engineer, after eleven years at the same consultancy, to train as a secondary school science teacher.',
+    options: 'Leave in the summer and start a one-year teacher training course in September\nStay and ask for a four-day week, and tutor on the fifth day\nStay another year, save, and decide then',
+    leaning: 'Leave and train this September', strength: 3,
+    seats: ['stoic', 'daoist', 'ignatian', 'quaker', 'future80', 'affected', 'epicurean'], affected: 'Sam', admired: '', dissent: 'epicurean', turn: 6,
+    answers: {
+      stoic: { done: true, text: "Up to me: whether I apply, how well I prepare, how I treat the people I'd leave. Not up to me: whether I get a place, or whether I'm any good in the first year. I think I've been waiting for a guarantee on the second list. The feeling I'd be escaping is boredom with the work, and that wouldn't follow me into a classroom. Tiredness would, and that's fine." },
+      daoist: { done: true, text: "Staying is the forcing. I'm good at the work, but I spend the effort holding myself in place. The Thursday evening tutoring takes no effort at all and I come home with more energy than I left with." },
+      ignatian: { done: true, text: "Mixed. The idea first came in a bad patch two years ago, which made me distrust it. But it kept coming back in good months too, and that's what changed my mind. Imagining the first day in a classroom: nervous but lighter. Imagining ten more years here: flat." },
+      quaker: { done: true, text: "Way opened in an odd way: the school where I tutor asked if I'd ever thought about training, without me raising it. Saying “stay” out loud makes my shoulders go up. “Go” makes my stomach drop, but it's a different feeling, more like before a race." },
+      future80: { done: true, text: "Glad I tried teaching. Glad I protected the savings and didn't do it on a whim. Engineering will still be there if it doesn't work." },
+      affected: { done: true, text: "I'd only imagined it, so I asked Sam that evening. Sam said: less money, more of me in the school holidays, and a happier person to live with. Sam's worry is the first year, and that we decide the money part together." },
+      epicurean: { done: true, text: "Fair. The first year of teaching will be harder than now on most days, and money will be tighter. Sam and I counted that. What I can't count away is ten more years of low-level restlessness, and that costs peace too." }
+    },
+    prec: { 'ex-saturday': { t: 'distinguish', reason: "The Saturday contract was about selling family hours for money we didn't need. This gives up money to change what the hours are for. The old principle still stands for extra work." } },
+    ruling: { held: 'Apply for the September training course now and tell my manager once there is an offer. If no offer comes by May, ask for a four-day week for a year and tutor on Fridays.', when: 'I have wanted the same change for more than a year and can afford to test it', i: 'test it properly, with a fixed date, instead of waiting for the wish to fade', because: 'waiting has been costing me, and Sam, more than a failed attempt would', conf: 2 },
+    review: { days: 90, due: ago(10), done: false, doneAt: null, held: '', outcome: '' },
+    overruledBy: null, overruleReason: '', overruledAt: null
+  };
+  return [saturday, firm];
+}
+
+/* ---------- Storage ---------- */
+const KEY = 'inderstanding.council.v1';
+function storeGet() { try { return window.localStorage.getItem(KEY); } catch (e) { return null; } }
+function storeSet(v) { try { window.localStorage.setItem(KEY, v); return true; } catch (e) { return false; } }
+function storeDel() { try { window.localStorage.removeItem(KEY); } catch (e) { /* storage unavailable */ } }
+
+function blankData() { return { v: 1, cases: [], openId: null, examplesCleared: false }; }
+
+function normCase(c) {
+  if (!c || typeof c !== 'object' || typeof c.id !== 'string') return null;
+  const out = Object.assign({
+    example: false, status: 'open', step: 'matter', closed: false, createdAt: new Date().toISOString(), ruledAt: null, no: null,
+    title: '', type: '', decision: '', options: '', leaning: '', strength: 3,
+    seats: [], affected: '', admired: '', dissent: '', turn: 0, answers: {}, prec: {},
+    ruling: {}, review: null, overruledBy: null, overruleReason: '', overruledAt: null
+  }, c);
+  if (!Array.isArray(out.seats)) out.seats = [];
+  out.seats = out.seats.filter(function (id) { return !!SEAT[id]; });
+  if (!out.answers || typeof out.answers !== 'object') out.answers = {};
+  if (!out.prec || typeof out.prec !== 'object') out.prec = {};
+  out.ruling = Object.assign({ held: '', when: '', i: '', because: '', conf: 2, reviewDays: 90 }, out.ruling || {});
+  ['title', 'decision', 'options', 'leaning', 'affected', 'admired'].forEach(function (k) { out[k] = String(out[k] == null ? '' : out[k]); });
+  out.strength = Math.min(5, Math.max(1, Number(out.strength) || 3));
+  return out;
+}
+
+function normData(d) {
+  if (!d || typeof d !== 'object' || !Array.isArray(d.cases)) return null;
+  const cases = d.cases.map(normCase).filter(Boolean);
+  const out = { v: 1, cases: cases, openId: null, examplesCleared: !!d.examplesCleared };
+  if (d.openId && cases.some(function (c) { return c.id === d.openId && c.status === 'open'; })) out.openId = d.openId;
+  return out;
+}
+
+function loadData() {
+  const raw = storeGet();
+  if (raw) {
+    try { const d = normData(JSON.parse(raw)); if (d) return d; } catch (e) { /* fall through to examples */ }
+  }
+  const d = blankData();
+  d.cases = makeExamples().map(normCase);
+  return d;
+}
+
+let data = loadData();
+let saveTimer = null;
+function save() { clearTimeout(saveTimer); saveTimer = null; storeSet(JSON.stringify(data)); }
+function saveSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(save, 350); }
+
+const ui = { view: 'hearing', recordId: null, focusSeat: null, flash: null, reviewOpen: {}, confirm: null, needle: {}, needleFrom: {}, refocus: null, scrollTo: null, notice: '' };
+
+/* ---------- Helpers ---------- */
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+  });
+}
+function uid() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+function addDays(iso, n) { return new Date(new Date(iso).getTime() + n * DAY).toISOString(); }
+function isDue(c) { return !!(c.review && !c.review.done && new Date(c.review.due).getTime() <= Date.now()); }
+function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+function trunc(s, n) { s = String(s); return s.length > n ? s.slice(0, n - 1).trim() + '…' : s; }
+function byId(id) { return data.cases.find(function (c) { return c.id === id; }) || null; }
+function openCase() { return data.openId ? byId(data.openId) : null; }
+function ruledCases() {
+  return data.cases.filter(function (c) { return c.status === 'ruled'; })
+    .sort(function (a, b) { return new Date(a.ruledAt) - new Date(b.ruledAt); });
+}
+function latestRuled() { const r = ruledCases(); return r.length ? r[r.length - 1] : null; }
+function hasExamples() { return data.cases.some(function (c) { return c.example; }); }
+function nextNo() {
+  let max = 0;
+  data.cases.forEach(function (c) { if (!c.example && c.status === 'ruled' && c.no > max) max = c.no; });
+  return max + 1;
+}
+function year(c) { const d = new Date(c.ruledAt || c.createdAt); return isNaN(d.getTime()) ? '' : d.getFullYear(); }
+function caseTitle(c) { return c.title.trim() || 'Untitled matter'; }
+function citeTail(c) { return '[' + year(c) + '] ' + (c.example ? 'Ex' : 'CB') + ' ' + (c.no || ''); }
+function citeText(c) { return 'Re: ' + caseTitle(c) + ' ' + citeTail(c); }
+function citeHTML(c) {
+  return '<i>Re: ' + esc(caseTitle(c)) + '</i> <span class="cite">' + esc(citeTail(c)) + '</span>';
+}
+function typeLabel(id) { return TYPE[id] ? TYPE[id].label : 'Unclassified'; }
+
+/* ---------- Seats in a case ---------- */
+function seatName(id, c) {
+  if (id === 'affected') return c && c.affected.trim() ? c.affected.trim() : 'The person most affected';
+  if (id === 'admired') return c && c.admired.trim() ? c.admired.trim() : 'Someone you admire';
+  return SEAT[id] ? SEAT[id].name : id;
+}
+function seatShort(id, c) {
+  if (id === 'affected') return c && c.affected.trim() ? c.affected.trim() : 'Most affected';
+  if (id === 'admired') return c && c.admired.trim() ? c.admired.trim() : 'Admired';
+  return SEAT[id] ? SEAT[id].short : id;
+}
+function seatGlyph(id, c) {
+  if (id === 'affected' || id === 'admired') {
+    const n = seatShort(id, c);
+    return (c && (id === 'affected' ? c.affected : c.admired).trim()) ? n.trim().charAt(0).toUpperCase() : (id === 'affected' ? 'A' : 'Ad');
+  }
+  return SEAT[id] ? SEAT[id].glyph : '?';
+}
+function speakingOrder(c) {
+  const list = c.seats.filter(function (id) { return id !== c.dissent && SEAT[id]; });
+  if (c.dissent && c.seats.indexOf(c.dissent) >= 0) list.push(c.dissent);
+  return list;
+}
+function leaningPhrase(c) {
+  const l = c.leaning.trim().replace(/[.\s]+$/, '');
+  return l ? 'your leaning (“' + l + '”)' : 'your current leaning';
+}
+function fill(str, c) {
+  return String(str || '')
+    .replace(/\{affected\}/g, c.affected.trim() || 'the person most affected')
+    .replace(/\{admired\}/g, c.admired.trim() || 'the person you admire')
+    .replace(/\{leaning\}/g, leaningPhrase(c))
+    .replace(/^(the person|your)/, function (m) { return m.charAt(0).toUpperCase() + m.slice(1); });
+}
+function seatContent(id, c) {
+  const s = SEAT[id];
+  if (!s) return { f: '', qs: [] };
+  if (id === c.dissent) return { f: fill(s.dissent[0], c), qs: [fill(s.dissent[1], c)], dissent: true };
+  const e = s.t[c.type] || s.t.stay;
+  return { f: fill(e[0] || s.f, c), qs: e.slice(1).map(function (q) { return fill(q, c); }), dissent: false };
+}
+function answerOf(c, id) { return c.answers[id] || { text: '', done: false, passed: false }; }
+function benchProblems(c) {
+  const p = [];
+  const n = c.seats.length;
+  if (n < 5) p.push('Seat at least five voices (' + n + ' seated so far).');
+  if (n > 7) p.push('Seven seats at most. Remove ' + (n - 7) + '.');
+  if (c.seats.indexOf('affected') >= 0 && !c.affected.trim()) p.push('Name the person most affected, or unseat them.');
+  if (c.seats.indexOf('admired') >= 0 && !c.admired.trim()) p.push('Name someone you admire, or unseat that chair.');
+  return p;
+}
+function matterProblems(c) {
+  const p = [];
+  if (!c.title.trim()) p.push('Give the matter a short name.');
+  if (!c.decision.trim()) p.push('Say what the decision is.');
+  if (!TYPE[c.type]) p.push('Choose what kind of matter it is.');
+  return p;
+}
+
+/* ---------- Precedent: same type, or shared words with an earlier principle ---------- */
+const STOP = new Set(('that this with have from they them their there what when your would could should about which will just been were into than then also only some more most very much over such because while where after before again being does doing done each other these those whom whose yours mine ours make made want wants still even ever never always really thing things like onto upon itself myself without within around through down back take took give gave keep kept need needs know knew think year years month months week weeks time times good well many first last next whether people person').split(' '));
+function words(s) {
+  const out = new Set();
+  String(s || '').toLowerCase().replace(/['’]/g, '').split(/[^a-z]+/).forEach(function (w) {
+    if (w.length < 4 || STOP.has(w)) return;
+    if (w.length > 4 && /[^s]s$/.test(w)) w = w.slice(0, -1);
+    out.add(w);
+  });
+  return out;
+}
+function precedentsFor(c) {
+  const mine = words([c.title, c.decision, c.options, c.leaning].join(' '));
+  return ruledCases().filter(function (o) {
+    return o.id !== c.id && !o.overruledBy && !!o.example === !!c.example;
+  }).map(function (o) {
+    const theirs = words([o.title, o.ruling.when, o.ruling.i, o.ruling.because].join(' '));
+    const shared = Array.from(mine).filter(function (w) { return theirs.has(w); });
+    const sameType = !!c.type && o.type === c.type;
+    return { o: o, shared: shared, sameType: sameType, score: (sameType ? 3 : 0) + shared.length };
+  }).filter(function (r) { return r.sameType || r.shared.length >= 2; })
+    .sort(function (a, b) { return b.score - a.score; }).slice(0, 5);
+}
+function whyLine(r) {
+  const bits = [];
+  if (r.sameType) bits.push('Same kind of matter: ' + typeLabel(r.o.type));
+  if (r.shared.length) bits.push('Shares the words ' + r.shared.slice(0, 4).map(function (w) { return '“' + w + '”'; }).join(', '));
+  return bits.join(' · ');
+}
+function ratioHTML(r) {
+  return '<span class="w">When</span> ' + esc(r.when) + ', I ' + esc(r.i) +
+    (r.because ? ', <span class="w">because</span> ' + esc(r.because) : '') + '.';
+}
+/* Later cases that cited this one, with how they treated it. */
+function laterTreatment(c) {
+  const out = [];
+  data.cases.forEach(function (o) {
+    if (o.status !== 'ruled' || !o.prec || !o.prec[c.id]) return;
+    const p = o.prec[c.id];
+    if (p.t === 'follow' || p.t === 'distinguish' || p.t === 'overturn') out.push({ o: o, p: p });
+  });
+  return out;
+}
+const TREAT_PAST = { follow: 'followed', distinguish: 'distinguished', overturn: 'overruled' };
+const TREAT_IN = { follow: 'Followed in', distinguish: 'Distinguished in', overturn: 'Overruled by' };
+
+/* ---------- The table, seen from above ---------- */
+const CX = 260, CY = 192, SRX = 205, SRY = 140;
+function seatPositions(n) {
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const a = (90 + (i + 1) * 360 / (n + 1)) * Math.PI / 180; /* clockwise from the chair's left */
+    out.push({ x: CX + SRX * Math.cos(a), y: CY + SRY * Math.sin(a) });
+  }
+  return out;
+}
+function angleTo(p) { return Math.atan2(p.y - CY, p.x - CX) * 180 / Math.PI; }
+
+function tableSVG(c, mode) {
+  const ids = (c && ['bench', 'hearing', 'ruling', 'record'].indexOf(mode) >= 0) ? speakingOrder(c) : [];
+  const ghost = ids.length === 0;
+  const n = ghost ? 6 : ids.length;
+  const pos = seatPositions(n);
+  const cur = (mode === 'hearing' && !ghost) ? clamp(c.turn, 0, ids.length - 1) : -1;
+  let target = 90;
+  if (cur >= 0) target = angleTo(pos[cur]);
+  else if (mode === 'record' && ui.focusSeat && ids.indexOf(ui.focusSeat) >= 0) target = angleTo(pos[ids.indexOf(ui.focusSeat)]);
+  const key = c ? c.id : '_';
+  const prev = ui.needle[key] == null ? target : ui.needle[key];
+  let to = target;
+  while (to - prev > 180) to -= 360;
+  while (to - prev < -180) to += 360;
+  ui.needle[key] = to;
+
+  let seats = '';
+  pos.forEach(function (p, i) {
+    const x = p.x.toFixed(1), y = p.y.toFixed(1);
+    if (ghost) { seats += '<g class="seat is-ghost"><circle class="s-disc" cx="' + x + '" cy="' + y + '" r="22"/></g>'; return; }
+    const id = ids[i];
+    const a = answerOf(c, id);
+    let cls = 'seat';
+    if (i === cur) cls += ' is-current';
+    else if (mode !== 'bench' && a.passed) cls += ' is-passed';
+    else if (mode !== 'bench' && a.done) cls += ' is-done';
+    if (mode === 'record' && ui.focusSeat === id) cls += ' is-focus';
+    const ly = p.y < CY - 30 ? p.y - 34 : p.y + 42;
+    seats += '<g class="' + cls + '" data-action="goto-seat" data-seat="' + id + '">';
+    if (i === cur) seats += '<circle class="s-halo" cx="' + x + '" cy="' + y + '" r="24"/>';
+    seats += '<circle class="s-disc" cx="' + x + '" cy="' + y + '" r="23"/>';
+    seats += '<text class="s-glyph" x="' + x + '" y="' + y + '">' + esc(seatGlyph(id, c)) + '</text>';
+    seats += '<text class="s-label" x="' + x + '" y="' + ly.toFixed(1) + '">' + esc(trunc(seatShort(id, c), 15)) + '</text>';
+    if (id === c.dissent) {
+      seats += '<circle class="s-dissent" cx="' + (p.x + 18).toFixed(1) + '" cy="' + (p.y - 18).toFixed(1) + '" r="9"/>' +
+        '<text class="s-dissent-t" x="' + (p.x + 18).toFixed(1) + '" y="' + (p.y - 18).toFixed(1) + '">D</text>';
+    }
+    seats += '</g>';
+  });
+
+  const chairY = CY + SRY;
+  const chair = '<g class="chair"><rect class="chair-r" x="' + (CX - 38) + '" y="' + (chairY - 17) + '" width="76" height="34" rx="4"/>' +
+    '<text class="chair-t" x="' + CX + '" y="' + chairY + '">CHAIR</text>' +
+    '<text class="s-label" x="' + CX + '" y="' + (chairY + 42) + '">You</text></g>';
+  const needle = '<g class="needle" data-to="' + to.toFixed(1) + '" style="transform-origin:' + CX + 'px ' + CY + 'px;transform:rotate(' + prev.toFixed(1) + 'deg)">' +
+    '<path class="nd-tail" d="M' + CX + ' ' + (CY - 3) + ' L' + (CX - 30) + ' ' + CY + ' L' + CX + ' ' + (CY + 3) + ' Z"/>' +
+    '<path class="nd-blade" d="M' + CX + ' ' + (CY - 6) + ' L' + (CX + 84) + ' ' + CY + ' L' + CX + ' ' + (CY + 6) + ' Z"/>' +
+    '<circle class="nd-hub" cx="' + CX + '" cy="' + CY + '" r="8"/></g>';
+
+  return '<svg class="table-svg" viewBox="0 0 520 400" role="img" aria-label="' + esc(tableLabel(c, mode, ids, cur)) + '">' +
+    '<ellipse class="t-shadow" cx="' + CX + '" cy="' + (CY + 8) + '" rx="156" ry="100"/>' +
+    '<ellipse class="t-rim" cx="' + CX + '" cy="' + CY + '" rx="152" ry="97"/>' +
+    '<ellipse class="t-top" cx="' + CX + '" cy="' + CY + '" rx="142" ry="87"/>' +
+    '<ellipse class="t-inlay" cx="' + CX + '" cy="' + CY + '" rx="128" ry="75"/>' +
+    needle + seats + chair + '</svg>';
+}
+
+function tableLabel(c, mode, ids, cur) {
+  if (!ids.length) return 'The council table, seen from above. No one is seated yet; the chair is at the foot.';
+  const names = ids.map(function (id) { return seatName(id, c); }).join(', ');
+  let s = 'The council table, seen from above, with ' + ids.length + ' seats in speaking order: ' + names + '.';
+  if (cur >= 0) s += ' Speaking now: ' + seatName(ids[cur], c) + '.';
+  if (c.dissent) s += ' Dissent: ' + seatName(c.dissent, c) + '.';
+  return s;
+}
+
+function tableCaption(c, mode) {
+  if (!c || mode === 'empty') return 'The chair sits at the foot of the table. Seats fill when a matter is brought.';
+  if (mode === 'matter') return 'The council is seated in the next step.';
+  const ids = speakingOrder(c);
+  if (mode === 'bench') return '<b>' + ids.length + ' seated</b>, speaking clockwise from your left' + (c.dissent ? ', dissent last' : '');
+  if (mode === 'hearing') {
+    const i = clamp(c.turn, 0, ids.length - 1);
+    return 'Seat ' + (i + 1) + ' of ' + ids.length + ': <b>' + esc(seatName(ids[i], c)) + '</b> is speaking';
+  }
+  if (mode === 'ruling') return 'The council has been heard. <b>The chair rules.</b>';
+  return 'Heard by ' + ids.length + ' seats. Choose a seat to read what it asked.';
+}
+
+function orderList(c, mode) {
+  const ids = speakingOrder(c);
+  if (!ids.length) return '';
+  const cur = mode === 'hearing' ? clamp(c.turn, 0, ids.length - 1) : -1;
+  return '<ol class="order" aria-label="Order of speaking">' + ids.map(function (id, i) {
+    const a = answerOf(c, id);
+    let st = a.passed ? 'passed' : (a.done ? 'heard' : 'waiting');
+    if (i === cur) st = 'speaking';
+    if (mode === 'bench') st = id === c.dissent ? 'dissent' : 'seated';
+    const isCur = i === cur || (mode === 'record' && ui.focusSeat === id);
+    const label = esc(seatName(id, c)) + (id === c.dissent && mode !== 'bench' ? ' (dissent)' : '');
+    if (mode === 'bench') return '<li><button type="button" disabled><span class="n">' + (i + 1) + '</span><span>' + label + '</span><span class="st">' + st + '</span></button></li>';
+    return '<li><button type="button" data-action="goto-seat" data-seat="' + id + '"' + (isCur ? ' aria-current="true"' : '') + '><span class="n">' + (i + 1) + '</span><span>' + label + '</span><span class="st">' + st + '</span></button></li>';
+  }).join('') + '</ol>';
+}
+
+function tableInner(c, mode) {
+  return tableSVG(c, mode) + '<p class="table-cap">' + tableCaption(c, mode) + '</p>' + (c && mode !== 'matter' && mode !== 'empty' ? orderList(c, mode) : '');
+}
+function tableCol(c, mode) { return '<div class="table-col"><div id="table-wrap">' + tableInner(c, mode) + '</div></div>'; }
+function refreshTable(c, mode) {
+  const w = document.getElementById('table-wrap');
+  if (w) { w.innerHTML = tableInner(c, mode); animateNeedle(); }
+}
+function animateNeedle() {
+  const nd = document.querySelector('.needle[data-to]');
+  if (!nd) return;
+  const to = nd.getAttribute('data-to');
+  requestAnimationFrame(function () { requestAnimationFrame(function () { nd.style.transform = 'rotate(' + to + 'deg)'; }); });
+}
+
+/* ---------- Small builders ---------- */
+function chip(name, id, value, label, checked) {
+  return '<label class="chip"><input type="radio" name="' + esc(name) + '" id="' + esc(id) + '" value="' + esc(value) + '"' + (checked ? ' checked' : '') + '><span>' + esc(label) + '</span></label>';
+}
+function leaningText(c) { return c.leaning.trim() ? esc(c.leaning.trim()) + ' (' + c.strength + ' of 5)' : 'None stated'; }
+function matterFacts(c) {
+  return '<dl class="facts"><dt>Options</dt><dd>' + esc(c.options.trim() || 'None recorded') + '</dd><dt>Leaning at opening</dt><dd>' + leaningText(c) + '</dd></dl>';
+}
+function reviewMark(c) {
+  const r = c.review;
+  if (!r) return '';
+  if (r.done) return (HELD[r.held] || 'Reviewed') + ' on review';
+  return isDue(c) ? 'Review due' : 'Review listed for ' + fmtDate(r.due);
+}
+function ratioBox(c) {
+  const bits = [CONF[(c.ruling.conf || 2) - 1]];
+  const rm = reviewMark(c);
+  if (rm) bits.push(rm);
+  let h = '<div class="ratio' + (c.overruledBy ? ' is-overruled' : '') + '"><span class="k">Ratio</span><p class="ratio-text">' + ratioHTML(c.ruling) + '</p><p class="meta">' + esc(bits.join(' · ')) + '</p></div>';
+  if (c.overruledBy) {
+    const o = byId(c.overruledBy);
+    h += '<p class="overruled-note">Overruled by ' + (o ? '<button type="button" class="cite-link" data-action="goto-report" data-id="' + esc(o.id) + '">' + esc(citeText(o)) + '</button>' : 'a later case') +
+      (c.overruledAt ? ' on ' + fmtDate(c.overruledAt) : '') + (c.overruleReason ? ': “' + esc(c.overruleReason) + '”' : '.') + '</p>';
+  }
+  return h;
+}
+
+const INTRO = 'Council turns a real decision into a hearing. You state the matter, seat five to seven voices from different traditions and from your own life, and answer what each one asks. Then you rule on it yourself and write down the principle underneath. Rulings collect in a casebook and come back as precedent when a similar matter arrives, so over time the casebook shows the philosophy you actually decide by.';
+
+/* ---------- Hearing view ---------- */
+function renderHearing() {
+  const open = openCase();
+  let r = ui.recordId ? byId(ui.recordId) : null;
+  if (r && r.status === 'ruled') return renderRecord(r, open);
+  if (open) return renderOpen(open);
+  r = latestRuled();
+  if (r) return renderRecord(r, null);
+  return renderEmpty();
+}
+
+function renderEmpty() {
+  return '<div class="frame chamber">' + tableCol(null, 'empty') +
+    '<div class="stage"><p class="kicker">The chamber</p><h1 class="speaker" id="stage-h" tabindex="-1">No matter is before the council</h1>' +
+    '<p class="intro">' + INTRO + '</p>' +
+    '<p class="hint">Bring a decision you are actually facing. It works best with something specific and not yet settled.</p>' +
+    '<div class="actions"><button type="button" class="btn btn-primary" data-action="new-matter">Bring a matter</button></div></div></div>';
+}
+
+function transcriptItem(c, id) {
+  const sc = seatContent(id, c);
+  const a = answerOf(c, id);
+  return '<li id="tr-' + id + '"' + (ui.focusSeat === id ? ' class="is-focus"' : '') + '>' +
+    '<div class="tr-head"><span class="tr-name">' + esc(seatName(id, c)) + '</span>' + (sc.dissent ? '<span class="tag">Dissent</span>' : '') + '</div>' +
+    '<p class="hint">' + esc(SEAT[id].strand) + '</p>' +
+    '<p>' + esc(sc.f) + '</p>' + sc.qs.map(function (q) { return '<p class="tr-q">' + esc(q) + '</p>'; }).join('') +
+    (a.passed || !a.text.trim() ? '<p class="tr-passed">The chair passed.</p>' : '<p class="tr-answer"><span class="k">The chair</span>' + esc(a.text) + '</p>') +
+    '</li>';
+}
+
+function renderRecord(c, open) {
+  const ids = speakingOrder(c);
+  let h = '<div class="frame">';
+  if (open) {
+    h += '<div class="intro-row"><p class="intro">You have an open matter: <i>Re: ' + esc(caseTitle(open)) + '</i>.</p><div class="actions"><button type="button" class="btn btn-primary" data-action="return-open">Return to the open matter</button></div></div>';
+  } else {
+    const showIntro = hasExamples() || ruledCases().length < 3;
+    h += '<div class="intro-row">' + (showIntro ? '<p class="intro">' + INTRO + '</p>' : '<p class="intro">The last hearing on record.</p>') +
+      '<div class="actions"><button type="button" class="btn btn-primary" data-action="new-matter">Bring a new matter</button></div></div>';
+  }
+  h += '<div class="chamber">' + tableCol(c, 'record') + '<div class="stage">';
+  h += '<p class="kicker">Hearing record ' + (c.example ? '<span class="tag">Example</span>' : '') + '</p>';
+  h += '<h1 class="matter-title" id="stage-h" tabindex="-1"><span class="re">Re:</span> <i>' + esc(caseTitle(c)) + '</i></h1>';
+  h += '<p class="citation"><span>' + esc(citeTail(c)) + '</span><span class="sep">·</span><span>' + esc(typeLabel(c.type)) + '</span><span class="sep">·</span><span>ruled ' + esc(fmtDate(c.ruledAt)) + '</span></p>';
+  h += '<p class="headnote">' + esc(c.decision) + '</p>' + matterFacts(c);
+  h += '<ol class="transcript" aria-label="What each seat asked, and the answers">' + ids.map(function (id) { return transcriptItem(c, id); }).join('') + '</ol>';
+  h += '<section class="ruling-block" aria-label="The ruling"><p class="held"><span class="k">Held:</span>' + esc(c.ruling.held) + '</p>' + ratioBox(c) +
+    '<div class="actions"><button type="button" class="btn-text" data-action="goto-report" data-id="' + esc(c.id) + '">Read the report in the casebook</button></div></section>';
+  h += '</div></div></div>';
+  return h;
+}
+
+function renderOpen(c) {
+  const step = c.step || 'matter';
+  const okMatter = matterProblems(c).length === 0;
+  const okBench = okMatter && benchProblems(c).length === 0;
+  const enabled = { matter: true, bench: okMatter, hearing: okBench, ruling: okBench && c.closed };
+  const steps = [['matter', 'Matter'], ['bench', 'Bench'], ['hearing', 'Hearing'], ['ruling', 'Ruling']];
+  let h = '<div class="frame"><div class="matter-head"><p class="kicker">Open matter</p>' +
+    '<h1 class="matter-title"><span class="re">Re:</span> <i id="open-title">' + esc(caseTitle(c)) + '</i></h1>' +
+    '<ol class="steps" aria-label="Steps">' + steps.map(function (s, i) {
+      return '<li><button type="button" data-action="step" data-step="' + s[0] + '"' + (s[0] === step ? ' aria-current="step"' : '') + (enabled[s[0]] || s[0] === step ? '' : ' disabled') + '><span class="n">' + (i + 1) + '</span>' + s[1] + '</button></li>';
+    }).join('') + '</ol></div>';
+  const body = step === 'bench' ? stepBench(c) : step === 'hearing' ? stepHearing(c) : step === 'ruling' ? stepRuling(c) : stepMatter(c);
+  h += '<div class="chamber">' + tableCol(c, step) + '<div class="stage">' + body + '</div></div></div>';
+  return h;
+}
+
+function precPreview(c) {
+  const list = precedentsFor(c);
+  if (!list.length) {
+    const any = ruledCases().some(function (o) { return !!o.example === !!c.example; });
+    return '<p class="hint">' + (any ? 'No earlier ruling looks related yet. Precedent appears here when the kind of matter or the wording matches an earlier principle.' : 'Your casebook has no rulings yet, so there is no precedent. Your first rulings become precedent for later ones.') + '</p>';
+  }
+  return '<div class="field"><span class="legend">Precedent on file</span><div class="prec-list">' + list.map(function (r) {
+    return '<div class="prec"><p class="prec-cite">' + citeHTML(r.o) + '<span class="why">' + esc(whyLine(r)) + '</span></p><p class="prec-ratio">' + ratioHTML(r.o.ruling) + '</p></div>';
+  }).join('') + '</div><p class="hint">When you rule, you will say whether to follow, distinguish or overturn each one.</p></div>';
+}
+
+function confirmBlock(kind, question, yesLabel, yesId, noLabel) {
+  return '<div class="confirm" role="group" aria-label="Confirm"><p>' + esc(question) + '</p>' +
+    '<button type="button" class="btn btn-danger-solid" data-action="' + kind + '-yes" id="' + yesId + '">' + esc(yesLabel) + '</button>' +
+    '<button type="button" class="btn" data-action="' + kind + '-no">' + esc(noLabel) + '</button></div>';
+}
+
+function stepMatter(c) {
+  let h = '<form class="form" data-form="matter" novalidate>';
+  h += '<h2 class="speaker" id="stage-h" tabindex="-1">Bring the matter</h2>';
+  h += '<p class="hint">Describe the decision as it stands today. You can come back and change this before the hearing.</p>';
+  h += '<div class="field"><label for="matter-title">Name the matter</label><div class="prefixed"><span aria-hidden="true">Re:</span><input type="text" id="matter-title" data-bind="title" maxlength="80" value="' + esc(c.title) + '" placeholder="Leaving the firm"></div><p class="hint">A short name, the way a case is named. It becomes the citation.</p></div>';
+  h += '<div class="field"><label for="matter-decision">What is the decision?</label><textarea id="matter-decision" data-bind="decision" rows="3" placeholder="Whether to ...">' + esc(c.decision) + '</textarea></div>';
+  h += '<div class="field"><label for="matter-options">The options as you see them now</label><textarea id="matter-options" data-bind="options" rows="3" placeholder="One per line">' + esc(c.options) + '</textarea></div>';
+  h += '<div class="field"><label for="matter-leaning">Which way are you leaning?</label><input type="text" id="matter-leaning" data-bind="leaning" maxlength="140" value="' + esc(c.leaning) + '" placeholder="The option you would pick if you had to choose today"></div>';
+  h += '<div class="field"><label for="matter-strength">How strongly <output id="strength-out" for="matter-strength">' + c.strength + ' of 5</output></label><input type="range" id="matter-strength" data-bind="strength" min="1" max="5" step="1" value="' + c.strength + '"><div class="scale-ends" aria-hidden="true"><span>Barely</span><span>Firmly</span></div></div>';
+  h += '<fieldset class="field"><legend class="legend">What kind of matter is it?</legend><div class="chips">' + TYPES.map(function (t) { return chip('matter-type', 'type-' + t.id, t.id, t.label, c.type === t.id); }).join('') + '</div><p class="hint" id="type-hint">' + (TYPE[c.type] ? esc(TYPE[c.type].label + ': ' + TYPE[c.type].hint) : 'The kind of matter shapes what each seat asks, and which earlier rulings are cited.') + '</p></fieldset>';
+  h += '<div id="prec-preview">' + precPreview(c) + '</div>';
+  h += '<p class="err" id="matter-err" role="alert"></p>';
+  h += '<div class="actions"><button type="submit" class="btn btn-primary">Seat the council</button>' + (ui.confirm === 'withdraw' ? '' : '<button type="button" class="btn-text" data-action="withdraw">Withdraw this matter</button>') + '</div>';
+  if (ui.confirm === 'withdraw') h += confirmBlock('withdraw', 'Withdraw this matter and delete what you have written for it?', 'Yes, withdraw it', 'withdraw-yes', 'Keep working');
+  h += '</form>';
+  return h;
+}
+
+function stepBench(c) {
+  const pick = function (s) {
+    const on = c.seats.indexOf(s.id) >= 0;
+    return '<li><button type="button" class="seat-pick" id="pick-' + s.id + '" data-action="toggle-seat" data-seat="' + s.id + '" aria-pressed="' + on + '">' +
+      '<span class="g" aria-hidden="true">' + esc(seatGlyph(s.id, c)) + '</span><span class="nm">' + esc(s.name) + '</span><span class="sd">' + esc(s.desc) + '</span>' +
+      '<span class="on">' + (on ? 'Seated' : 'Seat') + '</span></button></li>';
+  };
+  let h = '<div class="form">';
+  h += '<h2 class="speaker" id="stage-h" tabindex="-1">Seat the council</h2>';
+  h += '<p class="hint">Choose five to seven seats. They speak in turn, clockwise from your left. The suggested bench for ' + esc(typeLabel(c.type).toLowerCase()) + ' mixes traditions that read this kind of matter differently; change it freely.</p>';
+  h += '<div class="bench-bar"><span class="bench-count" id="bench-count">' + c.seats.length + ' seated (five to seven)</span><button type="button" class="btn-text" data-action="suggest">Use the suggested bench</button></div>';
+  h += '<div><span class="legend">Traditions</span><ul class="roster">' + SEATS.filter(function (s) { return s.kind === 'tradition'; }).map(pick).join('') + '</ul></div>';
+  h += '<div><span class="legend">Personal seats</span><ul class="roster">' + SEATS.filter(function (s) { return s.kind === 'personal'; }).map(pick).join('') + '</ul></div>';
+  h += '<div class="two"><div class="field"><label for="bench-affected">Who is most affected by this?</label><input type="text" id="bench-affected" data-bind="affected" maxlength="40" value="' + esc(c.affected) + '" placeholder="Their name"></div>' +
+    '<div class="field"><label for="bench-admired">Someone you admire</label><input type="text" id="bench-admired" data-bind="admired" maxlength="40" value="' + esc(c.admired) + '" placeholder="Their name"></div></div>';
+  h += '<div class="field"><label for="bench-dissent">Dissent</label><select id="bench-dissent"><option value="">No dissent</option>' + c.seats.map(function (id) {
+    return '<option value="' + id + '"' + (c.dissent === id ? ' selected' : '') + '>' + esc(seatName(id, c)) + '</option>';
+  }).join('') + '</select><p class="hint">The dissenting seat is assigned to argue against your leaning, from inside its own tradition, and speaks last.</p></div>';
+  h += '<p class="err" id="bench-err" role="alert"></p>';
+  h += '<div class="actions"><button type="button" class="btn" data-action="step" data-step="matter">Back to the matter</button><button type="button" class="btn btn-primary" data-action="open-hearing">Open the hearing</button></div></div>';
+  return h;
+}
+
+function stepHearing(c) {
+  const ids = speakingOrder(c);
+  const i = clamp(c.turn, 0, ids.length - 1);
+  const id = ids[i];
+  const s = SEAT[id];
+  const sc = seatContent(id, c);
+  const a = answerOf(c, id);
+  const last = i === ids.length - 1;
+  let h = '<details class="matter-sum"><summary>The matter</summary><p>' + esc(c.decision) + '</p>' + matterFacts(c) + '</details>';
+  h += '<p class="kicker">Seat ' + (i + 1) + ' of ' + ids.length + ' · ' + esc(typeLabel(c.type)) + '</p>';
+  h += '<h2 class="speaker" id="stage-h" tabindex="-1">' + esc(seatName(id, c)) + '</h2>';
+  h += '<p class="strand">' + esc(s.strand) + '</p>';
+  if (sc.dissent) h += '<p class="dissent-note">Dissent: assigned to argue against your leaning</p>';
+  h += '<p class="framing">' + esc(sc.f) + '</p>';
+  h += '<ol class="questions">' + sc.qs.map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ol>';
+  if (s.terms && s.terms.length) h += '<dl class="terms" aria-label="Key terms">' + s.terms.map(function (t) { return '<dt>' + esc(t[0]) + '</dt><dd>' + esc(t[1]) + '</dd>'; }).join('') + '</dl>';
+  h += '<div class="field"><label for="answer-text">Your answer</label><textarea id="answer-text" rows="6" data-seat="' + id + '">' + esc(a.text) + '</textarea><p class="hint">Write what is true, at whatever length. You can pass.</p></div>';
+  h += '<p class="err" id="answer-err" role="alert"></p>';
+  h += '<div class="actions"><button type="button" class="btn" data-action="prev-seat"' + (i === 0 ? ' disabled' : '') + '>Previous seat</button>' +
+    '<button type="button" class="btn" data-action="pass-seat">Pass</button>' +
+    '<button type="button" class="btn btn-primary" data-action="answer-seat">' + (last ? 'Save answer and close the hearing' : 'Save answer, next seat') + '</button></div>';
+  return h;
+}
+
+function precReasonLabel(t) {
+  return t === 'distinguish' ? 'Why is this case different?' : t === 'overturn' ? 'Why does the old principle no longer hold?' : 'Note (optional)';
+}
+function precTreat(c, r) {
+  const o = r.o;
+  const p = c.prec[o.id] || { t: '', reason: '' };
+  const opts = [['follow', 'Follow'], ['distinguish', 'Distinguish'], ['overturn', 'Overturn'], ['none', 'Does not apply']];
+  const show = p.t && p.t !== 'none';
+  return '<div class="prec"><p class="prec-cite">' + citeHTML(o) + '<span class="why">' + esc(whyLine(r)) + '</span></p>' +
+    '<p class="prec-ratio">' + ratioHTML(o.ruling) + '</p>' +
+    '<div class="chips" role="radiogroup" aria-label="How ' + esc(citeText(o)) + ' applies">' + opts.map(function (x) { return chip('prec-' + o.id, 'prec-' + o.id + '-' + x[0], x[0], x[1], p.t === x[0]); }).join('') + '</div>' +
+    '<div class="field" id="precf-' + o.id + '"' + (show ? '' : ' hidden') + '><label for="prec-' + o.id + '-reason" id="precl-' + o.id + '">' + precReasonLabel(p.t) + '</label>' +
+    '<textarea id="prec-' + o.id + '-reason" rows="2" data-prec-reason="' + o.id + '">' + esc(p.reason) + '</textarea></div></div>';
+}
+
+function stepRuling(c) {
+  const ids = speakingOrder(c);
+  const answered = ids.filter(function (id) { const a = answerOf(c, id); return a.done && !a.passed && a.text.trim(); }).length;
+  const precs = precedentsFor(c);
+  const rd = c.ruling.reviewDays == null ? 90 : Number(c.ruling.reviewDays);
+  let h = '<form class="form" data-form="ruling" novalidate>';
+  h += '<h2 class="speaker" id="stage-h" tabindex="-1">The chair rules</h2>';
+  h += '<p class="hint">The council has been heard: ' + answered + ' answered, ' + (ids.length - answered) + ' passed. The decision is yours. Write what you have decided, then the principle underneath it.</p>';
+  h += '<div class="field"><label for="ruling-held">Held: what you have decided</label><textarea id="ruling-held" rows="3" data-rbind="held">' + esc(c.ruling.held) + '</textarea></div>';
+  h += '<fieldset class="field"><legend class="legend">Ratio: the principle the decision rests on</legend>' +
+    '<div class="ratio-line"><label for="ruling-when">When</label><textarea id="ruling-when" rows="2" data-rbind="when" placeholder="the kind of situation, put generally">' + esc(c.ruling.when) + '</textarea></div>' +
+    '<div class="ratio-line"><label for="ruling-i">I</label><textarea id="ruling-i" rows="2" data-rbind="i" placeholder="what you do">' + esc(c.ruling.i) + '</textarea></div>' +
+    '<div class="ratio-line"><label for="ruling-because">because</label><textarea id="ruling-because" rows="2" data-rbind="because" placeholder="the reason, as you understand it now">' + esc(c.ruling.because) + '</textarea></div>' +
+    '<p class="hint">Write it so it could govern a later case, not only this one. Later matters will cite it.</p></fieldset>';
+  h += '<fieldset class="field"><legend class="legend">How sure are you?</legend><div class="chips">' + CONF.map(function (l, k) { return chip('ruling-conf', 'conf-' + (k + 1), k + 1, l, Number(c.ruling.conf) === k + 1); }).join('') + '</div></fieldset>';
+  if (precs.length) {
+    h += '<fieldset class="field"><legend class="legend">Precedent</legend><p class="hint">These earlier rulings bear on this matter. Say how each applies. An overturned principle stays in the casebook, struck through, with your reason beside it.</p><div class="prec-list">' + precs.map(function (r) { return precTreat(c, r); }).join('') + '</div></fieldset>';
+  }
+  h += '<fieldset class="field"><legend class="legend">List for review</legend><div class="chips">' + REVIEW_CHOICES.map(function (x) { return chip('ruling-review', 'review-' + x[0], x[0], x[1], rd === x[0]); }).join('') + '</div><p class="hint">When the date comes, the casebook asks how it turned out and whether the principle held.</p></fieldset>';
+  h += '<p class="err" id="ruling-err" role="alert"></p>';
+  h += '<div class="actions"><button type="button" class="btn" data-action="step" data-step="hearing">Back to the hearing</button><button type="submit" class="btn btn-primary">Enter the ruling in the casebook</button></div></form>';
+  return h;
+}
+
+/* ---------- Casebook ---------- */
+function reviewForm(c, due) {
+  const id = c.id;
+  return '<div class="review-box" id="review-' + id + '">' +
+    '<p class="prec-cite">' + citeHTML(c) + (c.example ? ' <span class="tag">Example</span>' : '') + '<span class="why">Ruled ' + esc(fmtDate(c.ruledAt)) + ' · review listed for ' + esc(fmtDate(c.review.due)) + '</span></p>' +
+    '<p class="prec-ratio">' + ratioHTML(c.ruling) + '</p>' +
+    '<p class="hint">Held: ' + esc(c.ruling.held) + '</p>' +
+    '<div class="field"><label for="rv-' + id + '-outcome">How did it turn out?</label><textarea id="rv-' + id + '-outcome" rows="3"></textarea></div>' +
+    '<fieldset class="field"><legend class="legend">Did the principle hold?</legend><div class="chips">' + Object.keys(HELD).map(function (k) { return chip('rv-' + id + '-held', 'rv-' + id + '-' + k, k, HELD[k], false); }).join('') + '</div></fieldset>' +
+    '<p class="err" id="rv-' + id + '-err" role="alert"></p>' +
+    '<div class="actions"><button type="button" class="btn btn-primary" data-action="save-review" data-id="' + esc(id) + '">Record the review</button>' +
+    (due ? '<button type="button" class="btn-text" data-action="snooze-review" data-id="' + esc(id) + '">Ask me again in two weeks</button>' : '<button type="button" class="btn-text" data-action="cancel-review" data-id="' + esc(id) + '">Not now</button>') +
+    '</div></div>';
+}
+
+function reviewLine(c) {
+  const r = c.review;
+  if (!r) return '';
+  if (r.done) {
+    return '<div class="annot"><span class="k">On review</span>' + esc(fmtDate(r.doneAt)) + ': ' + esc(HELD[r.held] || 'Reviewed') + '. ' + esc(r.outcome || '') +
+      (r.held === 'failed' && !c.overruledBy ? ' <button type="button" class="btn-text" data-action="revisit" data-id="' + esc(c.id) + '">Bring a new matter to revisit it</button>' : '') + '</div>';
+  }
+  if (isDue(c)) return '<p class="annot"><span class="k">Review</span>Due since ' + esc(fmtDate(r.due)) + '. <button type="button" class="btn-text" data-action="goto-review" data-id="' + esc(c.id) + '">Go to the review</button></p>';
+  if (ui.reviewOpen[c.id]) return reviewForm(c, false);
+  return '<p class="annot"><span class="k">Review</span>Listed for ' + esc(fmtDate(r.due)) + '. <button type="button" class="btn-text" data-action="review-now" data-id="' + esc(c.id) + '">Review it now</button></p>';
+}
+
+function report(c) {
+  const order = speakingOrder(c);
+  const precs = Object.keys(c.prec).map(function (id) { return { o: byId(id), p: c.prec[id] }; }).filter(function (x) { return x.o && TREAT_PAST[x.p.t]; });
+  const later = laterTreatment(c).filter(function (x) { return x.p.t !== 'overturn'; });
+  const cw = [typeLabel(c.type)];
+  precs.forEach(function (x) { cw.push('precedent ' + TREAT_PAST[x.p.t]); });
+  if (c.overruledBy) cw.push('overruled');
+  if (c.review) cw.push(c.review.done ? 'reviewed' : (isDue(c) ? 'review due' : 'listed for review'));
+  let h = '<article class="report' + (ui.flash === c.id ? ' flash' : '') + '" id="report-' + c.id + '" tabindex="-1" aria-label="' + esc(citeText(c)) + '">';
+  h += '<h2 class="case-name"><span class="re">Re:</span> <i>' + esc(caseTitle(c)) + '</i></h2>';
+  h += '<p class="citation"><span>' + esc(citeTail(c)) + '</span><span class="sep">·</span><span>Ruled ' + esc(fmtDate(c.ruledAt)) + '</span>' + (c.example ? '<span class="tag">Example</span>' : '') + '</p>';
+  h += '<p class="catchwords">' + esc(cw.join(' · ')) + '</p>';
+  h += '<p class="headnote">' + esc(c.decision) + '</p>';
+  h += '<dl class="facts"><dt>Options</dt><dd>' + esc(c.options.trim() || 'None recorded') + '</dd><dt>Leaning at opening</dt><dd>' + leaningText(c) + '</dd>' +
+    '<dt>Bench</dt><dd>' + esc(order.filter(function (id) { return id !== c.dissent; }).map(function (id) { return seatName(id, c); }).join(', ')) + '</dd>' +
+    (c.dissent ? '<dt>Dissenting seat</dt><dd>' + esc(seatName(c.dissent, c)) + '</dd>' : '') + '</dl>';
+  h += '<p class="held"><span class="k">Held:</span>' + esc(c.ruling.held) + '</p>';
+  h += ratioBox(c);
+  if (precs.length) {
+    h += '<div class="annot"><span class="k">Precedent considered</span><ul>' + precs.map(function (x) {
+      return '<li><button type="button" class="cite-link" data-action="goto-report" data-id="' + esc(x.o.id) + '">' + esc(citeText(x.o)) + '</button> ' + TREAT_PAST[x.p.t] + (x.p.reason ? ': “' + esc(x.p.reason) + '”' : '.') + '</li>';
+    }).join('') + '</ul></div>';
+  }
+  if (later.length) {
+    h += '<div class="annot"><span class="k">Subsequent treatment</span><ul>' + later.map(function (x) {
+      return '<li>' + TREAT_IN[x.p.t] + ' <button type="button" class="cite-link" data-action="goto-report" data-id="' + esc(x.o.id) + '">' + esc(citeText(x.o)) + '</button>' + (x.p.reason ? ': “' + esc(x.p.reason) + '”' : '') + '</li>';
+    }).join('') + '</ul></div>';
+  }
+  h += reviewLine(c);
+  h += '<div class="actions"><button type="button" class="btn-text" data-action="read-record" data-id="' + esc(c.id) + '">Read the hearing record</button></div>';
+  h += '</article>';
+  return h;
+}
+
+function renderCasebook() {
+  const ruled = ruledCases().slice().reverse();
+  const btn = '<div class="actions"><button type="button" class="btn' + (ruled.length ? '' : ' btn-primary') + '" data-action="new-matter">' + (openCase() ? 'Return to the open matter' : (ruled.length ? 'Bring a new matter' : 'Bring a matter')) + '</button></div>';
+  let side = '<header class="view-head"><h1 class="view-title" id="view-h" tabindex="-1">Casebook</h1>' +
+    '<p class="lede">Every ruling you have made, reported the way courts report cases: what was asked, who sat, what was held, and the principle it rests on.</p></header>' + btn;
+  let main = ui.notice ? '<p class="status" role="status">' + esc(ui.notice) + '</p>' : '';
+  if (!ruled.length) {
+    main += '<p class="intro">No rulings yet. Your casebook fills as you rule on matters, and each ruling becomes precedent for the next.</p>';
+  } else {
+    side += '<nav class="toc" aria-labelledby="toc-h"><h2 class="legend" id="toc-h">Table of cases</h2><ol>' + ruled.map(function (c) {
+      return '<li><button type="button" data-action="goto-report" data-id="' + esc(c.id) + '"><span' + (c.overruledBy ? ' class="struck"' : '') + '><i>Re: ' + esc(caseTitle(c)) + '</i></span>' +
+        '<span class="c">' + esc(citeTail(c) + ' · ' + typeLabel(c.type) + (c.overruledBy ? ' · overruled' : '') + (c.example ? ' · Example' : '')) + '</span></button></li>';
+    }).join('') + '</ol></nav>';
+    const due = ruled.filter(isDue);
+    if (due.length) {
+      main += '<section aria-labelledby="due-h"><h2 class="legend" id="due-h">Listed for review</h2><div class="due-list">' + due.map(function (c) { return reviewForm(c, true); }).join('') + '</div></section>';
+    }
+    main += '<div class="reports">' + ruled.map(report).join('') + '</div>';
+  }
+  side += '<p class="hint">Citations read [year] CB number; examples are cited as Ex. The ratio is the principle a decision rests on. When a later case overturns one, it stays here struck through, with the reason.</p>';
+  return '<div class="frame split"><div class="split-side">' + side + '</div><div class="split-main">' + main + '</div></div>';
+}
+
+/* ---------- Principles ---------- */
+function renderPrinciples() {
+  const ruled = ruledCases();
+  const standing = ruled.filter(function (c) { return !c.overruledBy; });
+  const over = ruled.length - standing.length;
+  const kinds = new Set(standing.map(function (c) { return c.type; })).size;
+  const tested = standing.filter(function (c) { return c.review && c.review.done; }).length;
+  let h = '<div class="frame split"><div class="split-side"><header class="view-head"><h1 class="view-title" id="view-h" tabindex="-1">Standing principles</h1>' +
+    '<p class="lede">The principles your rulings rest on, grouped by the kind of matter. Nothing here was declared in advance; each one came out of a decision you made. A principle leaves this list only when a later case overturns it.</p>';
+  if (standing.length) h += '<p class="status">' + standing.length + (standing.length === 1 ? ' principle' : ' principles') + ' across ' + kinds + (kinds === 1 ? ' kind' : ' kinds') + ' of matter · ' + tested + ' tested on review</p>';
+  h += '</header>';
+  if (over) h += '<p class="hint">' + over + (over === 1 ? ' overruled principle is' : ' overruled principles are') + ' kept in the casebook, struck through, with the reason it was overturned.</p>';
+  h += '</div><div class="split-main">';
+  if (!standing.length) {
+    h += '<p class="intro">No standing principles yet. Each ruling adds one.</p></div></div>';
+    return h;
+  }
+  TYPES.forEach(function (t) {
+    const g = standing.filter(function (c) { return c.type === t.id; }).reverse();
+    if (!g.length) return;
+    h += '<section class="pgroup" aria-label="' + esc(t.label) + '"><h2>' + esc(t.label) + '</h2><ul class="plist">' + g.map(function (c) {
+      const bits = [CONF[(c.ruling.conf || 2) - 1]];
+      const rm = reviewMark(c);
+      if (rm) bits.push(rm);
+      return '<li><p class="ptext">' + ratioHTML(c.ruling) + '</p><p class="psrc"><span>From</span><button type="button" class="cite-link" data-action="goto-report" data-id="' + esc(c.id) + '">' + esc(citeText(c)) + '</button>' +
+        (c.example ? '<span class="tag">Example</span>' : '') + '<span>' + esc(bits.join(' · ')) + '</span></p></li>';
+    }).join('') + '</ul></section>';
+  });
+  h += '</div></div>';
+  return h;
+}
+
+/* ---------- Records ---------- */
+function renderRecords() {
+  let h = '<div class="frame"><header class="view-head"><h1 class="view-title" id="view-h" tabindex="-1">Records</h1>' +
+    '<p class="lede">Your casebook lives only in this browser. Copy it out to keep a backup or move it to another device.</p>' +
+    (ui.notice ? '<p class="status" role="status">' + esc(ui.notice) + '</p>' : '') + '</header><div class="records">';
+  h += '<section aria-labelledby="exp-h"><h2 id="exp-h">Export</h2><p class="hint">Every case, hearing, ruling and review, as JSON.</p>' +
+    '<label class="vh" for="export-text">Exported data</label><textarea id="export-text" class="mono" rows="10" readonly>' + esc(JSON.stringify(data, null, 2)) + '</textarea>' +
+    '<div class="actions"><button type="button" class="btn" data-action="copy-export">Copy to clipboard</button><span class="status" id="export-status" role="status"></span></div></section>';
+  h += '<section aria-labelledby="imp-h"><h2 id="imp-h">Import</h2><p class="hint">Paste JSON exported from Council. It replaces everything stored here now.</p>' +
+    '<label class="vh" for="import-text">Data to import</label><textarea id="import-text" class="mono" rows="8" placeholder="{ &quot;v&quot;: 1, &quot;cases&quot;: [ ... ] }"></textarea>' +
+    '<div class="actions"><button type="button" class="btn" data-action="import">Import and replace</button><span class="status" id="import-status" role="status"></span></div></section>';
+  if (!hasExamples()) {
+    h += '<section aria-labelledby="exa-h"><h2 id="exa-h">Examples</h2><p class="hint">Put the two example cases back beside your own. They stay marked as examples.</p><div class="actions"><button type="button" class="btn" data-action="restore-examples">Show the examples again</button></div></section>';
+  }
+  h += '<section aria-labelledby="era-h"><h2 id="era-h">Erase</h2><p class="hint">Removes every case, ruling and review Council has stored in this browser. This cannot be undone.</p>' +
+    (ui.confirm === 'erase' ? confirmBlock('erase', 'Erase everything Council has stored on this device?', 'Yes, erase everything', 'erase-yes', 'Keep my data') :
+      '<div class="actions"><button type="button" class="btn btn-danger" data-action="erase" id="erase-btn">Erase everything on this device</button></div>') + '</section>';
+  h += '</div></div>';
+  return h;
+}
+
+/* ---------- Render ---------- */
+const VIEWS = { hearing: renderHearing, casebook: renderCasebook, principles: renderPrinciples, records: renderRecords };
+function render(opts) {
+  opts = opts || {};
+  document.querySelectorAll('.tab').forEach(function (b) {
+    if (b.getAttribute('data-view') === ui.view) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
+  const n = ruledCases().length;
+  const d = ruledCases().filter(isDue).length;
+  const badge = document.getElementById('badge-cases');
+  badge.textContent = d ? d + ' due' : String(n);
+  badge.setAttribute('aria-label', n + (n === 1 ? ' case' : ' cases') + (d ? ', ' + d + ' due for review' : ''));
+  badge.classList.toggle('due', d > 0);
+  document.getElementById('example-bar').hidden = !hasExamples();
+  Object.keys(VIEWS).forEach(function (v) {
+    const el = document.getElementById('view-' + v);
+    const on = v === ui.view;
+    el.hidden = !on;
+    el.innerHTML = on ? VIEWS[v]() : '';
+  });
+  ui.notice = '';
+  animateNeedle();
+  if (ui.refocus) {
+    const r = document.querySelector(ui.refocus);
+    ui.refocus = null;
+    if (r) r.focus({ preventScroll: true });
+  } else if (ui.scrollTo) {
+    const t = document.getElementById(ui.scrollTo);
+    ui.scrollTo = null;
+    if (t) { t.scrollIntoView({ block: 'start' }); t.focus({ preventScroll: true }); }
+  } else if (opts.focus) {
+    const f = document.getElementById(opts.focus) || document.getElementById('stage-h') || document.getElementById('view-h');
+    if (f) f.focus({ preventScroll: !!opts.noScroll });
+  }
+  ui.flash = null;
+}
+
+/* ---------- Actions ---------- */
+function newCase(preset) {
+  const c = normCase(Object.assign({ id: uid(), createdAt: new Date().toISOString(), status: 'open', step: 'matter' }, preset || {}));
+  data.cases.push(c);
+  data.openId = c.id;
+  return c;
+}
+function setErr(id, msgs) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = Array.isArray(msgs) ? msgs.join(' ') : msgs;
+}
+function applyDefaultBench(c) {
+  const d = DEFAULT_BENCH[c.type];
+  if (!d) return;
+  c.seats = d.seats.slice();
+  c.dissent = d.dissent;
+}
+function advance(c) {
+  const n = speakingOrder(c).length;
+  if (c.turn < n - 1) c.turn += 1;
+  else { c.closed = true; c.step = 'ruling'; }
+  save();
+  render({ focus: 'stage-h' });
+}
+function scrollToEl(id, focusId) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ block: 'start' });
+  const f = document.getElementById(focusId || id);
+  if (f) f.focus({ preventScroll: true });
+}
+
+const ACTIONS = {
+  nav: function (el) {
+    ui.view = el.getAttribute('data-view');
+    ui.confirm = null;
+    if (ui.view === 'hearing' && openCase()) ui.recordId = null;
+    render({ focus: 'view-h', noScroll: true });
+    window.scrollTo(0, 0);
+  },
+  'clear-examples': function () {
+    const gone = new Set(data.cases.filter(function (c) { return c.example; }).map(function (c) { return c.id; }));
+    data.cases = data.cases.filter(function (c) { return !c.example; });
+    data.cases.forEach(function (c) {
+      Object.keys(c.prec).forEach(function (k) { if (gone.has(k)) delete c.prec[k]; });
+      if (gone.has(c.overruledBy)) { c.overruledBy = null; c.overruleReason = ''; c.overruledAt = null; }
+    });
+    data.examplesCleared = true;
+    ui.recordId = null; ui.focusSeat = null; ui.view = 'hearing';
+    save();
+    render({ focus: 'stage-h', noScroll: true });
+  },
+  'restore-examples': function () {
+    const ex = makeExamples().map(normCase);
+    data.cases = ex.concat(data.cases.filter(function (c) { return !c.example; }));
+    data.examplesCleared = false;
+    save();
+    ui.notice = 'The two example cases are back in the casebook.';
+    render();
+  },
+  'new-matter': function () {
+    ui.recordId = null; ui.focusSeat = null; ui.confirm = null; ui.view = 'hearing';
+    if (!openCase()) { newCase(); save(); }
+    render({ focus: 'matter-title' });
+    window.scrollTo(0, 0);
+  },
+  'return-open': function () { ui.recordId = null; render({ focus: 'stage-h' }); window.scrollTo(0, 0); },
+  withdraw: function () { ui.confirm = 'withdraw'; ui.refocus = '#withdraw-yes'; render(); },
+  'withdraw-no': function () { ui.confirm = null; render({ focus: 'stage-h' }); },
+  'withdraw-yes': function () {
+    const c = openCase();
+    if (c) data.cases = data.cases.filter(function (x) { return x.id !== c.id; });
+    data.openId = null; ui.confirm = null;
+    save();
+    render({ focus: 'stage-h' });
+  },
+  step: function (el) {
+    const c = openCase();
+    if (!c) return;
+    const s = el.getAttribute('data-step');
+    if (s !== 'matter' && matterProblems(c).length) return;
+    if ((s === 'hearing' || s === 'ruling') && benchProblems(c).length) return;
+    if (s === 'bench' && !c.seats.length) applyDefaultBench(c);
+    c.step = s; ui.confirm = null;
+    save();
+    render({ focus: 'stage-h' });
+  },
+  'toggle-seat': function (el) {
+    const c = openCase();
+    if (!c) return;
+    const id = el.getAttribute('data-seat');
+    const i = c.seats.indexOf(id);
+    if (i >= 0) {
+      c.seats.splice(i, 1);
+      if (c.dissent === id) c.dissent = '';
+    } else {
+      if (c.seats.length >= 7) { setErr('bench-err', 'The bench is full at seven. Unseat someone first.'); return; }
+      c.seats.push(id);
+    }
+    save();
+    ui.refocus = '#pick-' + id;
+    render();
+  },
+  suggest: function () {
+    const c = openCase();
+    if (!c) return;
+    applyDefaultBench(c);
+    save();
+    ui.refocus = '#bench-count';
+    render({ focus: 'stage-h' });
+  },
+  'open-hearing': function () {
+    const c = openCase();
+    if (!c) return;
+    const p = benchProblems(c);
+    if (p.length) { setErr('bench-err', p); return; }
+    const ids = speakingOrder(c);
+    const first = ids.findIndex(function (id) { return !answerOf(c, id).done; });
+    c.turn = first >= 0 ? first : 0;
+    c.step = 'hearing';
+    save();
+    render({ focus: 'stage-h' });
+  },
+  'goto-seat': function (el) {
+    const id = el.getAttribute('data-seat');
+    const open = openCase();
+    const recording = ui.view === 'hearing' && (!open || (ui.recordId && byId(ui.recordId) && byId(ui.recordId).status === 'ruled'));
+    if (recording) {
+      ui.focusSeat = id;
+      render();
+      scrollToEl('tr-' + id);
+      return;
+    }
+    if (!open || (open.step !== 'hearing' && open.step !== 'ruling')) return;
+    const idx = speakingOrder(open).indexOf(id);
+    if (idx < 0) return;
+    open.turn = idx; open.step = 'hearing';
+    save();
+    render({ focus: 'stage-h' });
+  },
+  'prev-seat': function () {
+    const c = openCase();
+    if (!c || c.turn <= 0) return;
+    c.turn -= 1;
+    save();
+    render({ focus: 'stage-h' });
+  },
+  'pass-seat': function () {
+    const c = openCase();
+    if (!c) return;
+    const id = speakingOrder(c)[clamp(c.turn, 0, c.seats.length - 1)];
+    c.answers[id] = Object.assign({}, answerOf(c, id), { done: true, passed: true });
+    advance(c);
+  },
+  'answer-seat': function () {
+    const c = openCase();
+    if (!c) return;
+    const id = speakingOrder(c)[clamp(c.turn, 0, c.seats.length - 1)];
+    const ta = document.getElementById('answer-text');
+    const text = ta ? ta.value : '';
+    if (!text.trim()) { setErr('answer-err', 'Write an answer, or choose Pass.'); if (ta) ta.focus(); return; }
+    c.answers[id] = { text: text, done: true, passed: false };
+    advance(c);
+  },
+  'goto-report': function (el, id) {
+    ui.view = 'casebook'; ui.flash = id; ui.scrollTo = 'report-' + id;
+    render();
+  },
+  'read-record': function (el, id) {
+    ui.recordId = id; ui.focusSeat = null; ui.view = 'hearing';
+    render({ focus: 'stage-h', noScroll: true });
+    window.scrollTo(0, 0);
+  },
+  'review-now': function (el, id) { ui.reviewOpen[id] = true; ui.refocus = '#rv-' + id + '-outcome'; render(); },
+  'cancel-review': function (el, id) { delete ui.reviewOpen[id]; ui.scrollTo = 'report-' + id; render(); },
+  'goto-review': function (el, id) { scrollToEl('review-' + id, 'rv-' + id + '-outcome'); },
+  'snooze-review': function (el, id) {
+    const c = byId(id);
+    if (!c || !c.review) return;
+    c.review.due = addDays(new Date().toISOString(), 14);
+    save();
+    ui.notice = 'Review of ' + citeText(c) + ' moved to ' + fmtDate(c.review.due) + '.';
+    render({ focus: 'view-h' });
+  },
+  'save-review': function (el, id) {
+    const c = byId(id);
+    if (!c || !c.review) return;
+    const ta = document.getElementById('rv-' + id + '-outcome');
+    const pick = document.querySelector('input[name="rv-' + id + '-held"]:checked');
+    if (!pick) { setErr('rv-' + id + '-err', 'Say whether the principle held.'); return; }
+    c.review.done = true;
+    c.review.doneAt = new Date().toISOString();
+    c.review.held = pick.value;
+    c.review.outcome = ta ? ta.value.trim() : '';
+    delete ui.reviewOpen[id];
+    save();
+    ui.notice = 'Review recorded for ' + citeText(c) + '.';
+    ui.flash = id; ui.scrollTo = 'report-' + id;
+    render();
+  },
+  revisit: function (el, id) {
+    const old = byId(id);
+    if (!old) return;
+    if (!openCase()) newCase({ type: old.type, title: 'Revisiting ' + old.title, example: false });
+    ui.recordId = null; ui.view = 'hearing';
+    save();
+    render({ focus: 'matter-title' });
+    window.scrollTo(0, 0);
+  },
+  'copy-export': function () {
+    const ta = document.getElementById('export-text');
+    const st = document.getElementById('export-status');
+    const fallback = function () {
+      try { ta.focus(); ta.select(); } catch (e) { /* ignore */ }
+      st.textContent = 'Selected. Press Ctrl+C or Cmd+C to copy.';
+    };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(ta.value).then(function () { st.textContent = 'Copied to the clipboard.'; }, fallback);
+      } else fallback();
+    } catch (e) { fallback(); }
+  },
+  'import': function () {
+    const ta = document.getElementById('import-text');
+    const st = document.getElementById('import-status');
+    let d = null;
+    try { d = normData(JSON.parse(ta.value)); } catch (e) { d = null; }
+    if (!d) { st.textContent = 'That is not a Council export. It needs to be JSON with a "cases" list.'; ta.focus(); return; }
+    data = d;
+    ui.recordId = null; ui.focusSeat = null; ui.reviewOpen = {}; ui.confirm = null;
+    save();
+    ui.notice = 'Imported ' + d.cases.length + (d.cases.length === 1 ? ' case.' : ' cases.');
+    render({ focus: 'view-h' });
+  },
+  erase: function () { ui.confirm = 'erase'; ui.refocus = '#erase-yes'; render(); },
+  'erase-no': function () { ui.confirm = null; ui.refocus = '#erase-btn'; render(); },
+  'erase-yes': function () {
+    storeDel();
+    data = blankData();
+    data.examplesCleared = true;
+    ui.confirm = null; ui.recordId = null; ui.focusSeat = null; ui.reviewOpen = {};
+    ui.notice = 'Erased. Council has nothing stored on this device now.';
+    render({ focus: 'view-h' });
+  }
+};
+
+function submitMatter() {
+  const c = openCase();
+  if (!c) return;
+  const p = matterProblems(c);
+  if (p.length) {
+    setErr('matter-err', p);
+    const first = !c.title.trim() ? 'matter-title' : !c.decision.trim() ? 'matter-decision' : 'type-' + TYPES[0].id;
+    const f = document.getElementById(first);
+    if (f) f.focus();
+    return;
+  }
+  if (!c.seats.length) applyDefaultBench(c);
+  c.step = 'bench';
+  save();
+  render({ focus: 'stage-h' });
+}
+
+function submitRuling() {
+  const c = openCase();
+  if (!c) return;
+  const r = c.ruling;
+  const p = [];
+  if (!r.held.trim()) p.push('Write what you have decided.');
+  if (!r.when.trim() || !r.i.trim() || !r.because.trim()) p.push('Complete the principle: when, I, because.');
+  const precs = precedentsFor(c);
+  precs.forEach(function (x) {
+    const t = c.prec[x.o.id];
+    if (t && (t.t === 'distinguish' || t.t === 'overturn') && !(t.reason || '').trim()) p.push('Give a reason for how you treated ' + citeText(x.o) + '.');
+  });
+  if (p.length) { setErr('ruling-err', p); return; }
+  const keep = {};
+  precs.forEach(function (x) {
+    const t = c.prec[x.o.id];
+    if (t && TREAT_PAST[t.t]) keep[x.o.id] = { t: t.t, reason: (t.reason || '').trim() };
+  });
+  c.prec = keep;
+  c.status = 'ruled';
+  c.step = 'done';
+  c.ruledAt = new Date().toISOString();
+  c.no = nextNo();
+  ['held', 'when', 'i', 'because'].forEach(function (k) { r[k] = r[k].trim().replace(/[.\s]+$/, k === 'held' ? '.' : ''); });
+  const days = Number(r.reviewDays) || 0;
+  c.review = days ? { days: days, due: addDays(c.ruledAt, days), done: false, doneAt: null, held: '', outcome: '' } : null;
+  Object.keys(keep).forEach(function (pid) {
+    if (keep[pid].t !== 'overturn') return;
+    const o = byId(pid);
+    if (o) { o.overruledBy = c.id; o.overruleReason = keep[pid].reason; o.overruledAt = c.ruledAt; }
+  });
+  data.openId = null;
+  ui.recordId = null; ui.view = 'casebook'; ui.flash = c.id; ui.scrollTo = 'report-' + c.id;
+  ui.notice = 'Entered as ' + citeText(c) + '.';
+  save();
+  render();
+}
+
+/* ---------- Wiring ---------- */
+const app = document.getElementById('app');
+app.addEventListener('click', function (e) {
+  const el = e.target.closest('[data-action]');
+  if (!el || !app.contains(el)) return;
+  if (el.disabled) return;
+  const fn = ACTIONS[el.getAttribute('data-action')];
+  if (fn) { e.preventDefault(); fn(el, el.getAttribute('data-id'), e); }
+});
+app.addEventListener('submit', function (e) {
+  e.preventDefault();
+  const f = e.target.getAttribute('data-form');
+  if (f === 'matter') submitMatter();
+  else if (f === 'ruling') submitRuling();
+});
+app.addEventListener('input', function (e) {
+  const t = e.target;
+  const c = openCase();
+  if (!c) return;
+  const k = t.getAttribute('data-bind');
+  if (k) {
+    c[k] = k === 'strength' ? Number(t.value) : t.value;
+    if (k === 'strength') { const o = document.getElementById('strength-out'); if (o) o.textContent = t.value + ' of 5'; }
+    if (k === 'title') { const h = document.getElementById('open-title'); if (h) h.textContent = caseTitle(c); }
+    if (k === 'title' || k === 'decision' || k === 'options' || k === 'leaning') { const pp = document.getElementById('prec-preview'); if (pp) pp.innerHTML = precPreview(c); }
+    if (k === 'affected' || k === 'admired') {
+      refreshTable(c, 'bench');
+      const g = document.querySelector('#pick-' + k + ' .g'); if (g) g.textContent = seatGlyph(k, c);
+      const opt = document.querySelector('#bench-dissent option[value="' + k + '"]'); if (opt) opt.textContent = seatName(k, c);
+    }
+    saveSoon();
+    return;
+  }
+  if (t.id === 'answer-text') {
+    const sid = t.getAttribute('data-seat');
+    c.answers[sid] = Object.assign({}, answerOf(c, sid), { text: t.value });
+    setErr('answer-err', '');
+    saveSoon();
+    return;
+  }
+  const rk = t.getAttribute('data-rbind');
+  if (rk) { c.ruling[rk] = t.value; saveSoon(); return; }
+  const pr = t.getAttribute('data-prec-reason');
+  if (pr) { c.prec[pr] = Object.assign({ t: '', reason: '' }, c.prec[pr], { reason: t.value }); saveSoon(); }
+});
+app.addEventListener('change', function (e) {
+  const t = e.target;
+  const c = openCase();
+  if (!c || !t.name && t.id !== 'bench-dissent') return;
+  if (t.name === 'matter-type') {
+    c.type = t.value;
+    const hint = document.getElementById('type-hint');
+    if (hint && TYPE[c.type]) hint.textContent = TYPE[c.type].label + ': ' + TYPE[c.type].hint;
+    const pp = document.getElementById('prec-preview'); if (pp) pp.innerHTML = precPreview(c);
+    save();
+  } else if (t.name === 'ruling-conf') { c.ruling.conf = Number(t.value); save(); }
+  else if (t.name === 'ruling-review') { c.ruling.reviewDays = Number(t.value); save(); }
+  else if (t.id === 'bench-dissent') { c.dissent = t.value; save(); refreshTable(c, 'bench'); }
+  else if (t.name && t.name.indexOf('prec-') === 0) {
+    const pid = t.name.slice(5);
+    c.prec[pid] = Object.assign({ t: '', reason: '' }, c.prec[pid], { t: t.value });
+    const f = document.getElementById('precf-' + pid);
+    const l = document.getElementById('precl-' + pid);
+    if (f) f.hidden = !(t.value && t.value !== 'none');
+    if (l) l.textContent = precReasonLabel(t.value);
+    save();
+  }
+});
+window.addEventListener('pagehide', function () { if (saveTimer) save(); });
+
+render();
+})();
+</script>
+</body>
+</html>
