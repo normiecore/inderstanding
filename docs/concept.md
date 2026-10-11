@@ -89,6 +89,15 @@ The prototypes use no AI on purpose: they show the structure works without it. I
 
 **One rule:** nothing an AI writes enters the user's record unless the user rewrites it in their own words.
 
+## What the research adds
+
+[grounding.md](grounding.md) sharpened a few things the prototypes only partly do yet:
+
+- **Experiments over entries.** The strongest unit is a lens held as a hypothesis for a set period, with a daily practice and one act toward another person, then reviewed against what happened. The Long Way and Working Creed are closest to this; a combined product should make it the default shape.
+- **Distance, kept concrete.** Third-person writing, advice to a friend in your position, the ten-year view. Asking "what" and "how" rather than "why" keeps reflection from sliding into rumination.
+- **Start where the inherited tradition didn't fit.** Ask for the specific moments your own tradition failed to explain. Returning to it with new eyes, switching and combining are all valid outcomes.
+- **Safety.** People reach for meaning at their worst moments. A real product needs a fixed, non-AI crisis screen with helplines, should state plainly that it isn't therapy, and should never prescribe fasting, isolation or intense practices. The prototypes don't include this yet.
+
 ## Decisions for you
 
 - **One app or a family of small tools?** A single app is easier to keep using. Separate tools are easier to understand and to build.
