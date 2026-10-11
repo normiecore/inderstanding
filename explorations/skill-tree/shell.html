@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Skill Tree Sketches</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Hanken+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<!--{{VIEW_FONTS}}-->
+<style>
+/* Layout: one reading column for the map and the questions; the view stage
+   runs full width beneath them; node detail opens in a side panel (bottom
+   sheet on phones) shared by every view. */
+:root {
+  --st-ground: #eef1f2;
+  --st-surface: #ffffff;
+  --st-ink: #1b2226;
+  --st-muted: #56636a;
+  --st-line: #cfd6d9;
+  --st-accent: #2d47a3;
+  --st-accent-soft: #dfe4f6;
+  /* Highlight states, shared meaning across every view. */
+  --st-start: #b4560f;
+  --st-relevant: #2d47a3;
+  --st-stretch: #7a3f98;
+  --st-door: #0f7a5f;
+  --st-quiet: #9aa6ab;
+  /* Branch hues, available to views that want them. */
+  --b-stillness: #3d6fb4;
+  --b-letting-go: #2f8a83;
+  --b-character: #8a6a1f;
+  --b-others: #b34a5a;
+  --b-meaning: #6b54a8;
+  --b-wonder: #2f7a3d;
+  --st-display: "Young Serif", "Iowan Old Style", Georgia, serif;
+  --st-body: "Hanken Grotesk", "Segoe UI", system-ui, sans-serif;
+  --st-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --st-ground: #12171a;
+    --st-surface: #192024;
+    --st-ink: #e4eaec;
+    --st-muted: #9aa8ae;
+    --st-line: #2c363b;
+    --st-accent: #9fb1ff;
+    --st-accent-soft: #232c4a;
+    --st-start: #f0a35e;
+    --st-relevant: #9fb1ff;
+    --st-stretch: #c9a0e6;
+    --st-door: #5fd0ad;
+    --st-quiet: #5d6a70;
+    --b-stillness: #8fb4f0;
+    --b-letting-go: #6cd0c6;
+    --b-character: #e0bf66;
+    --b-others: #f08c9b;
+    --b-meaning: #b7a3f0;
+    --b-wonder: #84d18f;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --st-ground: #12171a;
+  --st-surface: #192024;
+  --st-ink: #e4eaec;
+  --st-muted: #9aa8ae;
+  --st-line: #2c363b;
+  --st-accent: #9fb1ff;
+  --st-accent-soft: #232c4a;
+  --st-start: #f0a35e;
+  --st-relevant: #9fb1ff;
+  --st-stretch: #c9a0e6;
+  --st-door: #5fd0ad;
+  --st-quiet: #5d6a70;
+  --b-stillness: #8fb4f0;
+  --b-letting-go: #6cd0c6;
+  --b-character: #e0bf66;
+  --b-others: #f08c9b;
+  --b-meaning: #b7a3f0;
+  --b-wonder: #84d18f;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--st-ground); color: var(--st-ink); font: 400 1rem/1.55 var(--st-body); }
+.st-page { max-width: 80rem; margin: 0 auto; padding-inline: clamp(16px, 3vw, 40px); padding-block: clamp(28px, 5vw, 56px) 72px; display: grid; gap: 40px; }
+.st-page a { color: var(--st-accent); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--st-accent); outline-offset: 2px; }
+.st-label { font: 500 0.72rem/1.2 var(--st-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--st-muted); }
+.st-col { max-width: 46rem; }
+h1.st-title { font: 400 clamp(2.1rem, 5vw, 3.4rem)/1.05 var(--st-display); margin: 10px 0 14px; text-wrap: balance; }
+.st-lede { font-size: 1.15rem; line-height: 1.5; margin: 0 0 10px; }
+.st-muted { color: var(--st-muted); }
+h2.st-h2 { font: 400 1.5rem/1.2 var(--st-display); margin: 0 0 4px; text-wrap: balance; }
+.st-section-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 20px; border-bottom: 1px solid var(--st-line); padding-bottom: 10px; margin-bottom: 18px; }
+.st-section-head p { margin: 0; }
+
+/* The map: how the concept works */
+.st-flow { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; counter-reset: step; }
+.st-flow li { position: relative; padding: 14px 18px 14px 0; border-top: 2px solid var(--st-ink); }
+.st-flow li + li { padding-left: 18px; border-left: 1px solid var(--st-line); }
+.st-flow .n { font: 500 0.75rem var(--st-mono); color: var(--st-accent); }
+.st-flow h3 { font: 600 1rem/1.3 var(--st-body); margin: 4px 0 6px; }
+.st-flow p { margin: 0; color: var(--st-muted); font-size: 0.93rem; }
+.st-states { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 12px 28px; margin-top: 22px; }
+.st-state { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: start; }
+.st-state .sw { width: 14px; height: 14px; border-radius: 50%; margin-top: 4px; grid-row: span 2; }
+.st-state b { font-weight: 600; }
+.st-state span { color: var(--st-muted); font-size: 0.93rem; }
+.sw.start { background: var(--st-start); }
+.sw.relevant { background: var(--st-relevant); }
+.sw.stretch { background: transparent; border: 2px dashed var(--st-stretch); }
+.sw.door { background: transparent; border: 3px solid var(--st-door); }
+.sw.quiet { background: var(--st-quiet); opacity: 0.6; }
+.st-rules { margin: 22px 0 0; padding: 14px 18px; border-left: 3px solid var(--st-accent); background: var(--st-surface); display: grid; gap: 6px; }
+.st-rules p { margin: 0; }
+
+/* Questions */
+.st-q-wrap { background: var(--st-surface); border: 1px solid var(--st-line); border-radius: 6px; }
+.st-q-wrap > summary { list-style: none; cursor: pointer; padding: 16px 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.st-q-wrap > summary::-webkit-details-marker { display: none; }
+.st-q-wrap > summary .chev { font-family: var(--st-mono); color: var(--st-muted); transition: transform 0.15s; }
+.st-q-wrap[open] > summary .chev { transform: rotate(90deg); }
+.st-q-sum { font-weight: 600; }
+.st-tag { display: inline-block; font: 500 0.68rem/1 var(--st-mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 6px; border: 1px solid currentColor; border-radius: 3px; color: var(--st-start); }
+.st-q-body { padding: 4px 20px 20px; border-top: 1px solid var(--st-line); }
+.st-q-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 6px; }
+.st-btn { border: 1px solid var(--st-ink); background: transparent; border-radius: 999px; padding: 7px 14px; cursor: pointer; font-weight: 500; }
+.st-btn:hover { background: var(--st-ink); color: var(--st-ground); }
+.st-btn.ghost { border-color: var(--st-line); }
+.st-questions { display: grid; grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr)); gap: 18px 28px; margin-top: 14px; }
+.st-questions fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.st-questions legend { font-weight: 600; margin-bottom: 8px; padding: 0; }
+.st-questions legend .qn { font: 500 0.75rem var(--st-mono); color: var(--st-muted); margin-right: 6px; }
+.st-opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.st-opt { position: relative; }
+.st-opt input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.st-opt span { display: inline-block; padding: 6px 11px; border: 1px solid var(--st-line); border-radius: 999px; font-size: 0.92rem; line-height: 1.3; }
+.st-opt input:checked + span { background: var(--st-ink); color: var(--st-ground); border-color: var(--st-ink); }
+.st-opt input:focus-visible + span { outline: 2px solid var(--st-accent); outline-offset: 2px; }
+.st-pulls { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 10px 22px; padding: 0 20px 18px; }
+.st-pull { display: grid; gap: 4px; }
+.st-pull .row { display: flex; justify-content: space-between; gap: 8px; font-size: 0.9rem; }
+.st-pull .row b { font-weight: 600; }
+.st-pull .row span { font: 400 0.8rem var(--st-mono); color: var(--st-muted); font-variant-numeric: tabular-nums; }
+.st-pull .bar { height: 6px; background: var(--st-line); border-radius: 3px; overflow: hidden; }
+.st-pull .bar i { display: block; height: 100%; border-radius: 3px; }
+
+/* Views */
+.st-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.st-tab { border: 1px solid var(--st-line); background: var(--st-surface); border-radius: 6px; padding: 8px 14px; cursor: pointer; text-align: left; display: grid; gap: 2px; }
+.st-tab .tn { font-weight: 600; }
+.st-tab .tm { font: 400 0.72rem var(--st-mono); color: var(--st-muted); }
+.st-tab[aria-selected="true"] { background: var(--st-ink); color: var(--st-ground); border-color: var(--st-ink); }
+.st-tab[aria-selected="true"] .tm { color: inherit; opacity: 0.75; }
+.st-view-meta { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); gap: 18px 28px; margin: 18px 0 0; }
+.st-view-meta h3 { margin: 0 0 6px; font: 500 0.72rem/1.2 var(--st-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--st-muted); }
+.st-view-meta p, .st-view-meta ul { margin: 0; }
+.st-view-meta ul { padding-left: 18px; display: grid; gap: 4px; }
+.st-stage { position: relative; background: var(--st-surface); border: 1px solid var(--st-line); border-radius: 6px; min-height: 420px; overflow: hidden; }
+.view-root { position: relative; width: 100%; }
+
+/* Detail panel */
+.st-scrim { position: fixed; inset: 0; background: rgba(10, 14, 16, 0.35); z-index: 40; }
+.st-panel { position: fixed; z-index: 50; top: 0; right: 0; bottom: 0; width: min(26rem, 100%); background: var(--st-surface); border-left: 1px solid var(--st-line); box-shadow: -12px 0 32px rgba(0, 0, 0, 0.12); overflow-y: auto; padding: calc(20px + env(safe-area-inset-top, 0px)) 22px calc(28px + env(safe-area-inset-bottom, 0px)); display: grid; align-content: start; gap: 16px; }
+.st-panel h2 { font: 400 1.6rem/1.15 var(--st-display); margin: 4px 0 0; text-wrap: balance; }
+.st-panel .close { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); right: 14px; border: 1px solid var(--st-line); background: var(--st-surface); border-radius: 999px; width: 34px; height: 34px; cursor: pointer; font-size: 1.1rem; line-height: 1; }
+.st-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.st-chip { font: 500 0.7rem/1 var(--st-mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 7px; border-radius: 3px; border: 1px solid var(--st-line); color: var(--st-muted); }
+.st-chip.start { color: var(--st-start); border-color: currentColor; }
+.st-chip.relevant { color: var(--st-relevant); border-color: currentColor; }
+.st-chip.stretch { color: var(--st-stretch); border: 1px dashed currentColor; }
+.st-chip.door { color: var(--st-door); border-color: currentColor; }
+.st-panel h3 { font: 500 0.72rem/1.2 var(--st-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--st-muted); margin: 0 0 6px; }
+.st-panel p { margin: 0; }
+.st-panel ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.st-panel .linkish { border: 0; background: none; padding: 0; color: var(--st-accent); text-decoration: underline; cursor: pointer; text-align: left; }
+.st-ranks { display: flex; flex-wrap: wrap; gap: 6px; }
+.st-ranks label { position: relative; }
+.st-ranks input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.st-ranks span { display: inline-block; padding: 6px 11px; border: 1px solid var(--st-line); border-radius: 999px; font-size: 0.9rem; }
+.st-ranks input:checked + span { background: var(--st-ink); color: var(--st-ground); border-color: var(--st-ink); }
+.st-ranks input:focus-visible + span { outline: 2px solid var(--st-accent); outline-offset: 2px; }
+.st-pending { color: var(--st-muted); font-style: italic; }
+
+/* Baseline list view */
+.v-list { padding: 20px clamp(14px, 2.5vw, 28px) 28px; display: grid; gap: 26px; }
+.v-list .br-head { display: grid; grid-template-columns: minmax(0, 1fr) 9rem; gap: 4px 18px; align-items: end; border-bottom: 1px solid var(--st-line); padding-bottom: 8px; margin-bottom: 6px; }
+.v-list .br-head h3 { margin: 0; font: 400 1.25rem/1.2 var(--st-display); }
+.v-list .br-head p { margin: 0; color: var(--st-muted); font-size: 0.92rem; grid-column: 1; }
+.v-list .br-head .pull { grid-column: 2; grid-row: 1 / span 2; display: grid; gap: 4px; font: 400 0.75rem var(--st-mono); color: var(--st-muted); }
+.v-list .br-head .pull .bar { height: 6px; background: var(--st-line); border-radius: 3px; overflow: hidden; }
+.v-list .br-head .pull .bar i { display: block; height: 100%; background: var(--st-ink); }
+.v-list ul { list-style: none; margin: 0; padding: 0; }
+.v-list li button { width: 100%; display: grid; grid-template-columns: 1.4rem minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; padding: 9px 4px; border: 0; border-bottom: 1px solid var(--st-line); background: none; text-align: left; cursor: pointer; }
+.v-list li button:hover { background: var(--st-ground); }
+.v-list .d { font: 400 0.75rem var(--st-mono); color: var(--st-muted); }
+.v-list .nm { font-weight: 600; }
+.v-list .tr { grid-column: 2; font-size: 0.85rem; color: var(--st-muted); }
+.v-list .marks { grid-column: 3; grid-row: 1 / span 2; display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+.v-list .pips { display: inline-flex; gap: 3px; }
+.v-list .pips i { width: 7px; height: 7px; border-radius: 50%; border: 1px solid var(--st-muted); }
+.v-list .pips i.on { background: var(--st-ink); border-color: var(--st-ink); }
+
+@media (max-width: 860px) {
+  .st-flow { grid-template-columns: 1fr; }
+  .st-flow li, .st-flow li + li { padding: 12px 0; border-left: 0; border-top: 1px solid var(--st-line); }
+  .st-flow li:first-child { border-top: 2px solid var(--st-ink); }
+  .st-view-meta { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .st-panel { top: auto; left: 0; width: 100%; max-height: 82%; border-left: 0; border-top: 1px solid var(--st-line); border-radius: 12px 12px 0 0; box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.18); }
+  .v-list .br-head { grid-template-columns: 1fr; }
+  .v-list .br-head .pull { grid-column: 1; grid-row: auto; }
+  .v-list li button { grid-template-columns: 1.4rem minmax(0, 1fr); }
+  .v-list .marks { grid-column: 2; grid-row: auto; justify-content: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+/*{{VIEW_CSS}}*/
+</style>
+</head>
+<body>
+<div class="st-page">
+
+  <header class="st-col">
+    <div class="st-label">Inderstanding · design sketches</div>
+    <h1 class="st-title">Skill Tree Sketches</h1>
+    <p class="st-lede">Ten multiple choice questions light up parts of a tree of frameworks, ideas and practices from many traditions. Below are several ways the same tree could be drawn.</p>
+    <p class="st-muted">Every display uses the same answers and the same content. Answer the questions yourself, or keep the example answers, then switch between displays to compare them. Select any node to see why it is highlighted.</p>
+  </header>
+
+  <section aria-labelledby="map-title">
+    <div class="st-section-head">
+      <h2 class="st-h2" id="map-title">How it works</h2>
+      <p class="st-muted">The same for every display.</p>
+    </div>
+    <ol class="st-flow">
+      <li><div class="n">1</div><h3>Ten questions</h3><p>Multiple choice, about two minutes. None of them asks you to commit to a belief.</p></li>
+      <li><div class="n">2</div><h3>Six branches pull</h3><p>Each answer pulls toward one or more branches. A branch is a question people live with, not a religion.</p></li>
+      <li><div class="n">3</div><h3>Some nodes light up</h3><p>Three places to start, up to nine more that fit, one stretch, and less familiar doors into what you grew up with.</p></li>
+      <li><div class="n">4</div><h3>You try things</h3><p>Every node has something to do. You mark it Heard of it, Tried it or Kept it.</p></li>
+      <li><div class="n">5</div><h3>The tree fills in</h3><p>Progress comes only from what you did. The questions only choose where to start.</p></li>
+    </ol>
+    <div class="st-states" aria-label="What the highlights mean">
+      <div class="st-state"><i class="sw start"></i><b>Start here</b><span>The three strongest ways in for your answers.</span></div>
+      <div class="st-state"><i class="sw relevant"></i><b>Relevant</b><span>Up to nine more that fit.</span></div>
+      <div class="st-state"><i class="sw stretch"></i><b>Stretch</b><span>One way in from the branch you would probably skip.</span></div>
+      <div class="st-state"><i class="sw door"></i><b>Different door</b><span>A less familiar strand of the tradition you grew up with.</span></div>
+      <div class="st-state"><i class="sw quiet"></i><b>Not highlighted</b><span>Still there. Nothing is hidden or locked.</span></div>
+    </div>
+    <div class="st-rules">
+      <p>There is no result like “you are a Daoist”. The tree never gives you a label.</p>
+      <p>Every highlight says which of your answers caused it.</p>
+      <p>Traditions appear in several branches, and lines between nodes show where they say similar things.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="q-title">
+    <div class="st-section-head">
+      <h2 class="st-h2" id="q-title">Your answers</h2>
+      <p class="st-muted" id="st-q-status"></p>
+    </div>
+    <details class="st-q-wrap" id="st-q-details">
+      <summary><span class="chev" aria-hidden="true">›</span><span class="st-q-sum" id="st-q-sum">Show the questions</span><span class="st-tag" id="st-example-tag">Example answers</span></summary>
+      <div class="st-q-body">
+        <p class="st-muted" id="st-example-note" style="margin:14px 0 0">These example answers belong to a made-up person who was raised Christian, never felt it strike a chord, and wonders whether Daoism fits better. Change any answer and every display updates.</p>
+        <div class="st-q-actions">
+          <button type="button" class="st-btn" id="st-clear-answers">Clear answers and start my own</button>
+          <button type="button" class="st-btn ghost" id="st-use-example">Use the example answers</button>
+        </div>
+        <div class="st-questions" id="st-questions"></div>
+      </div>
+    </details>
+    <div class="st-label" style="margin:18px 0 10px">How the answers pull</div>
+    <div class="st-pulls" id="st-pulls" style="padding:0"></div>
+  </section>
+
+  <section aria-labelledby="v-title">
+    <div class="st-section-head">
+      <h2 class="st-h2" id="v-title">Displays</h2>
+      <p class="st-muted">Same tree, drawn differently.</p>
+    </div>
+    <div class="st-tabs" role="tablist" aria-label="Displays" id="st-tabs"></div>
+    <div class="st-stage" role="tabpanel" id="st-stage" aria-labelledby="v-title"></div>
+    <div class="st-view-meta" id="st-view-meta"></div>
+  </section>
+
+</div>
+
+<div class="st-scrim" id="st-scrim" hidden></div>
+<aside class="st-panel" id="st-panel" hidden aria-labelledby="st-panel-title" role="dialog" aria-modal="false"></aside>
+
+<script>/*{{DATA}}*/</script>
+<script>
+/* View registry. Each view script calls SkillTreeViews.register({...}). */
+window.SkillTreeViews = {
+  list: [],
+  register: function (view) { this.list.push(view); }
+};
+</script>
+<script>/*{{VIEWS}}*/</script>
+<script>
+/* Baseline view: a plain accessible list. Also the reference for the view contract. */
+(function () {
+  'use strict';
+  var root = null;
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function render(ctx) {
+    var T = ctx.data, P = ctx.profile;
+    var html = '';
+    var order = P.answered ? P.order : T.branches.map(function (b) { return b.id; });
+    order.forEach(function (bid) {
+      var b = T.branchById[bid], pull = P.branches[bid].pull;
+      html += '<section aria-labelledby="vl-' + bid + '"><div class="br-head"><h3 id="vl-' + bid + '">' + esc(b.name) + '</h3>' +
+        '<p>' + esc(b.question) + '</p><div class="pull">Pull ' + Math.round(pull * 100) + '%<div class="bar"><i style="width:' + Math.round(pull * 100) + '%"></i></div></div></div><ul>';
+      T.nodes.filter(function (x) { return x.branch === bid; }).sort(function (a, c) { return a.depth - c.depth; }).forEach(function (x) {
+        var r = P.nodes[x.id], rank = ctx.progress[x.id] || 0;
+        var marks = '';
+        if (r.state !== 'quiet') marks += '<span class="st-chip ' + r.state + '">' + ({ start: 'Start here', relevant: 'Relevant', stretch: 'Stretch' })[r.state] + '</span>';
+        if (r.door) marks += '<span class="st-chip door">Different door</span>';
+        marks += '<span class="pips" aria-label="' + T.ranks[rank].name + '">' + [1, 2, 3].map(function (i) { return '<i class="' + (rank >= i ? 'on' : '') + '"></i>'; }).join('') + '</span>';
+        html += '<li><button type="button" data-node="' + x.id + '" aria-current="' + (ctx.selected === x.id) + '">' +
+          '<span class="d">' + ['', 'I', 'II', 'III'][x.depth] + '</span><span class="nm">' + esc(x.name) + '</span>' +
+          '<span class="marks">' + marks + '</span>' +
+          '<span class="tr">' + esc(T.traditions[x.tradition]) + ' · ' + esc(x.strand) + '</span></button></li>';
+      });
+      html += '</ul></section>';
+    });
+    root.innerHTML = html;
+  }
+  window.SkillTreeViews.register({
+    id: 'list',
+    name: 'Plain list',
+    metaphor: 'Baseline',
+    blurb: 'Every node, grouped by branch and ordered by how strongly your answers pull. No metaphor. This is the accessible fallback every other display should keep.',
+    good: ['Fast to scan and fully accessible.', 'Shows every reason without any decoding.'],
+    hard: ['No sense of shape, distance or progress.', 'Echoes between traditions are invisible.'],
+    mount: function (el, ctx) {
+      root = el; el.classList.add('v-list');
+      el.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-node]');
+        if (b) ctx.api.select(b.getAttribute('data-node'));
+      });
+      render(ctx);
+    },
+    update: function (ctx) { render(ctx); },
+    unmount: function () { root = null; }
+  });
+})();
+</script>
+<script>
+(function () {
+  'use strict';
+  var T = window.SKILL_TREE;
+  var KEY = 'inderstanding.skill-tree.v1';
+  var views = window.SkillTreeViews.list;
+
+  function copy(o) { return JSON.parse(JSON.stringify(o)); }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function load() { try { var r = localStorage.getItem(KEY); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify({ answers: state.answers, example: state.example, progress: state.progress, view: state.view })); } catch (e) { /* storage unavailable: keep working in memory */ } }
+
+  var saved = load();
+  var state = {
+    answers: saved && saved.answers ? saved.answers : copy(T.sampleAnswers),
+    example: saved ? !!saved.example : true,
+    progress: saved && saved.progress ? saved.progress : {},
+    view: saved && saved.view ? saved.view : null,
+    selected: null
+  };
+  var profile = T.score(state.answers);
+  var current = null, currentEl = null, lastTrigger = null;
+
+  var mql = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  var rmq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  function theme() {
+    var t = document.documentElement.getAttribute('data-theme');
+    if (t === 'dark' || t === 'light') return t;
+    return mql && mql.matches ? 'dark' : 'light';
+  }
+
+  var api = {
+    select: function (id) {
+      if (!T.nodeById[id]) return;
+      lastTrigger = document.activeElement;
+      state.selected = id;
+      openPanel(id);
+      updateView();
+    },
+    clear: function () { closePanel(); }
+  };
+
+  function ctx() {
+    return {
+      data: T, profile: profile, progress: state.progress, selected: state.selected,
+      api: api, theme: theme(), reducedMotion: !!(rmq && rmq.matches)
+    };
+  }
+
+  // Questions
+  var qBox = document.getElementById('st-questions');
+  qBox.innerHTML = T.quiz.map(function (q, i) {
+    return '<fieldset><legend><span class="qn">' + (i + 1) + '</span>' + esc(q.prompt) + '</legend><div class="st-opts">' +
+      q.options.map(function (o) {
+        var id = 'q-' + q.id + '-' + o.id;
+        return '<label class="st-opt" for="' + id + '"><input type="radio" id="' + id + '" name="' + q.id + '" value="' + o.id + '"><span>' + esc(o.label) + '</span></label>';
+      }).join('') + '</div></fieldset>';
+  }).join('');
+  qBox.addEventListener('change', function (e) {
+    if (e.target.type !== 'radio') return;
+    state.answers[e.target.name] = e.target.value;
+    state.example = false;
+    rescore();
+  });
+  document.getElementById('st-clear-answers').addEventListener('click', function () {
+    state.answers = {}; state.example = false; rescore();
+  });
+  document.getElementById('st-use-example').addEventListener('click', function () {
+    state.answers = copy(T.sampleAnswers); state.example = true; rescore();
+  });
+
+  function syncQuestions() {
+    T.quiz.forEach(function (q) {
+      q.options.forEach(function (o) {
+        var el = document.getElementById('q-' + q.id + '-' + o.id);
+        if (el) el.checked = state.answers[q.id] === o.id;
+      });
+    });
+    document.getElementById('st-example-tag').hidden = !state.example;
+    document.getElementById('st-example-note').hidden = !state.example;
+    var n = profile.answered;
+    document.getElementById('st-q-sum').textContent = n + ' of ' + T.quiz.length + ' answered. Show the questions';
+    document.getElementById('st-q-status').textContent = n ? 'Change any answer and the displays update.' : 'Answer at least one question to light up the tree.';
+    var pulls = document.getElementById('st-pulls');
+    pulls.innerHTML = T.branches.map(function (b) {
+      var p = profile.branches[b.id].pull;
+      return '<div class="st-pull"><div class="row"><b>' + esc(b.short) + '</b><span>' + Math.round(p * 100) + '%</span></div>' +
+        '<div class="bar" role="img" aria-label="' + esc(b.name) + ' ' + Math.round(p * 100) + ' percent"><i style="width:' + Math.round(p * 100) + '%;background:var(--b-' + b.id + ')"></i></div></div>';
+    }).join('');
+  }
+
+  function rescore() {
+    profile = T.score(state.answers);
+    save();
+    syncQuestions();
+    if (state.selected) openPanel(state.selected, true);
+    updateView();
+  }
+
+  // Views
+  var tabs = document.getElementById('st-tabs');
+  var stage = document.getElementById('st-stage');
+  var meta = document.getElementById('st-view-meta');
+  tabs.innerHTML = views.map(function (v) {
+    return '<button type="button" role="tab" class="st-tab" id="tab-' + v.id + '" data-view="' + v.id + '" aria-controls="st-stage" aria-selected="false">' +
+      '<span class="tn">' + esc(v.name) + '</span><span class="tm">' + esc(v.metaphor || '') + '</span></button>';
+  }).join('');
+  tabs.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-view]');
+    if (b) show(b.getAttribute('data-view'));
+  });
+  tabs.addEventListener('keydown', function (e) {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    var i = views.findIndex(function (v) { return current && v.id === current.id; });
+    i = (i + (e.key === 'ArrowRight' ? 1 : -1) + views.length) % views.length;
+    show(views[i].id);
+    document.getElementById('tab-' + views[i].id).focus();
+  });
+
+  function show(id) {
+    var v = views.filter(function (x) { return x.id === id; })[0] || views[0];
+    if (current) { try { current.unmount && current.unmount(); } catch (e) { console.error(e); } }
+    stage.innerHTML = '';
+    currentEl = document.createElement('div');
+    currentEl.className = 'view-root';
+    currentEl.setAttribute('data-view', v.id);
+    stage.appendChild(currentEl);
+    stage.setAttribute('aria-labelledby', 'tab-' + v.id);
+    current = v;
+    state.view = v.id;
+    save();
+    Array.prototype.forEach.call(tabs.children, function (t) { t.setAttribute('aria-selected', String(t.getAttribute('data-view') === v.id)); t.tabIndex = t.getAttribute('data-view') === v.id ? 0 : -1; });
+    meta.innerHTML = '<div><h3>The idea</h3><p>' + esc(v.blurb || '') + '</p></div>' +
+      '<div><h3>What works</h3><ul>' + (v.good || []).map(function (g) { return '<li>' + esc(g) + '</li>'; }).join('') + '</ul></div>' +
+      '<div><h3>What is hard</h3><ul>' + (v.hard || []).map(function (g) { return '<li>' + esc(g) + '</li>'; }).join('') + '</ul></div>';
+    try { v.mount(currentEl, ctx()); } catch (e) { console.error(e); }
+  }
+  function updateView() {
+    if (!current) return;
+    try { current.update && current.update(ctx()); } catch (e) { console.error(e); }
+  }
+
+  // Detail panel
+  var panel = document.getElementById('st-panel');
+  var scrim = document.getElementById('st-scrim');
+  var depthNames = ['', 'A way in', 'Going further', 'The deep end'];
+  var stateNames = { start: 'Start here', relevant: 'Relevant', stretch: 'Stretch' };
+  function nodeLink(id) {
+    var x = T.nodeById[id];
+    return '<button type="button" class="linkish" data-goto="' + id + '">' + esc(x.name) + '</button> <span class="st-muted">(' + esc(T.traditions[x.tradition]) + ')</span>';
+  }
+  function openPanel(id, keepFocus) {
+    var x = T.nodeById[id], r = profile.nodes[id], b = T.branchById[x.branch];
+    var rank = state.progress[id] || 0;
+    var leadsTo = T.nodes.filter(function (y) { return y.from.indexOf(id) !== -1; });
+    var echoes = T.echoes.filter(function (e) { return e.nodes.indexOf(id) !== -1; });
+    var chips = '<span class="st-chip">' + esc(b.short) + '</span><span class="st-chip">' + depthNames[x.depth] + '</span>';
+    if (r.state !== 'quiet') chips += '<span class="st-chip ' + r.state + '">' + stateNames[r.state] + '</span>';
+    if (r.door) chips += '<span class="st-chip door">Different door</span>';
+    function block(title, text) {
+      return '<div><h3>' + title + '</h3>' + (text ? '<p>' + esc(text) + '</p>' : '<p class="st-pending">Being written.</p>') + '</div>';
+    }
+    panel.innerHTML =
+      '<button type="button" class="close" id="st-panel-close" aria-label="Close">×</button>' +
+      '<div><div class="st-label">' + esc(T.traditions[x.tradition]) + ' · ' + esc(x.strand) + '</div><h2 id="st-panel-title" tabindex="-1">' + esc(x.name) + '</h2></div>' +
+      '<div class="st-chips">' + chips + '</div>' +
+      '<div><h3>Why it is highlighted</h3>' + (r.reasons.length && r.state !== 'quiet'
+        ? '<ul>' + r.reasons.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>'
+        : '<p class="st-muted">' + (profile.answered ? 'Your answers did not highlight this one. It is still here to explore.' : 'Answer the questions to see what lights up.') + '</p>') + '</div>' +
+      block('The idea', x.idea) + block('Try this', x.practice) + block('Going deeper', x.deeper) +
+      '<div><h3>Where you are with it</h3><div class="st-ranks" role="radiogroup" aria-label="Where you are with it">' + T.ranks.map(function (k) {
+        var rid = 'rank-' + k.value;
+        return '<label for="' + rid + '"><input type="radio" name="st-rank" id="' + rid + '" value="' + k.value + '"' + (rank === k.value ? ' checked' : '') + '><span>' + k.name + '</span></label>';
+      }).join('') + '</div></div>' +
+      (x.from.length ? '<div><h3>Builds on</h3><ul>' + x.from.map(function (f) { return '<li>' + nodeLink(f) + '</li>'; }).join('') + '</ul></div>' : '') +
+      (leadsTo.length ? '<div><h3>Leads to</h3><ul>' + leadsTo.map(function (y) { return '<li>' + nodeLink(y.id) + '</li>'; }).join('') + '</ul></div>' : '') +
+      echoes.map(function (e) {
+        return '<div><h3>Echo: ' + esc(e.label) + '</h3><ul>' + e.nodes.filter(function (o) { return o !== id; }).map(function (o) { return '<li>' + nodeLink(o) + '</li>'; }).join('') + '</ul></div>';
+      }).join('');
+    panel.hidden = false;
+    scrim.hidden = !window.matchMedia('(max-width: 640px)').matches;
+    if (!keepFocus) { var h = document.getElementById('st-panel-title'); if (h) h.focus(); }
+  }
+  function closePanel() {
+    panel.hidden = true; scrim.hidden = true;
+    state.selected = null;
+    updateView();
+    if (lastTrigger && document.contains(lastTrigger)) { try { lastTrigger.focus(); } catch (e) { /* ignore */ } }
+  }
+  panel.addEventListener('click', function (e) {
+    if (e.target.closest('#st-panel-close')) { closePanel(); return; }
+    var g = e.target.closest('[data-goto]');
+    if (g) { state.selected = g.getAttribute('data-goto'); openPanel(state.selected); updateView(); }
+  });
+  panel.addEventListener('change', function (e) {
+    if (e.target.name !== 'st-rank' || !state.selected) return;
+    var v = parseInt(e.target.value, 10);
+    if (v) state.progress[state.selected] = v; else delete state.progress[state.selected];
+    save();
+    updateView();
+  });
+  scrim.addEventListener('click', closePanel);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) closePanel(); });
+
+  // Theme changes reach views that draw with canvas.
+  function themeChanged() { updateView(); }
+  if (mql && mql.addEventListener) mql.addEventListener('change', themeChanged);
+  try { new MutationObserver(themeChanged).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) { /* ignore */ }
+
+  // Test hook (read-only).
+  window.__skillTree = {
+    profile: function () { return copy(profile); },
+    state: function () { return copy({ answers: state.answers, progress: state.progress, view: state.view, selected: state.selected }); },
+    show: show
+  };
+
+  syncQuestions();
+  show(state.view || (views[0] && views[0].id));
+})();
+</script>
+</body>
+</html>
