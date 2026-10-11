@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inderstanding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Hanken+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one left-aligned reading column; the loop diagram sits beside the intro on wide screens, the six tools follow as rows keyed to loop stages. */
+:root {
+  --ground: #eef1f2;
+  --surface: #ffffff;
+  --ink: #1b2226;
+  --muted: #56636a;
+  --line: #cfd6d9;
+  --accent: #2d47a3;
+  --accent-soft: #dfe4f6;
+  --display: "Young Serif", "Iowan Old Style", Georgia, serif;
+  --body: "Hanken Grotesk", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #12171a;
+    --surface: #192024;
+    --ink: #e4eaec;
+    --muted: #9aa8ae;
+    --line: #2c363b;
+    --accent: #9fb1ff;
+    --accent-soft: #232c4a;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #12171a;
+  --surface: #192024;
+  --ink: #e4eaec;
+  --muted: #9aa8ae;
+  --line: #2c363b;
+  --accent: #9fb1ff;
+  --accent-soft: #232c4a;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font: 400 1.0625rem/1.6 var(--body);
+}
+.page {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding-inline: clamp(16px, 4vw, 48px);
+  padding-block: clamp(32px, 6vw, 72px) 64px;
+  display: grid;
+  gap: clamp(40px, 6vw, 72px);
+}
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+
+.label {
+  font: 500 0.75rem/1.2 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Intro */
+.intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: clamp(24px, 5vw, 64px);
+  align-items: center;
+}
+.intro h1 {
+  font: 400 clamp(2.4rem, 6vw, 4.2rem)/1.02 var(--display);
+  margin: 12px 0 20px;
+  letter-spacing: -0.01em;
+}
+.intro p { margin: 0 0 14px; max-width: 34rem; }
+.intro p.lede { font-size: 1.2rem; line-height: 1.5; }
+.intro .note { color: var(--muted); font-size: 0.95rem; }
+
+/* Loop diagram */
+.loop { width: 100%; max-width: 34rem; justify-self: center; margin: 0; }
+.loop svg { width: 100%; height: auto; display: block; }
+.loop .ring { fill: none; stroke: var(--line); stroke-width: 1.5; }
+.loop .arc { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+.loop .node { fill: var(--surface); stroke: var(--ink); stroke-width: 1.25; }
+.loop .num { fill: var(--ink); font: 500 13px var(--mono); }
+.loop .stage { fill: var(--ink); font: 400 17px var(--display); }
+.loop .tools { fill: var(--muted); font: 400 12.5px var(--body); }
+.loop .centre { fill: var(--muted); font: 400 12px var(--mono); letter-spacing: 0.06em; }
+.loop figcaption { color: var(--muted); font-size: 0.9rem; margin-top: 8px; text-align: center; }
+
+/* Tools */
+.tools-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+.tools-head h2 { font: 400 1.6rem/1.2 var(--display); margin: 0; }
+.tools-head p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+.tool-list { list-style: none; margin: 0; padding: 0; }
+.tool {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr) auto;
+  gap: 8px 32px;
+  padding-block: 24px;
+  border-bottom: 1px solid var(--line);
+  align-items: start;
+}
+.tool .meta { display: grid; gap: 6px; padding-top: 6px; }
+.tool .stage-tag { font: 500 0.75rem/1.2 var(--mono); color: var(--accent); }
+.tool .rhythm { font: 400 0.75rem/1.2 var(--mono); color: var(--muted); }
+.tool h3 { font: 400 1.5rem/1.2 var(--display); margin: 0 0 6px; text-wrap: balance; }
+.tool p { margin: 0; max-width: 40rem; }
+.tool .borrows { color: var(--muted); font-size: 0.95rem; margin-top: 8px; }
+.open {
+  align-self: center;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background-color 0.15s, color 0.15s;
+}
+.open:hover { background: var(--ink); color: var(--ground); }
+.open span[aria-hidden] { font-family: var(--mono); }
+
+/* Docs */
+.docs { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 24px 32px; }
+.docs h2 { grid-column: 1 / -1; font: 400 1.6rem/1.2 var(--display); margin: 0; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+.doc a { font: 400 1.2rem/1.3 var(--display); text-decoration: none; }
+.doc a:hover { text-decoration: underline; }
+.doc p { margin: 6px 0 0; color: var(--muted); font-size: 0.95rem; }
+
+footer { color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--line); padding-top: 16px; }
+
+@media (max-width: 760px) {
+  .intro { grid-template-columns: 1fr; }
+  .tool { grid-template-columns: 1fr; gap: 10px; }
+  .tool .meta { display: flex; gap: 16px; padding-top: 0; }
+  .open { justify-self: start; }
+}
+@media (prefers-reduced-motion: reduce) { .open { transition: none; } }
+</style>
+</head>
+<body>
+<main class="page">
+
+  <section class="intro">
+    <div>
+      <div class="label">Prototype set, October 2026</div>
+      <h1>Inderstanding</h1>
+      <p class="lede">Tools for building your own working philosophy out of your own experiences, then testing it against ordinary days.</p>
+      <p>Religion, philosophy and even astrology give people a vocabulary and a set of questions. The meaning only forms when you hold your own life up against them and notice what fits. Nobody can do that part for you, including an AI.</p>
+      <p>These six prototypes lend you other places to stand: other traditions, your future self, the long view, chance. They never tell you what your life means.</p>
+      <p class="note">Everything runs in your browser and stays on this device. Each tool opens with example content so you can see how it works; clear it when you want to start your own.</p>
+    </div>
+
+    <figure class="loop">
+      <svg viewBox="0 0 520 390" role="img" aria-labelledby="loop-title loop-desc">
+        <title id="loop-title">The loop</title>
+        <desc id="loop-desc">A cycle of four stages. 1 Gather: Vantage. 2 Look from elsewhere: Prism, Question Deck, Council. 3 Try it in the world: The Long Way. 4 State it and test it: Working Creed, Council. Then back to Gather.</desc>
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"></path>
+          </marker>
+        </defs>
+        <circle class="ring" cx="260" cy="200" r="110"></circle>
+        <path class="arc" d="M 282.9 92.4 A 110 110 0 0 1 367.6 177.1" marker-end="url(#arrow)"></path>
+        <path class="arc" d="M 367.6 222.9 A 110 110 0 0 1 282.9 307.6" marker-end="url(#arrow)"></path>
+        <path class="arc" d="M 237.1 307.6 A 110 110 0 0 1 152.4 222.9" marker-end="url(#arrow)"></path>
+        <path class="arc" d="M 152.4 177.1 A 110 110 0 0 1 237.1 92.4" marker-end="url(#arrow)"></path>
+
+        <circle class="node" cx="260" cy="90" r="14"></circle>
+        <text class="num" x="260" y="95" text-anchor="middle">1</text>
+        <text class="stage" x="260" y="40" text-anchor="middle">Gather</text>
+        <text class="tools" x="260" y="60" text-anchor="middle">Vantage</text>
+
+        <circle class="node" cx="370" cy="200" r="14"></circle>
+        <text class="num" x="370" y="205" text-anchor="middle">2</text>
+        <text class="stage" x="396" y="186">Look from</text>
+        <text class="stage" x="396" y="206">elsewhere</text>
+        <text class="tools" x="396" y="226">Prism, Deck, Council</text>
+
+        <circle class="node" cx="260" cy="310" r="14"></circle>
+        <text class="num" x="260" y="315" text-anchor="middle">3</text>
+        <text class="stage" x="260" y="354" text-anchor="middle">Try it in the world</text>
+        <text class="tools" x="260" y="374" text-anchor="middle">The Long Way</text>
+
+        <circle class="node" cx="150" cy="200" r="14"></circle>
+        <text class="num" x="150" y="205" text-anchor="middle">4</text>
+        <text class="stage" x="124" y="186" text-anchor="end">State it</text>
+        <text class="stage" x="124" y="206" text-anchor="end">and test it</text>
+        <text class="tools" x="124" y="226" text-anchor="end">Working Creed</text>
+
+        <text class="centre" x="260" y="196" text-anchor="middle">WHAT HAPPENS</text>
+        <text class="centre" x="260" y="214" text-anchor="middle">BECOMES MATERIAL</text>
+      </svg>
+      <figcaption>Each tool sits on one stage of the same cycle.</figcaption>
+    </figure>
+  </section>
+
+  <section aria-labelledby="tools-title">
+    <div class="tools-head">
+      <h2 id="tools-title">The six tools</h2>
+      <p>Ordered by where they sit in the loop.</p>
+    </div>
+    <ul class="tool-list">
+      <li class="tool">
+        <div class="meta"><span class="stage-tag">1 Gather</span><span class="rhythm">Occasional</span></div>
+        <div>
+          <h3>Vantage</h3>
+          <p>Your experiences become stars. You connect them into constellations and name what they mean, then shift vantage (time, feeling, threads) and watch some figures stretch apart while others form.</p>
+          <p class="borrows">Borrows from star charts and Marcus Aurelius' view from above.</p>
+        </div>
+        <a class="open" href="apps/vantage/index.html">Open Vantage <span aria-hidden="true">&rarr;</span></a>
+      </li>
+      <li class="tool">
+        <div class="meta"><span class="stage-tag">2 Look from elsewhere</span><span class="rhythm">Weekly</span></div>
+        <div>
+          <h3>Prism</h3>
+          <p>One real moment from your life, read through many traditions and their strands. You mark what lands and what you push back on, and a resonance map builds up from evidence instead of a quiz.</p>
+          <p class="borrows">Includes less familiar doors into familiar traditions, such as the Desert Mothers, Quakers and Kierkegaard.</p>
+        </div>
+        <a class="open" href="apps/prism/index.html">Open Prism <span aria-hidden="true">&rarr;</span></a>
+      </li>
+      <li class="tool">
+        <div class="meta"><span class="stage-tag">2 Look from elsewhere</span><span class="rhythm">Daily</span></div>
+        <div>
+          <h3>The Question Deck</h3>
+          <p>The ritual of a tarot or I Ching reading, with every card a question from a tradition instead of an answer. You carry it through the day and answer in a line. The answers become a book you wrote.</p>
+          <p class="borrows">Borrows from Quaker queries, Ignatian examen, koans, poets and philosophers.</p>
+        </div>
+        <a class="open" href="apps/question-deck/index.html">Open the Deck <span aria-hidden="true">&rarr;</span></a>
+      </li>
+      <li class="tool">
+        <div class="meta"><span class="stage-tag">2 and 4</span><span class="rhythm">When a decision comes up</span></div>
+        <div>
+          <h3>Council</h3>
+          <p>Bring a real decision to a table of tradition voices plus personal seats like you at 80 and the person most affected. You rule as chair, and each ruling's principle becomes precedent for the next case.</p>
+          <p class="borrows">Borrows from clearness committees and the way law builds principles from cases.</p>
+        </div>
+        <a class="open" href="apps/council/index.html">Open Council <span aria-hidden="true">&rarr;</span></a>
+      </li>
+      <li class="tool">
+        <div class="meta"><span class="stage-tag">3 Try it in the world</span><span class="rhythm">40 days</span></div>
+        <div>
+          <h3>The Long Way</h3>
+          <p>A 40-day walk with one practice a day from a different tradition, done during your actual day. In the evening you say whether it shifted anything. The ones that did become a Rule of Life in your own words.</p>
+          <p class="borrows">Borrows from pilgrimage routes and the monastic Rule of Life.</p>
+        </div>
+        <a class="open" href="apps/long-way/index.html">Open The Long Way <span aria-hidden="true">&rarr;</span></a>
+      </li>
+      <li class="tool">
+        <div class="meta"><span class="stage-tag">4 State it and test it</span><span class="rhythm">Daily</span></div>
+        <div>
+          <h3>Working Creed</h3>
+          <p>A few lines in your own words about how you want to live. One surfaces each morning as your bearing, and each evening you note whether it held. Lines that keep drifting get questioned, and every revision is kept.</p>
+          <p class="borrows">Borrows from field geology: your beliefs laid down as strata.</p>
+        </div>
+        <a class="open" href="apps/working-creed/index.html">Open Working Creed <span aria-hidden="true">&rarr;</span></a>
+      </li>
+    </ul>
+  </section>
+
+  <section class="docs" aria-labelledby="docs-title">
+    <h2 id="docs-title">Background</h2>
+    <div class="doc"><a href="docs/concept.md">Concept</a><p>The problem, the loop, how the tools would combine, and where AI should and shouldn't fit.</p></div>
+    <div class="doc"><a href="docs/principles.md">Principles</a><p>The rules every tool follows, including how traditions are handled.</p></div>
+    <div class="doc"><a href="docs/idea-bank.md">Idea bank</a><p>Further directions, many of them not apps at all.</p></div>
+    <div class="doc"><a href="docs/grounding.md">Grounding</a><p>Research on meaning-making, the traditions' own tools, existing products and risks.</p></div>
+  </section>
+
+  <footer>No accounts, no tracking. Each tool can export its data as JSON from its settings.</footer>
+</main>
+</body>
+</html>
