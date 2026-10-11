@@ -1,0 +1,2724 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vantage</title>
+<style>
+/* Design plan.
+   Single theme on purpose: Vantage is a star atlas of your own night sky, so it commits to one
+   dark world (Prussian chart ink, atlas-paper type, brass instrument accent) and has no light
+   variant. Every colour is set explicitly below; there are no prefers-color-scheme or
+   data-theme blocks, and the page looks the same on either host background. */
+@import url('https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@400;500&family=Spectral+SC:wght@400;500;600&family=Spectral:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
+
+:root {
+  /* Layout concept: an atlas plate. The sky is a framed chart with working coordinate ticks;
+     a narrow catalogue column beside it holds the readout, your figures and the observations. */
+  --ink: #0a1220;      /* page: deep chart ink */
+  --plate: #0d192c;    /* plate margin, dialogs */
+  --rule: #2a3c5a;     /* hairlines, frames, graticule */
+  --paper: #ece5d3;    /* text: atlas paper white */
+  --muted: #a1b1c8;    /* secondary text */
+  --brass: #d6ad5f;    /* the one accent: orrery brass, for the active vantage, primary action, focus */
+
+  --serif: "Spectral", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --caps: "Spectral SC", "Spectral", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --mono: "Azeret Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  /* Derived neutrals and data colours (stellar spectral classes B A F G K M) */
+  --ink-2: #0f1c31;
+  --rule-2: #3b5274;
+  --dim: #8496b2;
+  --brass-ink: #15110a;
+  --danger: #ffb3a6;
+  --danger-rule: #8d4038;
+  --f-awe: #9fbaff;
+  --f-calm: #e6edff;
+  --f-hope: #f8e7a6;
+  --f-joy: #ffc443;
+  --f-unsettled: #ff9449;
+  --f-hurt: #ff5b4c;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { background: var(--ink); }
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--paper);
+  font: 16px/1.55 var(--serif);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.vt {
+  min-height: 100%;
+  background: var(--ink);
+  color: var(--paper);
+  padding-inline: clamp(16px, 3vw, 40px);
+  padding-block: max(14px, env(safe-area-inset-top, 0px)) max(40px, env(safe-area-inset-bottom, 0px));
+}
+.frame { max-width: 1380px; margin-inline: auto; }
+.sr-only {
+  position: absolute !important; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0; padding: 0; margin: -1px;
+}
+.skip {
+  position: absolute; left: 16px; top: 8px; z-index: 50; max-width: calc(100% - 32px);
+  background: var(--brass); color: var(--brass-ink); padding: 8px 12px; font-weight: 600;
+  transform: translateY(-300%);
+}
+.skip:focus { transform: none; }
+:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+a { color: var(--paper); text-decoration-color: var(--rule-2); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--brass); }
+h1, h2, h3, h4 { text-wrap: balance; margin: 0; font-weight: 500; }
+p { margin: 0; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* ---------- Buttons ---------- */
+.btn {
+  font: 500 15px/1.2 var(--serif);
+  color: var(--paper);
+  background: transparent;
+  border: 1px solid var(--rule-2);
+  border-radius: 2px;
+  padding: 8px 14px;
+  min-height: 40px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.btn:hover { border-color: #5a7399; background: var(--ink-2); }
+.btn-primary { background: var(--brass); border-color: var(--brass); color: var(--brass-ink); font-weight: 600; }
+.btn-primary:hover { background: #e4c07a; border-color: #e4c07a; }
+.btn[aria-pressed="true"] { border-color: var(--brass); color: var(--brass); }
+.btn-small { font-size: 14px; padding: 5px 10px; min-height: 34px; }
+.btn-link {
+  background: none; border: 0; padding: 4px 0; min-height: 0; color: var(--paper);
+  text-decoration: underline; text-decoration-color: var(--rule-2); text-underline-offset: 3px;
+  font: 500 14px/1.3 var(--serif); cursor: pointer;
+}
+.btn-link:hover { text-decoration-color: var(--brass); }
+.btn-danger { border-color: var(--danger-rule); color: var(--danger); }
+.btn-danger:hover { background: #2a1416; border-color: #b0544a; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+.tag {
+  display: inline-block;
+  font: 500 10px/1 var(--mono);
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--brass); border: 1px solid #6e5832;
+  padding: 3px 5px 2px; border-radius: 2px; vertical-align: 2px; white-space: nowrap;
+}
+
+/* ---------- Masthead ---------- */
+.mast {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+  gap: 12px 24px; padding-bottom: 14px; border-bottom: 1px solid var(--rule);
+}
+.brand { display: flex; flex-direction: column; gap: 2px; max-width: 46rem; }
+.wordmark {
+  font: 500 30px/1 var(--caps); letter-spacing: .14em; color: var(--paper);
+  display: flex; align-items: baseline; gap: 12px;
+}
+.wordmark .cat { font: 400 11px/1 var(--mono); letter-spacing: .08em; color: var(--dim); }
+.tagline { font: italic 400 16px/1.4 var(--serif); color: var(--muted); }
+.mast-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.example-strip {
+  margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+  border: 1px dashed #4b5f80; padding: 10px 14px; border-radius: 2px;
+}
+.example-strip p { flex: 1 1 28rem; font-size: 15px; color: var(--paper); }
+.example-strip .tag { margin-right: 6px; }
+
+/* ---------- Layout ---------- */
+.layout {
+  display: grid; grid-template-columns: minmax(0, 1fr) 350px; gap: 28px; margin-top: 16px;
+}
+.chart-col { min-width: 0; }
+.side-col { position: relative; min-width: 0; }
+.side-scroll {
+  position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; padding-right: 8px;
+  scrollbar-width: thin; scrollbar-color: var(--rule-2) transparent;
+  border-left: 1px solid var(--rule); padding-left: 20px;
+}
+
+/* Vantage bar: plate index of an atlas */
+.vbar {
+  display: flex; flex-wrap: wrap; gap: 2px 4px; align-items: stretch;
+  border-bottom: 1px solid var(--rule);
+}
+.vb {
+  appearance: none; background: none; border: 0; border-bottom: 2px solid transparent;
+  color: var(--muted); font: 500 15px/1.2 var(--serif); padding: 10px 11px 9px;
+  margin-bottom: -1px; cursor: pointer; text-align: left;
+}
+.vb:hover { color: var(--paper); }
+.vb .num { font: 500 13px/1 var(--caps); letter-spacing: .04em; color: var(--dim); margin-right: 6px; }
+.vb[aria-pressed="true"] { color: var(--paper); border-bottom-color: var(--brass); }
+.vb[aria-pressed="true"] .num { color: var(--brass); }
+.vb-above { margin-left: auto; }
+.vb .short { display: none; }
+
+.plate-head {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 12px 0 10px;
+}
+.plate-title { font: 500 15px/1.2 var(--caps); letter-spacing: .08em; color: var(--paper); white-space: nowrap; }
+.plate-title .num { color: var(--brass); margin-right: 4px; }
+.plate-caption { flex: 1 1 24rem; font-size: 15px; color: var(--muted); line-height: 1.45; max-width: 62rem; }
+.hl-note {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 10px;
+  font-size: 14px; color: var(--brass);
+}
+
+.connect-bar {
+  border: 1px solid var(--brass); background: #14202f; padding: 12px 14px; margin-bottom: 18px;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; border-radius: 2px; min-width: 0;
+}
+.connect-bar > * { min-width: 0; }
+.connect-bar .cb-head { display: grid; gap: 4px; }
+.connect-bar .cb-title { font: 500 15px/1.2 var(--caps); letter-spacing: .08em; color: var(--brass); }
+.connect-bar .cb-help { font-size: 14px; color: var(--muted); }
+.connect-bar .cb-status { font: 13px/1.4 var(--mono); color: var(--paper); }
+.cb-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cb-pick { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cb-pick label { font-size: 14px; color: var(--muted); }
+.cb-pick label { flex: 1 1 100%; }
+.cb-pick select { flex: 1 1 100%; width: 100%; min-width: 0; }
+
+.plate-wrap { position: relative; }
+.plate {
+  position: relative; width: 100%; aspect-ratio: 16 / 10; max-height: max(420px, min(700px, calc(100vh - 320px)));
+  background: var(--plate); border: 1px solid var(--rule); overflow: hidden;
+}
+.plate canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%; display: block;
+  touch-action: manipulation; cursor: crosshair;
+}
+.plate canvas:focus-visible { outline: 2px solid var(--brass); outline-offset: -2px; }
+.tip {
+  position: absolute; z-index: 3; pointer-events: none; max-width: 270px;
+  background: rgba(9, 16, 29, .95); border: 1px solid var(--rule-2); padding: 8px 10px;
+  font-size: 14px; line-height: 1.35; color: var(--paper);
+}
+.tip .t-title { font-style: italic; font-size: 16px; }
+.tip .t-meta { font: 11px/1.4 var(--mono); color: var(--muted); margin-top: 2px; }
+.tip .t-story { color: var(--muted); margin-top: 4px; }
+
+.empty-sky {
+  position: absolute; left: 7%; top: 12%; max-width: 30rem; z-index: 2;
+  display: grid; gap: 12px; padding: 14px 16px; margin-right: 16px;
+  background: rgba(13, 25, 44, .88); border: 1px solid var(--rule);
+}
+.empty-sky .e-h { font: 500 22px/1.2 var(--caps); letter-spacing: .06em; }
+.empty-sky p { color: var(--paper); font-size: 16px; }
+.empty-sky .row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.peek {
+  position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 2;
+  background: rgba(9, 16, 29, .94); border: 1px solid var(--rule-2); padding: 6px 6px 6px 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.peek .p-title { font-style: italic; flex: 1 1 auto; min-width: 0; line-height: 1.25; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.peek .p-meta { display: block; font: 10.5px/1.4 var(--mono); color: var(--muted); font-style: normal; overflow: hidden; text-overflow: ellipsis; }
+.peek .btn { flex: none; }
+.peek .p-x { width: 34px; padding: 0; font-size: 18px; }
+
+.above {
+  position: absolute; left: 16px; bottom: 16px; z-index: 2; width: min(380px, 44%);
+  background: rgba(9, 16, 29, .92); border: 1px solid var(--rule-2); padding: 16px 16px 14px;
+  display: grid; gap: 10px;
+}
+.above h3 { font: 500 17px/1.2 var(--caps); letter-spacing: .06em; color: var(--brass); }
+.above p { font-size: 15px; line-height: 1.5; }
+.above .q { font-style: italic; font-size: 17px; line-height: 1.4; border-top: 1px solid var(--rule); padding-top: 10px; }
+.above .row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.key {
+  display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 10px;
+  font: 12px/1.3 var(--mono); color: var(--muted);
+}
+.key-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.key-label { color: var(--dim); }
+.key-item { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.sw {
+  display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none;
+  background: radial-gradient(circle, #fffef6 0 20%, var(--c) 52%);
+  box-shadow: 0 0 6px var(--c);
+}
+.magdot { display: inline-block; border-radius: 50%; background: var(--paper); flex: none; }
+
+/* ---------- Side column ---------- */
+.sect { padding: 4px 0 22px; }
+.sect + .sect { border-top: 1px solid var(--rule); padding-top: 18px; }
+.sect-h { font: 500 15px/1.2 var(--caps); letter-spacing: .1em; color: var(--muted); margin-bottom: 10px; }
+.sect-sub { font-size: 14px; color: var(--muted); margin-bottom: 12px; line-height: 1.45; }
+.quiet { color: var(--muted); font-size: 15px; }
+
+.entry { display: grid; gap: 10px; }
+.entry-desig { display: flex; gap: 10px; align-items: center; font: 12px/1 var(--mono); color: var(--dim); }
+.entry-title { font: italic 500 24px/1.2 var(--serif); color: var(--paper); }
+.entry-title:focus { outline: none; }
+.entry-title:focus-visible { outline: 2px solid var(--brass); }
+.meta { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; font-size: 15px; }
+.meta dt { font: 500 13px/1.6 var(--caps); letter-spacing: .06em; color: var(--dim); }
+.meta dd { margin: 0; line-height: 1.5; }
+.meta .sub { font: 12px/1 var(--mono); color: var(--dim); margin-left: 6px; }
+.story { font-size: 16px; line-height: 1.6; white-space: pre-wrap; max-width: 62ch; }
+.thread-list { display: flex; flex-wrap: wrap; gap: 4px 6px; list-style: none; margin: 0; padding: 0; }
+.thread-list li { font: 12px/1.4 var(--mono); border: 1px solid var(--rule-2); padding: 1px 7px; border-radius: 10px; color: var(--paper); }
+.row-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.confirm {
+  border: 1px solid var(--danger-rule); padding: 10px 12px; display: grid; gap: 8px;
+  font-size: 15px; border-radius: 2px; background: #1a1418;
+}
+
+.figs { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.fig-name { font: 500 17px/1.25 var(--caps); letter-spacing: .06em; }
+.fig-meaning { font-style: italic; color: var(--paper); font-size: 15px; margin-top: 4px; line-height: 1.5; }
+.fig-stars { font-size: 14px; color: var(--muted); margin-top: 4px; }
+.fig-span { font: 12px/1.5 var(--mono); color: var(--muted); margin-top: 6px; }
+.fig-span b { color: var(--paper); font-weight: 500; }
+.figs .row-actions { margin-top: 6px; }
+
+.obs { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; counter-reset: obs; }
+.obs li { display: grid; gap: 4px; padding-left: 30px; position: relative; }
+.obs li::before {
+  counter-increment: obs; content: counter(obs, lower-roman) ".";
+  position: absolute; left: 0; top: 2px; font: 500 13px/1.4 var(--caps); color: var(--dim);
+}
+.obs .o-text { font-size: 15px; line-height: 1.5; }
+.obs .o-q { font-style: italic; color: var(--muted); font-size: 15px; line-height: 1.5; }
+.obs .btn-link { justify-self: start; font-size: 13px; }
+
+/* ---------- Catalogue ---------- */
+.catalogue { margin-top: 40px; border-top: 1px solid var(--rule); padding-top: 22px; }
+.cat-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 20px; }
+.cat-head h2 { font: 500 24px/1.2 var(--caps); letter-spacing: .1em; }
+.cat-head p { color: var(--muted); font-size: 15px; max-width: 46rem; }
+.cat-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 32px; margin-top: 18px; }
+.cat-h3 { font: 500 16px/1.2 var(--caps); letter-spacing: .1em; color: var(--muted); margin-bottom: 8px; }
+.cat-list { list-style: none; margin: 0; padding: 0; }
+.cat-row {
+  display: grid; grid-template-columns: 4.2rem minmax(0, 1fr); gap: 4px 12px;
+  padding: 14px 0; border-top: 1px solid var(--rule);
+}
+.cat-num { font: 12px/1.9 var(--mono); color: var(--dim); }
+.cat-body { display: grid; gap: 6px; min-width: 0; }
+.cat-title { font: italic 500 18px/1.3 var(--serif); }
+.cat-meta { font: 12px/1.6 var(--mono); color: var(--muted); display: flex; flex-wrap: wrap; gap: 2px 12px; align-items: center; }
+.cat-meta .feel { display: inline-flex; gap: 5px; align-items: center; }
+.cat-story { font-size: 15px; color: var(--paper); line-height: 1.55; max-width: 64ch; white-space: pre-wrap; }
+.cat-figs { font-size: 14px; color: var(--muted); }
+
+.foot { margin-top: 40px; border-top: 1px solid var(--rule); padding-top: 14px; font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 20px; justify-content: space-between; }
+
+/* ---------- Dialogs and forms ---------- */
+dialog {
+  background: var(--plate); color: var(--paper); border: 1px solid var(--rule-2);
+  border-radius: 3px; padding: 0; width: min(600px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+}
+dialog::backdrop { background: rgba(3, 7, 14, .74); }
+.dlg { padding: 22px 22px 18px; display: grid; gap: 16px; }
+.dlg h2 { font: 500 22px/1.2 var(--caps); letter-spacing: .08em; }
+.dlg .intro { color: var(--muted); font-size: 15px; margin-top: -6px; }
+.dlg section { display: grid; gap: 8px; border-top: 1px solid var(--rule); padding-top: 14px; }
+.dlg h3 { font: 500 16px/1.2 var(--caps); letter-spacing: .08em; }
+.dlg-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 4px; }
+.field { margin: 0; padding: 0; border: 0; display: grid; gap: 6px; min-width: 0; }
+.field > label, .field > legend, .lbl {
+  font: 500 14px/1.3 var(--caps); letter-spacing: .06em; color: var(--paper); padding: 0;
+}
+.field > legend { margin-bottom: 6px; }
+.opt { font-family: var(--serif); letter-spacing: 0; color: var(--dim); font-weight: 400; }
+.hint { font-size: 13px; color: var(--muted); line-height: 1.45; }
+input[type="text"], input[type="number"], textarea, select {
+  width: 100%; background: #08111f; color: var(--paper); border: 1px solid var(--rule-2);
+  border-radius: 2px; padding: 9px 10px; font: 16px/1.4 var(--serif); min-width: 0;
+}
+textarea { resize: vertical; }
+textarea.code { font: 12px/1.5 var(--mono); }
+input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--brass); outline-offset: 0; }
+.inline { display: flex; gap: 8px; flex-wrap: wrap; align-items: stretch; }
+.inline > input { flex: 1 1 8rem; width: auto; }
+.inline > select { flex: 0 1 9rem; width: auto; }
+input[type="radio"] { accent-color: var(--brass); width: 16px; height: 16px; margin: 0; flex: none; }
+.feel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.feel-opt {
+  display: grid; grid-template-columns: auto auto 1fr; gap: 0 8px; align-items: center;
+  border: 1px solid var(--rule); padding: 8px 10px; border-radius: 2px; cursor: pointer;
+}
+.feel-opt:has(input:checked) { border-color: var(--brass); background: #131f33; }
+.feel-opt .fname { font-size: 16px; }
+.feel-opt .fname .cls { font: 11px/1 var(--mono); color: var(--dim); margin-left: 4px; }
+.feel-opt .fgloss { grid-column: 3; font-size: 12.5px; color: var(--muted); line-height: 1.3; }
+.mag-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.mag-opt {
+  display: grid; justify-items: center; gap: 6px; padding: 8px 4px; border: 1px solid var(--rule);
+  border-radius: 2px; cursor: pointer; font: 13px/1 var(--mono);
+}
+.mag-opt:has(input:checked) { border-color: var(--brass); background: #131f33; }
+.mag-ends { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+.chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.chips li {
+  display: inline-flex; align-items: center; gap: 4px; font: 13px/1 var(--mono);
+  border: 1px solid var(--brass); color: var(--paper); padding: 2px 2px 2px 9px; border-radius: 14px;
+}
+.chips li button {
+  background: none; border: 0; color: var(--muted); font-size: 16px; line-height: 1;
+  width: 28px; height: 28px; cursor: pointer; border-radius: 50%;
+}
+.chips li button:hover { color: var(--paper); }
+.suggest { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+.suggest button {
+  font: 13px/1 var(--mono); background: none; border: 1px dashed var(--rule-2); color: var(--paper);
+  padding: 6px 9px; border-radius: 14px; cursor: pointer;
+}
+.suggest button:hover { border-color: var(--brass); }
+.form-error { color: var(--danger); font-size: 15px; min-height: 0; }
+.form-error:empty { display: none; }
+.msg { font-size: 14px; color: var(--brass); }
+.msg:empty { display: none; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: minmax(0, 1fr) 310px; gap: 22px; }
+}
+@media (max-width: 959px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .side-scroll { position: static; overflow: visible; border-left: 0; padding: 0; }
+  .side-col { border-top: 1px solid var(--rule); padding-top: 18px; }
+  .cat-grid { grid-template-columns: minmax(0, 1fr); }
+  .above { position: static; width: auto; margin-top: 10px; }
+}
+@media (max-width: 640px) {
+  .plate { aspect-ratio: 4 / 5; }
+  .wordmark { font-size: 26px; }
+  .vbar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .vb { padding: 8px 6px 7px; font-size: 14.5px; display: flex; flex-direction: column; gap: 1px; }
+  .vb .num { margin: 0; font-size: 12px; }
+  .vb-above { margin-left: 0; }
+  .vb .long { display: none; }
+  .vb .short { display: inline; }
+  .mast-actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .feel-grid { grid-template-columns: minmax(0, 1fr); }
+  .cat-row { grid-template-columns: minmax(0, 1fr); }
+  .meta { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .meta dd { margin-bottom: 6px; }
+  .dlg { padding: 18px 16px 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="vt" id="vt">
+  <a class="skip" href="#catalogue">Skip to the catalogue, a text list of every star and figure</a>
+  <div class="frame">
+    <header class="mast">
+      <div class="brand">
+        <h1 class="wordmark">Vantage <span class="cat" aria-hidden="true">an atlas of one sky</span></h1>
+        <p class="tagline">Place moments from your life as stars, join the ones that belong together into figures, then look at the same sky from other positions.</p>
+      </div>
+      <div class="mast-actions">
+        <button type="button" class="btn btn-primary" id="btn-add" data-act="add">Add a star</button>
+        <button type="button" class="btn" id="btn-connect" data-act="toggle-connect" aria-pressed="false">Draw a figure</button>
+        <a class="btn" href="#catalogue" id="btn-catalogue">Catalogue</a>
+        <button type="button" class="btn" id="btn-data" data-act="open-data">Your data</button>
+      </div>
+    </header>
+
+    <div class="example-strip" id="example-strip" hidden>
+      <p><span class="tag">Example</span><span id="example-text">This sky belongs to an invented person, to show how Vantage works.</span></p>
+      <button type="button" class="btn" id="btn-clear-examples" data-act="clear-examples">Clear examples and start my own</button>
+    </div>
+
+    <main class="layout" id="main">
+      <section class="chart-col" aria-labelledby="plate-title">
+        <div class="vbar" role="group" aria-label="Vantage point">
+          <button type="button" class="vb" data-vantage="ground" aria-pressed="true"><span class="num">I</span>Ground</button>
+          <button type="button" class="vb" data-vantage="time" aria-pressed="false"><span class="num">II</span>Time</button>
+          <button type="button" class="vb" data-vantage="feeling" aria-pressed="false"><span class="num">III</span>Feeling</button>
+          <button type="button" class="vb" data-vantage="threads" aria-pressed="false"><span class="num">IV</span>Threads</button>
+          <button type="button" class="vb" data-vantage="mattered" aria-pressed="false"><span class="num">V</span>What mattered</button>
+          <button type="button" class="vb vb-above" id="btn-above" data-act="toggle-above" aria-pressed="false"><span class="num">VI</span><span class="long">View from above</span><span class="short">From above</span></button>
+        </div>
+        <div class="plate-head">
+          <h2 class="plate-title" id="plate-title"><span class="num">I</span> Ground</h2>
+          <p class="plate-caption" id="plate-caption"></p>
+        </div>
+        <div class="hl-note" id="hl-note" hidden></div>
+        <div class="plate-wrap">
+          <div class="plate" id="plate">
+            <canvas id="sky" tabindex="0" role="application" aria-roledescription="star chart" aria-label="Star chart"></canvas>
+            <div class="tip" id="tip" hidden></div>
+            <div class="empty-sky" id="empty-sky" hidden>
+              <p class="e-h">An empty sky</p>
+              <p>Add a moment from your life: what happened, roughly when, how it felt and how much it mattered. Each one becomes a star you can connect to others.</p>
+              <div class="row">
+                <button type="button" class="btn btn-primary" data-act="add" id="empty-add">Add a star</button>
+                <button type="button" class="btn" data-act="restore-examples" id="empty-restore">Bring back the examples</button>
+              </div>
+            </div>
+            <div class="peek" id="peek" hidden></div>
+          </div>
+          <section class="above" id="above" hidden aria-labelledby="above-h">
+            <h3 id="above-h">The view from above</h3>
+            <p>Marcus Aurelius returns several times to an exercise of picturing human life from high up, all of it at once: crowds, farms, weddings, births, deaths, mourning, markets (<cite>Meditations</cite> 7.48 and 9.30, paraphrased). The faint points around your sky stand for other people's lives, each with figures of its own.</p>
+            <p class="q" id="above-q"></p>
+            <div class="row">
+              <button type="button" class="btn btn-small" data-act="above-next" id="above-next">Another question</button>
+              <button type="button" class="btn btn-small" data-act="toggle-above" id="above-back">Come back down</button>
+            </div>
+          </section>
+        </div>
+        <div class="key" aria-label="Chart key">
+          <div class="key-group" id="key-feel"><span class="key-label">Colour, how it felt:</span></div>
+          <div class="key-group" id="key-mag"><span class="key-label">Size, how much it mattered:</span></div>
+        </div>
+      </section>
+
+      <aside class="side-col" aria-label="Readout, figures and observations">
+        <div class="side-scroll" id="side-scroll">
+          <div class="connect-bar" id="connect-bar" hidden></div>
+          <section class="sect" id="readout" aria-labelledby="readout-h">
+            <h2 class="sect-h" id="readout-h">Readout</h2>
+            <div id="readout-body"></div>
+          </section>
+          <section class="sect" id="figures" aria-labelledby="figures-h">
+            <h2 class="sect-h" id="figures-h">Your figures</h2>
+            <div id="figures-body"></div>
+          </section>
+          <section class="sect" id="observations" aria-labelledby="obs-h">
+            <h2 class="sect-h" id="obs-h">Observations</h2>
+            <p class="sect-sub">Counted from your own entries. Each one ends with a question, because the app can count but can't tell you what anything means.</p>
+            <div id="obs-body"></div>
+          </section>
+        </div>
+      </aside>
+    </main>
+
+    <section class="catalogue" id="catalogue" aria-labelledby="cat-h" tabindex="-1">
+      <div class="cat-head">
+        <h2 id="cat-h">Catalogue</h2>
+        <p>Every star and figure as text, ordered by time. Anything on the chart can be read, edited or deleted from here.</p>
+      </div>
+      <div class="cat-grid">
+        <div>
+          <h3 class="cat-h3" id="cat-stars-h">Stars</h3>
+          <ol class="cat-list" id="cat-stars" aria-labelledby="cat-stars-h"></ol>
+        </div>
+        <div>
+          <h3 class="cat-h3" id="cat-figs-h">Figures</h3>
+          <ul class="cat-list" id="cat-figs" aria-labelledby="cat-figs-h"></ul>
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <p>Vantage is a prototype in the Inderstanding project. Everything stays in this browser, on this device.</p>
+      <p id="storage-foot" hidden>This browser isn't letting the page save. Your stars last until the tab closes; use Your data, then Export, to keep them.</p>
+    </footer>
+  </div>
+
+  <!-- Star form -->
+  <dialog id="star-dialog" aria-labelledby="star-dialog-h">
+    <form class="dlg" id="star-form" novalidate>
+      <h2 id="star-dialog-h">Add a star</h2>
+      <p class="intro">One moment from your life. A rough date is fine.</p>
+      <div class="field">
+        <label for="star-title">What happened, in a few words</label>
+        <input type="text" id="star-title" maxlength="80" autocomplete="off" required>
+      </div>
+      <div class="field">
+        <label for="star-story">A few lines about it <span class="opt">(optional)</span></label>
+        <textarea id="star-story" rows="4" maxlength="2000"></textarea>
+      </div>
+      <div class="field">
+        <label for="star-when">When, roughly</label>
+        <div class="inline">
+          <input type="number" id="star-when" inputmode="numeric" min="0" max="2100" step="1">
+          <label class="sr-only" for="star-when-type">Is that a year or an age?</label>
+          <select id="star-when-type">
+            <option value="year">year</option>
+            <option value="age">my age then</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" id="born-field" hidden>
+        <label for="star-born">Year you were born <span class="opt">(optional)</span></label>
+        <input type="number" id="star-born" inputmode="numeric" min="1900" max="2100" step="1">
+        <p class="hint">Lets stars dated by age share one timeline with stars dated by year. It's saved once, for the whole sky.</p>
+      </div>
+      <fieldset class="field">
+        <legend>How it felt</legend>
+        <div class="feel-grid" id="feel-grid"></div>
+        <p class="hint">Star colours follow real spectral classes, from hot blue-white B stars to cool red M stars.</p>
+      </fieldset>
+      <fieldset class="field">
+        <legend>How much it mattered</legend>
+        <div class="mag-row" id="mag-row"></div>
+        <div class="mag-ends" aria-hidden="true"><span>a little</span><span>a great deal</span></div>
+      </fieldset>
+      <div class="field">
+        <label for="star-thread-input">Threads <span class="opt">(up to 3 themes, in your own words)</span></label>
+        <div class="inline">
+          <input type="text" id="star-thread-input" list="thread-options" autocomplete="off" maxlength="32" placeholder="for example: leaving">
+          <button type="button" class="btn btn-small" id="star-thread-add">Add thread</button>
+        </div>
+        <datalist id="thread-options"></datalist>
+        <ul class="chips" id="star-thread-chips" aria-label="Threads on this star"></ul>
+        <div class="suggest" id="star-thread-suggest"></div>
+      </div>
+      <p class="form-error" id="star-error" role="alert"></p>
+      <div class="dlg-actions">
+        <button type="submit" class="btn btn-primary" id="star-save">Add this star</button>
+        <button type="button" class="btn" id="star-cancel">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Figure form -->
+  <dialog id="figure-dialog" aria-labelledby="figure-dialog-h">
+    <form class="dlg" id="figure-form" novalidate>
+      <h2 id="figure-dialog-h">Name this figure</h2>
+      <p class="intro" id="figure-summary"></p>
+      <div class="field">
+        <label for="fig-name">Name</label>
+        <input type="text" id="fig-name" maxlength="60" autocomplete="off" required>
+      </div>
+      <div class="field">
+        <label for="fig-meaning">What it means to you</label>
+        <textarea id="fig-meaning" rows="4" maxlength="1200"></textarea>
+        <p class="hint">Write it the way you'd say it to a friend. For instance: "Every time I left something it felt like failing, and later it looked like the right call."</p>
+      </div>
+      <p class="form-error" id="fig-error" role="alert"></p>
+      <div class="dlg-actions">
+        <button type="submit" class="btn btn-primary" id="fig-save">Save figure</button>
+        <button type="button" class="btn" id="fig-back">Back to drawing</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Data -->
+  <dialog id="data-dialog" aria-labelledby="data-dialog-h">
+    <div class="dlg">
+      <h2 id="data-dialog-h">Your data</h2>
+      <p class="intro">Everything is kept in this browser, on this device. Nothing is sent anywhere.</p>
+      <p class="hint" id="storage-note" hidden>This browser isn't letting the page save, so your stars will only last until the tab closes. Copy the export below to keep them.</p>
+      <section aria-labelledby="born-h">
+        <h3 id="born-h">Year you were born</h3>
+        <p class="hint">Optional. Used only to put stars dated by age on the same timeline as stars dated by year, and to name periods like "your twenties".</p>
+        <div class="inline">
+          <label class="sr-only" for="data-born">Year you were born</label>
+          <input type="number" id="data-born" inputmode="numeric" min="1900" max="2100" step="1">
+          <button type="button" class="btn btn-small" id="data-born-save">Save year</button>
+        </div>
+        <p class="msg" id="data-born-msg" role="status"></p>
+      </section>
+      <section aria-labelledby="export-h">
+        <h3 id="export-h">Export</h3>
+        <p class="hint">Copy this text and keep it somewhere safe. You can paste it back in below, here or on another device.</p>
+        <label class="lbl" for="export-text">Your sky as JSON</label>
+        <textarea id="export-text" class="code" rows="6" readonly></textarea>
+        <div class="row-actions">
+          <button type="button" class="btn btn-small" id="export-copy">Copy to clipboard</button>
+          <span class="msg" id="export-msg" role="status"></span>
+        </div>
+      </section>
+      <section aria-labelledby="import-h">
+        <h3 id="import-h">Import</h3>
+        <label class="lbl" for="import-text">Paste a Vantage export</label>
+        <textarea id="import-text" class="code" rows="5"></textarea>
+        <div class="row-actions">
+          <button type="button" class="btn btn-small" id="import-go">Replace my sky with this</button>
+        </div>
+        <p class="msg" id="import-msg" role="status"></p>
+      </section>
+      <section aria-labelledby="erase-h">
+        <h3 id="erase-h">Erase</h3>
+        <div class="row-actions">
+          <button type="button" class="btn btn-small btn-danger" id="erase-start">Erase everything on this device</button>
+        </div>
+        <div class="confirm" id="erase-confirm" hidden>
+          <p>This deletes every star and figure saved here. It can't be undone. If you might want them later, copy the export above first.</p>
+          <div class="row-actions">
+            <button type="button" class="btn btn-small btn-danger" id="erase-yes">Yes, erase everything</button>
+            <button type="button" class="btn btn-small" id="erase-no">Keep my data</button>
+          </div>
+        </div>
+        <p class="msg" id="erase-msg" role="status"></p>
+      </section>
+      <div class="dlg-actions">
+        <button type="button" class="btn" id="data-close">Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div class="sr-only" id="sr-live" aria-live="polite"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= Constants ================= */
+  var KEY = 'inderstanding.vantage.v1';
+  var NOW_YEAR = new Date().getFullYear();
+  var SERIF = '"Spectral", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif';
+  var CAPS = '"Spectral SC", "Spectral", "Iowan Old Style", Palatino, Georgia, serif';
+  var MONO = '"Azeret Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace';
+
+  var FEELINGS = [
+    { id: 'awe', cls: 'B', name: 'Awe', gloss: 'wonder, feeling small beside something large', color: '#9fbaff', temp: '20 000 K' },
+    { id: 'calm', cls: 'A', name: 'Calm', gloss: 'peace, contentment, relief', color: '#e6edff', temp: '9 000 K' },
+    { id: 'hope', cls: 'F', name: 'Hope', gloss: 'anticipation, something beginning', color: '#f8e7a6', temp: '6 700 K' },
+    { id: 'joy', cls: 'G', name: 'Joy', gloss: 'delight, pride, love', color: '#ffc443', temp: '5 600 K' },
+    { id: 'unsettled', cls: 'K', name: 'Unsettled', gloss: 'fear, doubt, restlessness', color: '#ff9449', temp: '4 400 K' },
+    { id: 'hurt', cls: 'M', name: 'Hurt', gloss: 'grief, loss, anger, shame', color: '#ff5b4c', temp: '3 200 K' }
+  ];
+  var FEEL = {};
+  FEELINGS.forEach(function (f, i) { f.index = i; FEEL[f.id] = f; });
+
+  var VANTAGES = {
+    ground: { num: 'I', name: 'Ground', caption: 'The sky as you first laid it out. Each star keeps the position it was given when you added it; the coordinates are only for finding your way.' },
+    time: { num: 'II', name: 'Time', caption: 'Earliest moments at the left, latest at the right, along one arc. Stars from the same year sit close together.' },
+    feeling: { num: 'III', name: 'Feeling', caption: 'Laid out like a Hertzsprung-Russell diagram: how it felt along the bottom, how much it mattered up the side.' },
+    threads: { num: 'IV', name: 'Threads', caption: 'Each thread you named has a place on the ring. A star sits between the threads it carries, so moments that share threads gather together.' },
+    mattered: { num: 'V', name: 'What mattered', caption: 'A polar chart. The more a moment mattered, the closer it sits to the centre. Its angle is its right ascension from Ground.' }
+  };
+  var ABOVE_CAPTION = 'Your whole sky, made small, among many others. Figures and lines are still there; only the distance has changed.';
+  var ABOVE_QUESTIONS = [
+    'Which of your stars still looks bright from up here?',
+    'Which of these moments are also in somebody else’s sky? Who else was there?',
+    'Is there a figure you drew that you would draw differently from this height?',
+    'Which star have you given more weight than it would have from up here, and which less?',
+    'If someone else drew lines through your sky, which stars do you think they would join?'
+  ];
+  var GREEK = ['α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ', 'λ', 'μ', 'ν', 'ξ', 'ο', 'π', 'ρ', 'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω'];
+  var ERA_WORDS = ['twenties', 'thirties', 'forties', 'fifties', 'sixties', 'seventies', 'eighties', 'nineties'];
+
+  /* ================= Utilities ================= */
+  function $(s, r) { return (r || document).querySelector(s); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function hashStr(s) {
+    var h = 2166136261 >>> 0;
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+  function rng(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function uid(p) {
+    var r;
+    try { r = crypto.getRandomValues(new Uint32Array(2)); r = r[0].toString(36) + r[1].toString(36); }
+    catch (e) { r = Math.random().toString(36).slice(2, 12); }
+    return p + Date.now().toString(36) + r.slice(0, 8);
+  }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+  function normThread(t) { return String(t || '').replace(/\s+/g, ' ').trim().toLowerCase().slice(0, 32); }
+  function quoteT(t) { return '‘' + t + '’'; }
+  function listWords(arr) {
+    if (arr.length <= 1) return arr.join('');
+    if (arr.length === 2) return arr[0] + ' and ' + arr[1];
+    return arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1];
+  }
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+  function trunc(s, n) { s = String(s); return s.length > n ? s.slice(0, n - 1).trim() + '…' : s; }
+  function hexA(hex, a) {
+    var n = parseInt(hex.slice(1), 16);
+    return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+  var liveEl = null;
+  function announce(msg) {
+    if (!liveEl) liveEl = $('#sr-live');
+    liveEl.textContent = '';
+    setTimeout(function () { liveEl.textContent = msg; }, 40);
+  }
+
+  var reduceMQ = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  var reduced = !!(reduceMQ && reduceMQ.matches);
+  if (reduceMQ) {
+    var onRM = function (e) { reduced = e.matches; requestDraw(); };
+    if (reduceMQ.addEventListener) reduceMQ.addEventListener('change', onRM); else if (reduceMQ.addListener) reduceMQ.addListener(onRM);
+  }
+  var narrowMQ = window.matchMedia ? window.matchMedia('(max-width: 959px)') : null;
+
+  /* ================= State ================= */
+  function emptyState() {
+    return { v: 1, birthYear: null, birthYearExample: false, nextNum: 1, stars: [], figures: [], prefs: { vantage: 'ground' } };
+  }
+
+  function exampleData() {
+    var rows = [
+      ['ex01', 0.08, 0.70, 'Grandad’s allotment', 'He let me pull up the carrots and told me the names of the birds. I remember the smell of the shed more than anything he said.', 7, 'age', 'calm', 3, ['family', 'outdoors']],
+      ['ex02', 0.22, 0.84, 'Singing at the Christmas service', 'I didn’t believe or disbelieve anything yet. I liked the singing, the candles and the biscuits after.', 1996, 'year', 'joy', 2, ['faith', 'music']],
+      ['ex03', 0.12, 0.26, 'Mum and Dad split up', 'Dad moved to a flat across town. Weekends turned into a timetable and I got very good at packing a bag.', 12, 'age', 'hurt', 5, ['family', 'leaving']],
+      ['ex04', 0.50, 0.66, 'Teaching myself guitar', 'Three chords from a library book and very sore fingertips. The first thing I did that nobody had asked me to.', 2001, 'year', 'joy', 4, ['music', 'doing it myself']],
+      ['ex05', 0.21, 0.43, 'Stopped going to church', 'No big argument. I stopped going and Mum stopped asking. Mostly it felt like relief, with something underneath I couldn’t name.', 2004, 'year', 'calm', 3, ['faith', 'leaving']],
+      ['ex06', 0.31, 0.22, 'Moving to Glasgow', 'Nobody knew me, so I could be anyone. That was exciting for about a week and then it was lonely.', 2007, 'year', 'unsettled', 4, ['leaving', 'being alone']],
+      ['ex07', 0.86, 0.20, 'A night on the beach on Arran', 'End of first-year exams. We stayed up until it got light, and I saw more stars than I knew there were.', 2008, 'year', 'awe', 3, ['friendship', 'the sea']],
+      ['ex08', 0.45, 0.43, 'Dropping out of university', 'I told everyone it was the money. Mostly I didn’t want the life it was leading to, and I couldn’t say that yet.', 2009, 'year', 'unsettled', 4, ['leaving', 'work']],
+      ['ex09', 0.60, 0.33, 'Running a restaurant kitchen', 'Long shifts, burns up my arms, a team that looked out for each other. I got properly good at something.', 2011, 'year', 'joy', 3, ['work', 'friendship']],
+      ['ex10', 0.31, 0.62, 'Mum’s diagnosis', 'Six months of hospital car parks. She was more practical about it than any of us.', 2013, 'year', 'hurt', 5, ['family']],
+      ['ex11', 0.75, 0.48, 'Walking the West Highland Way alone', 'Eight days, mostly rain. Somewhere around Kingshouse I stopped rehearsing conversations in my head.', 2014, 'year', 'calm', 4, ['being alone', 'outdoors']],
+      ['ex12', 0.66, 0.67, 'Teaching guitar to kids', 'A ten-year-old played a whole song through for the first time and looked at me as if I’d done it. I hadn’t.', 2019, 'year', 'joy', 4, ['music', 'work']],
+      ['ex13', 0.89, 0.77, 'Lockdown on my own', 'Weeks where the only voice I heard was on the radio. I started writing things down.', 2020, 'year', 'unsettled', 3, ['being alone']],
+      ['ex14', 0.63, 0.12, 'First Quaker meeting', 'A friend took me. An hour of mostly silence. Nobody told me what to think, which is probably why I went back.', 2023, 'year', 'calm', 3, ['faith']],
+      ['ex15', 0.93, 0.50, 'Saturdays at the food bank', 'I went to feel useful. I keep going for the people. It runs out of a church hall, which I didn’t expect to be fine with.', 2024, 'year', 'hope', 3, ['other people', 'faith']]
+    ];
+    var stars = rows.map(function (r, i) {
+      return {
+        id: r[0], num: i + 1, title: r[3], story: r[4], when: r[5], whenType: r[6], feeling: r[7], mattered: r[8], threads: r[9],
+        ra: Math.round((1 - r[1]) * 2400) / 100, dec: Math.round((50 - r[2] * 100) * 10) / 10,
+        example: true, created: '2026-01-01T00:00:00.000Z'
+      };
+    });
+    var figures = [
+      { id: 'exf1', name: 'The Leavings', meaning: 'Each time I walked away from something it felt like failing. Looking back, every one of them was the right call.', edges: [['ex03', 'ex05'], ['ex05', 'ex06'], ['ex06', 'ex08']], example: true, created: '2026-01-01T00:00:00.000Z' },
+      { id: 'exf2', name: 'The Apprentice', meaning: 'When I’ve felt most like myself, I was getting better at something slowly, on my own terms, usually without anyone’s permission.', edges: [['ex04', 'ex08'], ['ex08', 'ex09'], ['ex09', 'ex11'], ['ex11', 'ex12'], ['ex12', 'ex04']], example: true, created: '2026-01-01T00:00:00.000Z' }
+    ];
+    return { birthYear: 1987, stars: stars, figures: figures };
+  }
+
+  function exampleState() {
+    var s = emptyState();
+    var ex = exampleData();
+    s.birthYear = ex.birthYear; s.birthYearExample = true;
+    s.stars = ex.stars; s.figures = ex.figures; s.nextNum = ex.stars.length + 1;
+    return s;
+  }
+
+  function validYear(y) { y = Number(y); return isFinite(y) && y >= 1900 && y <= NOW_YEAR + 1 && Math.round(y) === y; }
+
+  function sanitize(o) {
+    if (!o || typeof o !== 'object' || !Array.isArray(o.stars)) throw new Error('There is no list of stars in it.');
+    var st = emptyState();
+    st.birthYear = validYear(o.birthYear) ? Number(o.birthYear) : null;
+    st.birthYearExample = !!(st.birthYear && o.birthYearExample);
+    var ids = {};
+    var maxNum = 0;
+    o.stars.forEach(function (s) {
+      if (!s || typeof s !== 'object') return;
+      var title = String(s.title || '').trim().slice(0, 120);
+      if (!title) return;
+      var id = (typeof s.id === 'string' && s.id && !ids[s.id]) ? s.id.slice(0, 64) : uid('s');
+      ids[id] = true;
+      var when = Number(s.when);
+      when = (s.when === null || s.when === '' || !isFinite(when)) ? null : Math.round(when);
+      var whenType = s.whenType === 'age' ? 'age' : 'year';
+      var threads = [];
+      if (Array.isArray(s.threads)) s.threads.forEach(function (t) { t = normThread(t); if (t && threads.indexOf(t) < 0 && threads.length < 3) threads.push(t); });
+      var num = Number(s.num); num = (isFinite(num) && num > 0) ? Math.round(num) : 0;
+      var star = {
+        id: id, num: num, title: title, story: String(s.story || '').slice(0, 4000),
+        when: when, whenType: whenType, feeling: FEEL[s.feeling] ? s.feeling : 'calm',
+        mattered: clamp(Math.round(Number(s.mattered) || 3), 1, 5), threads: threads,
+        ra: Number(s.ra), dec: Number(s.dec), example: !!s.example,
+        created: typeof s.created === 'string' ? s.created : new Date().toISOString()
+      };
+      st.stars.push(star);
+    });
+    // numbers
+    st.stars.forEach(function (s) { if (s.num > maxNum) maxNum = s.num; });
+    st.stars.forEach(function (s) { if (!s.num) s.num = ++maxNum; });
+    st.nextNum = maxNum + 1;
+    // positions
+    var placed = [];
+    st.stars.forEach(function (s) {
+      if (isFinite(s.ra) && isFinite(s.dec) && s.ra >= 0 && s.ra <= 24 && s.dec >= -50 && s.dec <= 50) placed.push(s);
+    });
+    st.stars.forEach(function (s) {
+      if (placed.indexOf(s) >= 0) return;
+      var p = pickGroundSpot(s.id, placed);
+      s.ra = p.ra; s.dec = p.dec; placed.push(s);
+    });
+    if (Array.isArray(o.figures)) {
+      o.figures.forEach(function (f) {
+        if (!f || typeof f !== 'object' || !Array.isArray(f.edges)) return;
+        var edges = [];
+        f.edges.forEach(function (e) {
+          if (!Array.isArray(e) || e.length < 2) return;
+          var a = String(e[0]), b = String(e[1]);
+          if (a === b || !ids[a] || !ids[b] || hasEdge(edges, a, b)) return;
+          edges.push([a, b]);
+        });
+        if (!edges.length) return;
+        st.figures.push({
+          id: typeof f.id === 'string' && f.id ? f.id.slice(0, 64) : uid('f'),
+          name: String(f.name || 'Untitled figure').trim().slice(0, 60) || 'Untitled figure',
+          meaning: String(f.meaning || '').slice(0, 1200), edges: edges, example: !!f.example,
+          created: typeof f.created === 'string' ? f.created : new Date().toISOString()
+        });
+      });
+    }
+    if (o.prefs && VANTAGES[o.prefs.vantage]) st.prefs.vantage = o.prefs.vantage;
+    return st;
+  }
+
+  function hasEdge(edges, a, b) {
+    for (var i = 0; i < edges.length; i++) {
+      if ((edges[i][0] === a && edges[i][1] === b) || (edges[i][0] === b && edges[i][1] === a)) return true;
+    }
+    return false;
+  }
+
+  // Ground position for a new star: best of many seeded candidates, kept apart from existing stars.
+  function pickGroundSpot(id, existing) {
+    var r = rng(hashStr(id));
+    var best = null, bestD = -1;
+    for (var k = 0; k < 48; k++) {
+      var u = 0.05 + r() * 0.90, v = 0.08 + r() * 0.84;
+      var d = Infinity;
+      for (var i = 0; i < existing.length; i++) {
+        var e = existing[i];
+        var eu = 1 - e.ra / 24, ev = (50 - e.dec) / 100;
+        var dx = (u - eu) * 1.6, dy = v - ev;
+        var dd = dx * dx + dy * dy;
+        if (dd < d) d = dd;
+      }
+      if (d > bestD) { bestD = d; best = { u: u, v: v }; }
+    }
+    return { ra: Math.round((1 - best.u) * 2400) / 100, dec: Math.round((50 - best.v * 100) * 10) / 10 };
+  }
+
+  var storageOK = true;
+  function loadState() {
+    var raw = null;
+    try { raw = window.localStorage.getItem(KEY); }
+    catch (e) { storageOK = false; return null; }
+    if (!raw) return null;
+    try { return sanitize(JSON.parse(raw)); } catch (e) { return null; }
+  }
+  function save() {
+    try { window.localStorage.setItem(KEY, JSON.stringify(state)); storageOK = true; }
+    catch (e) { storageOK = false; }
+    $('#storage-foot').hidden = storageOK;
+    $('#storage-note').hidden = storageOK;
+  }
+
+  var state = loadState();
+  if (!state) { state = exampleState(); }
+
+  /* ================= Derived data ================= */
+  function starById(id) { for (var i = 0; i < state.stars.length; i++) if (state.stars[i].id === id) return state.stars[i]; return null; }
+  function figById(id) { for (var i = 0; i < state.figures.length; i++) if (state.figures[i].id === id) return state.figures[i]; return null; }
+  function yearOf(s) {
+    if (s.when == null) return null;
+    if (s.whenType === 'year') return s.when;
+    if (state.birthYear) return state.birthYear + s.when;
+    return null;
+  }
+  function ageOf(s) {
+    if (s.when == null) return null;
+    if (s.whenType === 'age') return s.when;
+    if (state.birthYear) return s.when - state.birthYear;
+    return null;
+  }
+  function sortKey(s) {
+    var y = yearOf(s); if (y != null) return y;
+    var a = ageOf(s); if (a != null) return 100000 + a;
+    return 1000000 + s.num;
+  }
+  function byTime(a, b) { return sortKey(a) - sortKey(b) || a.num - b.num; }
+  function whenText(s) {
+    var y = yearOf(s), a = ageOf(s);
+    if (y != null && a != null && a >= 0) return y + ' · age ' + a;
+    if (y != null) return String(y);
+    if (a != null) return 'age ' + a;
+    return 'undated';
+  }
+  function figStars(f) {
+    var ids = [];
+    f.edges.forEach(function (e) { if (ids.indexOf(e[0]) < 0) ids.push(e[0]); if (ids.indexOf(e[1]) < 0) ids.push(e[1]); });
+    return ids;
+  }
+  // Bayer-style letters: brightest star in a figure is alpha, as in the old atlases.
+  function bayer(f) {
+    var stars = figStars(f).map(starById).filter(Boolean);
+    stars.sort(function (a, b) { return b.mattered - a.mattered || byTime(a, b); });
+    var m = {};
+    stars.forEach(function (s, i) { m[s.id] = i < GREEK.length ? GREEK[i] : String(i + 1); });
+    return { order: stars, letter: m };
+  }
+  function figuresOf(id) { return state.figures.filter(function (f) { return figStars(f).indexOf(id) >= 0; }); }
+  function allThreads() {
+    var c = {};
+    state.stars.forEach(function (s) { s.threads.forEach(function (t) { c[t] = (c[t] || 0) + 1; }); });
+    return Object.keys(c).map(function (k) { return [k, c[k]]; }).sort(function (a, b) { return b[1] - a[1] || a[0].localeCompare(b[0]); });
+  }
+  function raText(ra) {
+    var h = Math.floor(ra), m = Math.round((ra - h) * 60);
+    if (m === 60) { h += 1; m = 0; }
+    return (h % 24) + 'h ' + (m < 10 ? '0' : '') + m + 'm';
+  }
+  function decText(d) { var r = Math.round(d); return (r > 0 ? '+' : r < 0 ? '−' : '') + Math.abs(r) + '°'; }
+  function hasExamples() {
+    return state.stars.some(function (s) { return s.example; }) || state.figures.some(function (f) { return f.example; });
+  }
+
+  /* ================= View state ================= */
+  var canvas = $('#sky');
+  var ctx = canvas.getContext('2d');
+  var plateEl = $('#plate');
+  var view = {
+    w: 0, h: 0, dpr: 1, narrow: false, plot: { x: 0, y: 0, w: 1, h: 1 },
+    vantage: VANTAGES[state.prefs.vantage] ? state.prefs.vantage : 'ground',
+    axisPrev: null, axisStart: 0,
+    disp: new Map(), target: new Map(), anim: null, appear: new Map(),
+    above: false, zoomV: 0, zoomAnim: null, aboveQ: 0,
+    hoverId: null, selectedId: null, focusId: null,
+    highlight: null, highlightFig: null,
+    pointer: null, pointerType: 'mouse',
+    field: [], multitude: null, lastDraw: 0, axisBoxes: []
+  };
+  var conn = { active: false, edges: [], pen: null, history: [], figureId: null };
+  var pendingDelete = null; // {kind:'star'|'figure', id, where}
+
+  /* ================= Layouts ================= */
+  function copyMap(m) { var n = new Map(); m.forEach(function (p, k) { n.set(k, { x: p.x, y: p.y }); }); return n; }
+  function minDist() { return view.narrow ? 17 : 22; }
+
+  function relax(pos, ids, P, md, iters, project) {
+    var arr = ids.map(function (id) { return pos.get(id); });
+    var n = arr.length, pad = 8;
+    for (var it = 0; it < iters; it++) {
+      var moved = false;
+      for (var i = 0; i < n; i++) {
+        for (var j = i + 1; j < n; j++) {
+          var a = arr[i], b = arr[j];
+          var dx = b.x - a.x, dy = b.y - a.y, d2 = dx * dx + dy * dy;
+          if (d2 < md * md) {
+            var d = Math.sqrt(d2);
+            if (d < 0.01) { var ang = ((i * 37 + j * 61) % 360) * Math.PI / 180; dx = Math.cos(ang); dy = Math.sin(ang); d = 1; }
+            else { dx /= d; dy /= d; }
+            var push = (md - d) / 2 + 0.01;
+            a.x -= dx * push; a.y -= dy * push; b.x += dx * push; b.y += dy * push;
+            moved = true;
+          }
+        }
+      }
+      for (var k = 0; k < n; k++) {
+        arr[k].x = clamp(arr[k].x, P.x + pad, P.x + P.w - pad);
+        arr[k].y = clamp(arr[k].y, P.y + pad, P.y + P.h - pad);
+        if (project) project(ids[k], arr[k]);
+      }
+      if (!moved) break;
+    }
+  }
+
+  function layoutGround(P) {
+    var m = new Map();
+    state.stars.forEach(function (s) {
+      m.set(s.id, { x: P.x + (1 - s.ra / 24) * P.w, y: P.y + (50 - s.dec) / 100 * P.h });
+    });
+    return m;
+  }
+
+  function timeScale() {
+    var keyFn = yearOf, mode = 'year';
+    var dated = state.stars.filter(function (s) { return yearOf(s) != null; });
+    if (!dated.length) {
+      var byAge = state.stars.filter(function (s) { return ageOf(s) != null; });
+      if (byAge.length) { keyFn = ageOf; mode = 'age'; dated = byAge; }
+    }
+    var keys = dated.map(keyFn);
+    var min, max;
+    if (keys.length) { min = Math.min.apply(null, keys); max = Math.max.apply(null, keys); }
+    else { min = NOW_YEAR - 10; max = NOW_YEAR; }
+    if (max - min < 6) { var c = (max + min) / 2; min = Math.floor(c - 3); max = Math.ceil(c + 3); }
+    return { mode: mode, keyFn: keyFn, min: min, max: max };
+  }
+  function arcPoint(t, P) {
+    var pad = P.w * 0.05;
+    return { x: P.x + pad + t * (P.w - 2 * pad), y: P.y + P.h * 0.80 - P.h * 0.50 * Math.sin(Math.PI * t) };
+  }
+  function layoutTime(P) {
+    var T = timeScale(), m = new Map(), undated = [];
+    var stars = state.stars.slice().sort(byTime);
+    stars.forEach(function (s) {
+      var k = T.keyFn(s);
+      if (k == null) { undated.push(s); return; }
+      var t = (k - T.min) / (T.max - T.min);
+      m.set(s.id, arcPoint(t, P));
+    });
+    undated.forEach(function (s, i) { m.set(s.id, { x: P.x + 18 + i * minDist(), y: P.y + P.h - 14 }); });
+    relax(m, stars.map(function (s) { return s.id; }), P, minDist(), 80);
+    return m;
+  }
+
+  function layoutFeeling(P) {
+    var m = new Map(), colW = P.w / FEELINGS.length;
+    var groups = {};
+    state.stars.slice().sort(byTime).forEach(function (s) {
+      var k = s.feeling + ':' + s.mattered;
+      (groups[k] = groups[k] || []).push(s);
+    });
+    Object.keys(groups).forEach(function (k) {
+      var g = groups[k];
+      var spacing = Math.min(minDist() + 2, colW / (g.length + 1));
+      g.forEach(function (s, i) {
+        var f = FEEL[s.feeling];
+        var off = (i - (g.length - 1) / 2) * spacing;
+        m.set(s.id, {
+          x: P.x + colW * (f.index + 0.5) + off,
+          y: P.y + P.h * (0.1 + (5 - s.mattered) / 4 * 0.8)
+        });
+      });
+    });
+    relax(m, state.stars.map(function (s) { return s.id; }), P, minDist(), 60);
+    return m;
+  }
+
+  function threadInfo(P) {
+    var list = allThreads();
+    var cx = P.x + P.w / 2, cy = P.y + P.h * 0.48;
+    var rx = P.w * (view.narrow ? 0.33 : 0.38), ry = P.h * (view.narrow ? 0.36 : 0.36);
+    var anchors = new Map();
+    list.forEach(function (t, i) {
+      var ang = -Math.PI / 2 + i * 2 * Math.PI / list.length;
+      anchors.set(t[0], { x: cx + Math.cos(ang) * rx, y: cy + Math.sin(ang) * ry, ang: ang, count: t[1] });
+    });
+    return { list: list, anchors: anchors, cx: cx, cy: cy, rx: rx, ry: ry };
+  }
+  function layoutThreads(P) {
+    var info = threadInfo(P), m = new Map(), none = [];
+    state.stars.forEach(function (s) {
+      if (!s.threads.length) { none.push(s); return; }
+      var x = 0, y = 0;
+      s.threads.forEach(function (t) { var a = info.anchors.get(t); x += a.x; y += a.y; });
+      x /= s.threads.length; y /= s.threads.length;
+      if (s.threads.length === 1) { x += (info.cx - x) * 0.14; y += (info.cy - y) * 0.14; }
+      m.set(s.id, { x: x, y: y });
+    });
+    var md = minDist();
+    if (none.length) {
+      var rowY = info.list.length ? P.y + P.h - 14 : info.cy;
+      var startX = P.x + P.w / 2 - (none.length - 1) * md / 2;
+      none.forEach(function (s, i) { m.set(s.id, { x: startX + i * md, y: rowY }); });
+    }
+    relax(m, state.stars.map(function (s) { return s.id; }), P, md, 90);
+    return m;
+  }
+
+  function polarGeom(P) {
+    var cx = P.x + P.w / 2, cy = P.y + P.h / 2;
+    var R = Math.min(P.w, P.h) / 2 - (view.narrow ? 16 : 22);
+    return { cx: cx, cy: cy, R: R, ring: function (m) { return R * [0.88, 0.69, 0.5, 0.31, 0.12][m - 1]; } };
+  }
+  function layoutMattered(P) {
+    var g = polarGeom(P), m = new Map(), rings = {};
+    state.stars.forEach(function (s) {
+      var ang = -Math.PI / 2 - (s.ra / 24) * 2 * Math.PI;
+      var r = g.ring(s.mattered);
+      m.set(s.id, { x: g.cx + Math.cos(ang) * r, y: g.cy + Math.sin(ang) * r });
+      rings[s.id] = r;
+    });
+    relax(m, state.stars.map(function (s) { return s.id; }), P, minDist(), 80, function (id, p) {
+      var r = rings[id], dx = p.x - g.cx, dy = p.y - g.cy, d = Math.sqrt(dx * dx + dy * dy) || 1;
+      p.x = g.cx + dx / d * r; p.y = g.cy + dy / d * r;
+    });
+    return m;
+  }
+
+  function layoutFor(v, P) {
+    if (v === 'time') return layoutTime(P);
+    if (v === 'feeling') return layoutFeeling(P);
+    if (v === 'threads') return layoutThreads(P);
+    if (v === 'mattered') return layoutMattered(P);
+    return layoutGround(P);
+  }
+
+  /* ================= Canvas sizing ================= */
+  function computePlot() {
+    var m = view.narrow ? { t: 26, b: 32, l: 32, r: 32 } : { t: 32, b: 38, l: 50, r: 50 };
+    view.plot = { x: m.l, y: m.t, w: view.w - m.l - m.r, h: view.h - m.t - m.b };
+  }
+  function buildField() {
+    var r = rng(7), P = view.plot, n = Math.round(P.w * P.h / 2300);
+    view.field = [];
+    for (var i = 0; i < n; i++) {
+      view.field.push({ x: P.x + r() * P.w, y: P.y + r() * P.h, r: 0.35 + r() * 0.55, a: 0.10 + r() * 0.22 });
+    }
+  }
+  function buildMultitude() {
+    var r = rng(4242), n = Math.round(view.w * view.h / 260);
+    var dots = [], figs = [];
+    for (var i = 0; i < n; i++) dots.push({ x: r() * view.w, y: r() * view.h, r: 0.3 + r() * 0.75, a: 0.12 + r() * 0.4 });
+    var nf = Math.round(view.w * view.h / 9000);
+    for (var j = 0; j < nf; j++) {
+      var cx = r() * view.w, cy = r() * view.h, k = 3 + Math.floor(r() * 3), pts = [];
+      for (var q = 0; q < k; q++) pts.push({ x: cx + (r() - 0.5) * 34, y: cy + (r() - 0.5) * 26 });
+      figs.push(pts);
+    }
+    view.multitude = { dots: dots, figs: figs };
+  }
+  function resize(force) {
+    var rect = plateEl.getBoundingClientRect();
+    var w = Math.max(200, Math.round(rect.width)), h = Math.max(200, Math.round(rect.height));
+    var dpr = Math.min(3, window.devicePixelRatio || 1);
+    if (!force && w === view.w && h === view.h && dpr === view.dpr) return;
+    view.w = w; view.h = h; view.dpr = dpr; view.narrow = w < 560;
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    computePlot(); buildField(); view.multitude = null;
+    view.target = layoutFor(view.vantage, view.plot);
+    view.disp = copyMap(view.target); view.anim = null;
+    draw(performance.now());
+  }
+
+  /* ================= Animation ================= */
+  var raf = null;
+  function requestDraw() { if (!raf) raf = requestAnimationFrame(frame); }
+  function frame(now) {
+    raf = null;
+    var busy = view.anim || view.zoomAnim || view.axisPrev || view.appear.size;
+    var twinkling = !reduced && !document.hidden;
+    if (busy || !twinkling || now - view.lastDraw > 45 || view.pointer) draw(now);
+    if (view.anim || view.zoomAnim || view.axisPrev || view.appear.size || twinkling) raf = requestAnimationFrame(frame);
+  }
+  function relayout(animate) {
+    var to = layoutFor(view.vantage, view.plot);
+    var from = copyMap(view.disp);
+    var now = performance.now();
+    to.forEach(function (p, id) { if (!from.has(id)) { from.set(id, { x: p.x, y: p.y }); if (!reduced) view.appear.set(id, now); } });
+    view.target = to;
+    if (animate && !reduced) view.anim = { start: now, dur: 1150, from: from, to: to };
+    else { view.disp = copyMap(to); view.anim = null; }
+    requestDraw();
+  }
+  function setVantage(v) {
+    if (!VANTAGES[v]) return;
+    if (view.above) setAbove(false, true);
+    if (v === view.vantage) { updateVantageUI(); return; }
+    view.axisPrev = reduced ? null : view.vantage; view.axisStart = performance.now();
+    view.vantage = v; state.prefs.vantage = v; save();
+    relayout(true);
+    updateVantageUI();
+    renderFigures();
+    announce('Vantage: ' + VANTAGES[v].name + '. ' + VANTAGES[v].caption);
+  }
+  function setAbove(on, quiet) {
+    if (on === view.above) return;
+    if (on && conn.active) endConnect();
+    view.above = on;
+    var now = performance.now();
+    if (reduced) { view.zoomV = on ? 1 : 0; view.zoomAnim = null; }
+    else view.zoomAnim = { start: now, dur: 1400, from: view.zoomV, to: on ? 1 : 0 };
+    if (on) { $('#above-q').textContent = ABOVE_QUESTIONS[view.aboveQ % ABOVE_QUESTIONS.length]; }
+    $('#above').hidden = !on;
+    view.hoverId = null; hideTip();
+    updateVantageUI();
+    requestDraw();
+    if (!quiet) announce(on ? 'View from above. ' + ABOVE_CAPTION : 'Back to ' + VANTAGES[view.vantage].name + '.');
+  }
+
+  /* ================= Coordinates on screen ================= */
+  function zoomParams() {
+    var P = view.plot, z = view.zoomV;
+    var c0 = { x: P.x + P.w / 2, y: P.y + P.h / 2 };
+    var c1 = (view.narrow || (narrowMQ && narrowMQ.matches)) ? { x: c0.x, y: c0.y } : { x: P.x + P.w * 0.70, y: c0.y };
+    var e = z;
+    return { s: 1 - 0.72 * e, c0: c0, c: { x: c0.x + (c1.x - c0.x) * e, y: c0.y + (c1.y - c0.y) * e } };
+  }
+  function toScreen(p, zp) {
+    if (!view.zoomV) return p;
+    return { x: zp.c.x + (p.x - zp.c0.x) * zp.s, y: zp.c.y + (p.y - zp.c0.y) * zp.s };
+  }
+  function starR(s) { return view.narrow ? 1.9 + s.mattered * 1.15 : 2.1 + s.mattered * 1.3; }
+  function screenPositions() {
+    var zp = zoomParams(), out = new Map();
+    view.disp.forEach(function (p, id) { out.set(id, toScreen(p, zp)); });
+    return out;
+  }
+  function starAt(x, y) {
+    var sp = screenPositions();
+    var lim = view.pointerType === 'touch' ? 24 : 14;
+    var best = null, bd = Infinity;
+    state.stars.forEach(function (s) {
+      var p = sp.get(s.id); if (!p) return;
+      var d = Math.hypot(p.x - x, p.y - y);
+      var L = Math.max(lim, starR(s) + 6);
+      if (d < L && d < bd) { bd = d; best = s.id; }
+    });
+    return best;
+  }
+
+  /* ================= Drawing ================= */
+  function line(x1, y1, x2, y2) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+  function setLS(v) { try { ctx.letterSpacing = v; } catch (e) { /* not supported */ } }
+  var TICK = 'rgba(176,194,222,0.55)';
+  var LABEL = 'rgba(184,198,220,0.88)';
+
+  function axesGround(P, a) {
+    ctx.save(); ctx.globalAlpha = a;
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(150,172,206,0.14)'; ctx.setLineDash([2, 5]);
+    for (var hh = 3; hh < 24; hh += 3) { var x = P.x + (1 - hh / 24) * P.w; line(x, P.y, x, P.y + P.h); }
+    for (var d = -45; d <= 45; d += 15) { if (!d) continue; var y = P.y + (50 - d) / 100 * P.h; line(P.x, y, P.x + P.w, y); }
+    ctx.setLineDash([]);
+    ctx.strokeStyle = 'rgba(150,172,206,0.24)';
+    line(P.x, P.y + P.h / 2, P.x + P.w, P.y + P.h / 2);
+    ctx.strokeStyle = TICK; ctx.fillStyle = LABEL;
+    ctx.font = (view.narrow ? 9 : 10) + 'px ' + MONO; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    var labStep = view.narrow ? 6 : 3;
+    for (var h2 = 0; h2 <= 24; h2++) {
+      var tx = P.x + (1 - h2 / 24) * P.w, L = h2 % 3 === 0 ? 7 : 4;
+      line(tx, P.y, tx, P.y - L); line(tx, P.y + P.h, tx, P.y + P.h + L);
+      if (h2 % labStep === 0 && h2 < 24) {
+        ctx.fillText(h2 + 'h', tx, P.y - 11);
+        ctx.fillText(h2 + 'h', tx, P.y + P.h + (view.narrow ? 19 : 21));
+      }
+    }
+    for (var dd = -50; dd <= 50; dd += 5) {
+      var ty = P.y + (50 - dd) / 100 * P.h, L2 = dd % 15 === 0 ? 7 : 4;
+      line(P.x, ty, P.x - L2, ty); line(P.x + P.w, ty, P.x + P.w + L2, ty);
+      if (dd % 15 === 0 && Math.abs(dd) < 50) {
+        var lab = (dd > 0 ? '+' : dd < 0 ? '−' : '') + Math.abs(dd) + '°';
+        ctx.textAlign = 'right'; ctx.fillText(lab, P.x - 9, ty + 3.5);
+        ctx.textAlign = 'left'; ctx.fillText(lab, P.x + P.w + 9, ty + 3.5);
+      }
+    }
+    ctx.restore();
+  }
+
+  function pickStep(pxPer, minPx) {
+    var steps = [1, 2, 5, 10, 20, 25, 50, 100];
+    for (var i = 0; i < steps.length; i++) if (pxPer * steps[i] >= minPx) return steps[i];
+    return 100;
+  }
+  function axesTime(P, a) {
+    var T = timeScale(), span = T.max - T.min;
+    ctx.save(); ctx.globalAlpha = a; ctx.lineWidth = 1;
+    // the arc
+    ctx.strokeStyle = 'rgba(214,173,95,0.42)'; ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    for (var i = 0; i <= 100; i++) { var p = arcPoint(i / 100, P); if (i) ctx.lineTo(p.x, p.y); else ctx.moveTo(p.x, p.y); }
+    ctx.stroke(); ctx.setLineDash([]);
+    var pxPer = (P.w * 0.9) / span;
+    var step = pickStep(pxPer, view.narrow ? 44 : 56);
+    var minor = pxPer >= 5 ? 1 : Math.max(1, step / 5);
+    ctx.strokeStyle = 'rgba(214,173,95,0.55)';
+    for (var k = Math.ceil(T.min / minor) * minor; k <= T.max; k += minor) {
+      var t = (k - T.min) / span, q = arcPoint(t, P), q2 = arcPoint(Math.min(1, t + 0.001), P), q1 = arcPoint(Math.max(0, t - 0.001), P);
+      var dx = q2.x - q1.x, dy = q2.y - q1.y, dl = Math.hypot(dx, dy) || 1;
+      var nx = -dy / dl, ny = dx / dl, L = k % step === 0 ? 6 : 3;
+      line(q.x - nx * L, q.y - ny * L, q.x + nx * L, q.y + ny * L);
+    }
+    // frame ticks
+    ctx.strokeStyle = TICK; ctx.fillStyle = LABEL;
+    ctx.font = (view.narrow ? 9 : 10) + 'px ' + MONO; ctx.textAlign = 'center';
+    for (var y = Math.ceil(T.min / minor) * minor; y <= T.max; y += minor) {
+      var x = arcPoint((y - T.min) / span, P).x, maj = y % step === 0;
+      line(x, P.y + P.h, x, P.y + P.h + (maj ? 7 : 3));
+      if (maj) ctx.fillText(T.mode === 'age' ? 'age ' + y : String(y), x, P.y + P.h + (view.narrow ? 19 : 21));
+    }
+    if (T.mode === 'year' && state.birthYear) {
+      var aStep = step < 5 ? 5 : 10;
+      for (var ag = Math.ceil((T.min - state.birthYear) / aStep) * aStep; state.birthYear + ag <= T.max; ag += aStep) {
+        if (ag < 0) continue;
+        var ax = arcPoint((state.birthYear + ag - T.min) / span, P).x;
+        line(ax, P.y, ax, P.y - 6);
+        ctx.fillText('age ' + ag, ax, P.y - 11);
+      }
+    }
+    var und = state.stars.filter(function (s) { return T.keyFn(s) == null; }).length;
+    if (und) {
+      ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(184,198,220,0.7)';
+      ctx.fillText('undated', P.x + 8, P.y + P.h - 28);
+    }
+    ctx.restore();
+  }
+
+  function axesFeeling(P, a) {
+    var colW = P.w / FEELINGS.length;
+    ctx.save(); ctx.globalAlpha = a; ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(150,172,206,0.13)'; ctx.setLineDash([2, 5]);
+    for (var i = 1; i < FEELINGS.length; i++) line(P.x + colW * i, P.y, P.x + colW * i, P.y + P.h);
+    for (var m = 1; m <= 5; m++) { var y = P.y + P.h * (0.1 + (5 - m) / 4 * 0.8); line(P.x, y, P.x + P.w, y); }
+    ctx.setLineDash([]);
+    ctx.strokeStyle = TICK; ctx.fillStyle = LABEL;
+    FEELINGS.forEach(function (f, i) {
+      var x = P.x + colW * (i + 0.5);
+      line(x, P.y + P.h, x, P.y + P.h + 5);
+      ctx.textAlign = 'center';
+      ctx.font = '600 ' + (view.narrow ? 11 : 12) + 'px ' + CAPS;
+      ctx.fillStyle = f.color; ctx.fillText(f.cls, x, P.y + P.h + (view.narrow ? 14 : 16));
+      ctx.font = (view.narrow ? 8.5 : 10) + 'px ' + MONO; ctx.fillStyle = LABEL;
+      ctx.fillText(f.name, x, P.y + P.h + (view.narrow ? 26 : 30));
+      if (colW >= 74) {
+        line(x, P.y, x, P.y - 5);
+        ctx.font = '9px ' + MONO; ctx.fillStyle = 'rgba(184,198,220,0.62)';
+        ctx.fillText(f.temp, x, P.y - 10);
+      }
+    });
+    ctx.font = (view.narrow ? 9 : 10) + 'px ' + MONO; ctx.fillStyle = LABEL;
+    for (var k = 1; k <= 5; k++) {
+      var ty = P.y + P.h * (0.1 + (5 - k) / 4 * 0.8);
+      line(P.x, ty, P.x - 6, ty); line(P.x + P.w, ty, P.x + P.w + 6, ty);
+      ctx.textAlign = 'right'; ctx.fillText(String(k), P.x - 9, ty + 3.5);
+      ctx.textAlign = 'left'; ctx.fillText(view.narrow ? (5 - k) + 'm' : 'mag ' + (5 - k), P.x + P.w + 9, ty + 3.5);
+    }
+    if (!view.narrow) {
+      ctx.font = '9px ' + MONO; ctx.fillStyle = 'rgba(184,198,220,0.62)';
+      ctx.textAlign = 'left'; ctx.fillText('mattered', 4, P.y - 10);
+      ctx.textAlign = 'right'; ctx.fillText('magnitude', view.w - 4, P.y - 10);
+    }
+    ctx.restore();
+  }
+
+  function axesThreads(P, a) {
+    var info = threadInfo(P);
+    ctx.save(); ctx.globalAlpha = a; ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(150,172,206,0.16)'; ctx.setLineDash([2, 6]);
+    ctx.beginPath(); ctx.ellipse(info.cx, info.cy, info.rx, info.ry, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = (view.narrow ? 10.5 : 13) + 'px ' + CAPS; setLS(view.narrow ? '0.03em' : '0.06em');
+    var placed = [];
+    info.anchors.forEach(function (an, name) {
+      ctx.strokeStyle = 'rgba(214,173,95,0.65)';
+      line(an.x - 4, an.y, an.x + 4, an.y); line(an.x, an.y - 4, an.x, an.y + 4);
+      var c = Math.cos(an.ang), sn = Math.sin(an.ang);
+      var txt = name + ' ' + an.count;
+      var w = ctx.measureText(txt).width;
+      var cands = [];
+      if (Math.abs(c) >= 0.3) {
+        // beside the anchor, on the outward side
+        var sx = c > 0 ? an.x + 12 : an.x - 12 - w;
+        if (sx >= 4 && sx + w <= view.w - 4) cands.push({ x: sx, y: an.y + 4 });
+      }
+      var cxl = clamp(an.x - w / 2, 4, view.w - 4 - w);
+      var outY = sn < 0 ? an.y - 10 : an.y + 18, inY = sn < 0 ? an.y + 18 : an.y - 10;
+      [0, 12, 24].forEach(function (d) { cands.push({ x: cxl, y: outY + (sn < 0 ? -d : d) }); });
+      cands.push({ x: cxl, y: inY });
+      var pick = cands[0];
+      for (var i = 0; i < cands.length; i++) {
+        var b = { x: cands[i].x - 2, y: cands[i].y - 12, w: w + 4, h: 16 }, clash = false;
+        for (var j = 0; j < placed.length; j++) if (rectsOverlap(b, placed[j])) { clash = true; break; }
+        if (!clash) { pick = cands[i]; break; }
+      }
+      var fy = clamp(pick.y, 12, view.h - 6);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = 'rgba(214,190,140,0.92)';
+      ctx.fillText(txt, pick.x, fy);
+      var box = { x: pick.x - 2, y: fy - 12, w: w + 4, h: 16 };
+      placed.push(box);
+      view.axisBoxes.push(box);
+      view.axisBoxes.push({ x: an.x - 5, y: an.y - 5, w: 10, h: 10 });
+    });
+    setLS('0px');
+    var none = state.stars.filter(function (s) { return !s.threads.length; }).length;
+    if (none && info.list.length) {
+      ctx.font = '10px ' + MONO; ctx.fillStyle = 'rgba(184,198,220,0.7)'; ctx.textAlign = 'center';
+      ctx.fillText('no threads', P.x + P.w / 2, P.y + P.h - 26);
+    }
+    ctx.restore();
+  }
+
+  function axesMattered(P, a) {
+    var g = polarGeom(P);
+    ctx.save(); ctx.globalAlpha = a; ctx.lineWidth = 1;
+    for (var m = 1; m <= 5; m++) {
+      ctx.strokeStyle = m === 5 ? 'rgba(214,173,95,0.32)' : 'rgba(150,172,206,0.18)';
+      ctx.setLineDash(m === 1 ? [] : [2, 5]);
+      ctx.beginPath(); ctx.arc(g.cx, g.cy, g.ring(m), 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    ctx.strokeStyle = 'rgba(150,172,206,0.10)';
+    for (var hh = 0; hh < 24; hh += 3) {
+      var ang = -Math.PI / 2 - hh / 24 * 2 * Math.PI;
+      line(g.cx + Math.cos(ang) * g.ring(5) * 1.4, g.cy + Math.sin(ang) * g.ring(5) * 1.4, g.cx + Math.cos(ang) * g.R, g.cy + Math.sin(ang) * g.R);
+    }
+    ctx.strokeStyle = 'rgba(150,172,206,0.4)';
+    ctx.beginPath(); ctx.arc(g.cx, g.cy, g.R, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = TICK; ctx.fillStyle = LABEL; ctx.font = (view.narrow ? 9 : 10) + 'px ' + MONO;
+    for (var h = 0; h < 24; h++) {
+      var an = -Math.PI / 2 - h / 24 * 2 * Math.PI, c = Math.cos(an), s = Math.sin(an);
+      var L = h % 3 === 0 ? 7 : 4;
+      line(g.cx + c * g.R, g.cy + s * g.R, g.cx + c * (g.R + L), g.cy + s * (g.R + L));
+      if (h % (view.narrow ? 6 : 3) === 0) {
+        ctx.textAlign = 'center';
+        ctx.fillText(h + 'h', g.cx + c * (g.R + 16), g.cy + s * (g.R + 16) + 3.5);
+      }
+    }
+    ctx.textAlign = 'left';
+    for (var k = 1; k <= 5; k++) {
+      var r = g.ring(k);
+      ctx.fillStyle = 'rgba(184,198,220,0.72)';
+      var lab = view.narrow ? String(k) : k + ' · mag ' + (5 - k);
+      ctx.fillText(lab, g.cx + 4, g.cy - r - 4);
+      view.axisBoxes.push({ x: g.cx + 2, y: g.cy - r - 14, w: ctx.measureText(lab).width + 4, h: 12 });
+    }
+    ctx.restore();
+  }
+
+  function drawAxes(v, P, a) {
+    if (a <= 0.01) return;
+    if (v === 'time') axesTime(P, a);
+    else if (v === 'feeling') axesFeeling(P, a);
+    else if (v === 'threads') axesThreads(P, a);
+    else if (v === 'mattered') axesMattered(P, a);
+    else axesGround(P, a);
+  }
+
+  function drawMultitude(alpha) {
+    if (!view.multitude) buildMultitude();
+    var M = view.multitude;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = 'rgba(170,190,225,0.16)'; ctx.lineWidth = 0.6;
+    M.figs.forEach(function (pts) {
+      ctx.beginPath(); pts.forEach(function (p, i) { if (i) ctx.lineTo(p.x, p.y); else ctx.moveTo(p.x, p.y); }); ctx.stroke();
+    });
+    M.dots.forEach(function (d) {
+      ctx.fillStyle = 'rgba(220,228,245,' + d.a + ')';
+      ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill();
+    });
+    M.figs.forEach(function (pts) {
+      pts.forEach(function (p) { ctx.fillStyle = 'rgba(230,236,250,0.55)'; ctx.beginPath(); ctx.arc(p.x, p.y, 0.9, 0, Math.PI * 2); ctx.fill(); });
+    });
+    ctx.restore();
+  }
+
+  function drawStar(s, p, now, scale, alpha) {
+    var f = FEEL[s.feeling], r = starR(s) * scale;
+    var tw = 1;
+    if (!reduced) {
+      var h = hashStr(s.id);
+      tw = 1 + 0.11 * Math.sin(now / 1000 * (1.3 + (h % 100) / 90) + (h % 628) / 100);
+    }
+    ctx.save(); ctx.globalAlpha = alpha;
+    var halo = r * (3.0 + 0.25 * s.mattered) * tw;
+    var g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, halo);
+    g.addColorStop(0, hexA(f.color, 0.5 * tw)); g.addColorStop(0.3, hexA(f.color, 0.16)); g.addColorStop(1, hexA(f.color, 0));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, halo, 0, Math.PI * 2); ctx.fill();
+    if (s.mattered === 5) {
+      ctx.strokeStyle = hexA(f.color, 0.4 * tw); ctx.lineWidth = 0.8;
+      var L = r * 3.2 * tw;
+      line(p.x - L, p.y, p.x + L, p.y); line(p.x, p.y - L, p.x, p.y + L);
+    }
+    var c = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+    c.addColorStop(0, '#fffdf6'); c.addColorStop(0.42, f.color); c.addColorStop(1, f.color);
+    ctx.fillStyle = c; ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  function edgeEnds(a, b, ra, rb) {
+    var dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
+    var ga = ra + 5, gb = rb + 5;
+    if (d <= ga + gb + 2) return null;
+    var ux = dx / d, uy = dy / d;
+    return [a.x + ux * ga, a.y + uy * ga, b.x - ux * gb, b.y - uy * gb];
+  }
+
+  function kbFocus() {
+    if (document.activeElement !== canvas) return false;
+    try { return canvas.matches(':focus-visible'); } catch (e) { return true; }
+  }
+  function rectsOverlap(a, b) { return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; }
+
+  function draw(now) {
+    view.lastDraw = now;
+    var P = view.plot, dpr = view.dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // progress animations
+    if (view.anim) {
+      var t = Math.min(1, (now - view.anim.start) / view.anim.dur), e = ease(t);
+      if (t >= 1) { view.disp = copyMap(view.anim.to); view.anim = null; }
+      else {
+        var m = new Map(), A = view.anim;
+        A.to.forEach(function (p, id) { var f = A.from.get(id) || p; m.set(id, { x: f.x + (p.x - f.x) * e, y: f.y + (p.y - f.y) * e }); });
+        view.disp = m;
+      }
+    }
+    if (view.zoomAnim) {
+      var zt = Math.min(1, (now - view.zoomAnim.start) / view.zoomAnim.dur);
+      view.zoomV = view.zoomAnim.from + (view.zoomAnim.to - view.zoomAnim.from) * ease(zt);
+      if (zt >= 1) view.zoomAnim = null;
+    }
+    var axisT = 1;
+    if (view.axisPrev) { axisT = Math.min(1, (now - view.axisStart) / 800); if (axisT >= 1) view.axisPrev = null; }
+    view.appear.forEach(function (st, id) { if (now - st > 700) view.appear.delete(id); });
+
+    var z = view.zoomV, zp = zoomParams(), noZ = 1 - z;
+    view.axisBoxes = [];
+
+    // ground
+    ctx.clearRect(0, 0, view.w, view.h);
+    ctx.fillStyle = z > 0 ? '#08101d' : '#0d192c';
+    ctx.fillRect(0, 0, view.w, view.h);
+    if (z > 0) {
+      ctx.fillStyle = 'rgba(13,25,44,' + noZ + ')'; ctx.fillRect(0, 0, view.w, view.h);
+      drawMultitude(z);
+    }
+
+    // plate content, scaled when seen from above
+    ctx.save();
+    ctx.translate(zp.c.x, zp.c.y); ctx.scale(zp.s, zp.s); ctx.translate(-zp.c0.x, -zp.c0.y);
+    var gr = ctx.createRadialGradient(P.x + P.w * 0.5, P.y + P.h * 0.45, 0, P.x + P.w * 0.5, P.y + P.h * 0.5, Math.max(P.w, P.h) * 0.7);
+    gr.addColorStop(0, '#16294a'); gr.addColorStop(1, '#0e1b31');
+    ctx.fillStyle = gr; ctx.fillRect(P.x, P.y, P.w, P.h);
+    var fieldA = (view.vantage === 'ground' ? 1 : 0.45) * (1 - 0.3 * z);
+    for (var i = 0; i < view.field.length; i++) {
+      var fs = view.field[i];
+      ctx.fillStyle = 'rgba(220,228,245,' + (fs.a * fieldA) + ')';
+      ctx.beginPath(); ctx.arc(fs.x, fs.y, fs.r, 0, Math.PI * 2); ctx.fill();
+    }
+    if (view.axisPrev) drawAxes(view.axisPrev, P, (1 - axisT) * noZ);
+    drawAxes(view.vantage, P, axisT * noZ);
+    ctx.strokeStyle = z > 0 ? 'rgba(214,173,95,' + (0.45 + 0.4 * z) + ')' : 'rgba(150,172,206,0.55)';
+    ctx.lineWidth = 1 / zp.s;
+    ctx.strokeRect(P.x + 0.5, P.y + 0.5, P.w - 1, P.h - 1);
+    ctx.restore();
+
+    // outer plate frame: double rule, as on an atlas plate
+    ctx.strokeStyle = 'rgba(150,172,206,' + (0.35 * noZ) + ')'; ctx.lineWidth = 1;
+    ctx.strokeRect(4.5, 4.5, view.w - 9, view.h - 9);
+
+    if (z > 0.05) {
+      ctx.save(); ctx.globalAlpha = Math.min(1, z * 1.3);
+      ctx.font = '12px ' + CAPS; setLS('0.14em'); ctx.fillStyle = 'rgba(214,190,140,0.95)'; ctx.textAlign = 'center';
+      ctx.fillText('your sky', zp.c.x, zp.c.y + (P.h / 2) * zp.s + 18);
+      setLS('0px'); ctx.restore();
+    }
+
+    var sp = screenPositions();
+    var starScale = 1 - 0.45 * z;
+    var hl = view.highlight ? view.highlight.ids : null;
+    var hf = view.highlightFig ? figById(view.highlightFig) : null;
+    var hfStars = hf ? figStars(hf) : null;
+    function dimmed(id) {
+      if (hl) return hl.indexOf(id) < 0;
+      if (hfStars) return hfStars.indexOf(id) < 0;
+      return false;
+    }
+
+    // figure lines
+    state.figures.forEach(function (f) {
+      if (conn.active && conn.figureId === f.id) return;
+      var isH = hf && hf.id === f.id;
+      ctx.save();
+      ctx.strokeStyle = isH ? 'rgba(214,173,95,0.95)' : 'rgba(190,206,236,' + ((hf || hl) ? 0.22 : 0.6) + ')';
+      ctx.lineWidth = isH ? 2 : 1.3;
+      f.edges.forEach(function (e) {
+        var a = sp.get(e[0]), b = sp.get(e[1]), sa = starById(e[0]), sb = starById(e[1]);
+        if (!a || !b) return;
+        var en = edgeEnds(a, b, starR(sa) * starScale, starR(sb) * starScale);
+        if (en) line(en[0], en[1], en[2], en[3]);
+      });
+      ctx.restore();
+    });
+
+    // figure in progress
+    if (conn.active) {
+      ctx.save(); ctx.strokeStyle = 'rgba(214,173,95,0.95)'; ctx.lineWidth = 1.8; ctx.setLineDash([6, 4]);
+      conn.edges.forEach(function (e) {
+        var a = sp.get(e[0]), b = sp.get(e[1]); if (!a || !b) return;
+        var en = edgeEnds(a, b, starR(starById(e[0])), starR(starById(e[1])));
+        if (en) line(en[0], en[1], en[2], en[3]);
+      });
+      if (conn.pen && view.pointer && view.pointerType !== 'touch') {
+        var pp = sp.get(conn.pen);
+        if (pp) { ctx.strokeStyle = 'rgba(214,173,95,0.5)'; ctx.setLineDash([2, 4]); line(pp.x, pp.y, view.pointer.x, view.pointer.y); }
+      }
+      ctx.restore();
+    }
+
+    // stars
+    var order = state.stars.slice().sort(function (a, b) { return a.mattered - b.mattered; });
+    order.forEach(function (s) {
+      var p = sp.get(s.id); if (!p) return;
+      var al = dimmed(s.id) ? 0.28 : 1;
+      var ap = view.appear.get(s.id);
+      if (ap != null) al *= Math.min(1, (now - ap) / 700);
+      drawStar(s, p, now, starScale, al);
+    });
+
+    // labels
+    if (noZ > 0.02) {
+      ctx.save(); ctx.globalAlpha = noZ;
+      var boxes = (z < 0.01 && !view.axisPrev) ? view.axisBoxes.slice() : [], obstacles = [], segs = [];
+      state.stars.forEach(function (s) {
+        var p = sp.get(s.id); if (!p) return;
+        var r = starR(s) * starScale + 2;
+        obstacles.push({ id: s.id, b: { x: p.x - r, y: p.y - r, w: 2 * r, h: 2 * r } });
+      });
+      state.figures.forEach(function (f) {
+        f.edges.forEach(function (e) { var a = sp.get(e[0]), b = sp.get(e[1]); if (a && b) segs.push([a, b]); });
+      });
+      conn.edges.forEach(function (e) { var a = sp.get(e[0]), b = sp.get(e[1]); if (a && b) segs.push([a, b]); });
+      var hitsSeg = function (bx) {
+        for (var i = 0; i < segs.length; i++) {
+          var a = segs[i][0], b = segs[i][1], L = Math.hypot(b.x - a.x, b.y - a.y), n = Math.max(2, Math.ceil(L / 4));
+          for (var k = 0; k <= n; k++) {
+            var x = a.x + (b.x - a.x) * k / n, y = a.y + (b.y - a.y) * k / n;
+            if (x > bx.x && x < bx.x + bx.w && y > bx.y && y < bx.y + bx.h) return true;
+          }
+        }
+        return false;
+      };
+      var hitsStar = function (bx, self) {
+        for (var i = 0; i < obstacles.length; i++) if (obstacles[i].id !== self && rectsOverlap(bx, obstacles[i].b)) return true;
+        return false;
+      };
+      ctx.textBaseline = 'alphabetic';
+      ctx.shadowColor = 'rgba(6,11,22,0.95)'; ctx.shadowBlur = 4;
+      // figure names, set in small caps like constellation names on an atlas
+      ctx.font = '500 ' + (view.narrow ? 11 : 12.5) + 'px ' + CAPS; setLS('0.12em');
+      state.figures.forEach(function (f) {
+        if (conn.active && conn.figureId === f.id) return;
+        var ids = figStars(f), cx = 0, cy = 0, n = 0;
+        ids.forEach(function (id) { var p = sp.get(id); if (p) { cx += p.x; cy += p.y; n++; } });
+        if (!n) return;
+        cx /= n; cy /= n;
+        var w = ctx.measureText(f.name).width;
+        var bx = clamp(cx - w / 2, P.x + 4, P.x + P.w - w - 4), by = clamp(cy + 4, P.y + 14, P.y + P.h - 6);
+        // try spots around the middle of the figure; keep the one that covers the fewest stars and lines
+        var offs = [0, 16, -16, 30, -30, 46, -46, 62, -62], dxs = [0, -w * 0.4, w * 0.4, -w * 0.8, w * 0.8];
+        var bestScore = Infinity;
+        for (var xi = 0; xi < dxs.length && bestScore > 0; xi++) {
+          for (var oi = 0; oi < offs.length; oi++) {
+            var tx = clamp(cx - w / 2 + dxs[xi], P.x + 4, P.x + P.w - w - 4);
+            var ty = clamp(cy + 4 + offs[oi], P.y + 14, P.y + P.h - 6);
+            var tb = { x: tx - 3, y: ty - 12, w: w + 6, h: 16 };
+            var sc = 0;
+            obstacles.forEach(function (o) { if (rectsOverlap(tb, o.b)) sc += 4; });
+            if (hitsSeg(tb)) sc += 2;
+            boxes.forEach(function (bb) { if (rectsOverlap(tb, bb)) sc += 6; });
+            sc += (Math.abs(offs[oi]) + Math.abs(dxs[xi])) / 400;
+            if (sc < bestScore) { bestScore = sc; bx = tx; by = ty; }
+            if (sc < 1) break;
+          }
+        }
+        var isH = hf && hf.id === f.id;
+        ctx.fillStyle = isH ? 'rgba(232,200,130,1)' : 'rgba(196,210,236,' + ((hf || hl) ? 0.35 : 0.82) + ')';
+        ctx.textAlign = 'left';
+        ctx.shadowBlur = 0; ctx.lineJoin = 'round'; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(17,32,58,0.92)';
+        ctx.strokeText(f.name, bx, by);
+        ctx.shadowBlur = 4;
+        ctx.fillText(f.name, bx, by);
+        boxes.push({ x: bx, y: by - 12, w: w, h: 15 });
+      });
+      setLS('0px');
+      // star names in italic, the brighter ones first
+      var fsz = view.narrow ? 11.5 : 13;
+      ctx.font = 'italic ' + fsz + 'px ' + SERIF;
+      var want = [];
+      var kf = kbFocus() ? view.focusId : null;
+      [view.selectedId, kf, view.hoverId].forEach(function (id) { if (id && want.indexOf(id) < 0 && starById(id)) want.push(id); });
+      var thresh = view.narrow ? 5 : 4;
+      state.stars.slice().sort(function (a, b) { return b.mattered - a.mattered || a.num - b.num; }).forEach(function (s) {
+        if (s.mattered >= thresh && want.indexOf(s.id) < 0 && !dimmed(s.id)) want.push(s.id);
+      });
+      want.forEach(function (id, idx) {
+        var s = starById(id), p = sp.get(id); if (!s || !p) return;
+        var forced = id === view.selectedId || id === kf || id === view.hoverId;
+        var ring = (id === view.focusId && kbFocus()) ? 17 : (id === view.selectedId ? 11 : 6);
+        var txt = trunc(s.title, view.narrow ? 24 : 34), w = ctx.measureText(txt).width, r = starR(s) * starScale + ring;
+        var cands = [
+          { x: p.x + r, y: p.y + 4 }, { x: p.x - r - w, y: p.y + 4 },
+          { x: p.x - w / 2, y: p.y + r + 12 }, { x: p.x - w / 2, y: p.y - r - 4 }
+        ];
+        var chosen = null;
+        for (var c = 0; c < cands.length; c++) {
+          var b = { x: cands[c].x - 2, y: cands[c].y - fsz, w: w + 4, h: fsz + 4 };
+          if (b.x < P.x + 2 || b.x + b.w > P.x + P.w - 2 || b.y < P.y + 2 || b.y + b.h > P.y + P.h - 2) continue;
+          var ok = !hitsStar(b, id) && !hitsSeg(b);
+          for (var q = 0; q < boxes.length && ok; q++) if (rectsOverlap(b, boxes[q])) { ok = false; break; }
+          if (ok) { chosen = { p: cands[c], b: b }; break; }
+        }
+        if (!chosen && forced) {
+          var fx = clamp(p.x + r, P.x + 4, P.x + P.w - w - 4);
+          if (fx < p.x && p.x + r + w > P.x + P.w - 4) fx = p.x - r - w;
+          chosen = { p: { x: clamp(fx, P.x + 4, P.x + P.w - w - 4), y: p.y + 4 }, b: { x: fx, y: p.y - fsz + 4, w: w, h: fsz } };
+        }
+        if (!chosen) return;
+        boxes.push(chosen.b);
+        ctx.fillStyle = forced ? 'rgba(246,240,226,1)' : 'rgba(236,229,211,0.8)';
+        ctx.textAlign = 'left';
+        ctx.shadowBlur = 0; ctx.lineJoin = 'round'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(17,32,58,0.85)';
+        ctx.strokeText(txt, chosen.p.x, chosen.p.y);
+        ctx.shadowBlur = 4;
+        ctx.fillText(txt, chosen.p.x, chosen.p.y);
+      });
+      ctx.restore();
+    }
+
+    // rings: highlight, selection, pen, keyboard focus
+    ctx.save();
+    if (hl) {
+      ctx.strokeStyle = 'rgba(214,173,95,0.9)'; ctx.lineWidth = 1.2;
+      hl.forEach(function (id) { var p = sp.get(id), s = starById(id); if (p && s) { ctx.beginPath(); ctx.arc(p.x, p.y, starR(s) * starScale + 6, 0, Math.PI * 2); ctx.stroke(); } });
+    }
+    if (view.selectedId && sp.get(view.selectedId)) {
+      var ss = starById(view.selectedId), sel = sp.get(view.selectedId), rr = starR(ss) * starScale + 8;
+      ctx.strokeStyle = 'rgba(246,240,226,0.9)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(sel.x, sel.y, rr, 0, Math.PI * 2); ctx.stroke();
+    }
+    if (conn.active && conn.pen && sp.get(conn.pen)) {
+      var pn = sp.get(conn.pen), ps = starById(conn.pen);
+      ctx.strokeStyle = 'rgba(214,173,95,1)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(pn.x, pn.y, starR(ps) + 7, 0, Math.PI * 2); ctx.stroke();
+    }
+    if (view.focusId && kbFocus() && sp.get(view.focusId)) {
+      // finder reticle
+      var fp = sp.get(view.focusId), fsr = starR(starById(view.focusId)) * starScale + 11;
+      ctx.strokeStyle = 'rgba(214,173,95,1)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(fp.x, fp.y, fsr, 0, Math.PI * 2); ctx.stroke();
+      line(fp.x - fsr - 6, fp.y, fp.x - fsr + 3, fp.y); line(fp.x + fsr - 3, fp.y, fp.x + fsr + 6, fp.y);
+      line(fp.x, fp.y - fsr - 6, fp.x, fp.y - fsr + 3); line(fp.x, fp.y + fsr - 3, fp.x, fp.y + fsr + 6);
+    }
+    if (view.hoverId && view.hoverId !== view.selectedId && sp.get(view.hoverId)) {
+      var hp = sp.get(view.hoverId);
+      ctx.strokeStyle = 'rgba(236,229,211,0.45)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(hp.x, hp.y, starR(starById(view.hoverId)) * starScale + 7, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /* ================= Canvas interaction ================= */
+  function canvasPoint(ev) {
+    var r = canvas.getBoundingClientRect();
+    return { x: ev.clientX - r.left, y: ev.clientY - r.top };
+  }
+  var tipEl = $('#tip');
+  function hideTip() { tipEl.hidden = true; }
+  function showTip(id, pt) {
+    var s = starById(id); if (!s) return hideTip();
+    var f = FEEL[s.feeling];
+    tipEl.innerHTML = '<div class="t-title">' + esc(s.title) + (s.example ? ' <span class="tag">Example</span>' : '') + '</div>' +
+      '<div class="t-meta">' + esc(whenText(s)) + ' · ' + esc(f.name) + ' · mattered ' + s.mattered + '</div>' +
+      (s.story ? '<div class="t-story">' + esc(trunc(s.story, 120)) + '</div>' : '');
+    tipEl.hidden = false;
+    var tw = tipEl.offsetWidth, th = tipEl.offsetHeight;
+    var x = pt.x + 16, y = pt.y + 14;
+    if (x + tw > view.w - 6) x = pt.x - tw - 16;
+    if (y + th > view.h - 6) y = pt.y - th - 12;
+    tipEl.style.left = Math.max(6, x) + 'px'; tipEl.style.top = Math.max(6, y) + 'px';
+  }
+
+  canvas.addEventListener('pointerdown', function (ev) { view.pointerType = ev.pointerType || 'mouse'; });
+  canvas.addEventListener('pointermove', function (ev) {
+    view.pointerType = ev.pointerType || 'mouse';
+    if (view.pointerType === 'touch') return;
+    var pt = canvasPoint(ev);
+    view.pointer = pt;
+    var id = starAt(pt.x, pt.y);
+    if (id !== view.hoverId) { view.hoverId = id; }
+    if (id) showTip(id, pt); else hideTip();
+    canvas.style.cursor = id ? 'pointer' : 'crosshair';
+    requestDraw();
+  });
+  canvas.addEventListener('pointerleave', function () { view.pointer = null; view.hoverId = null; hideTip(); requestDraw(); });
+  canvas.addEventListener('click', function (ev) {
+    var pt = canvasPoint(ev);
+    var id = starAt(pt.x, pt.y);
+    if (conn.active) { if (id) connectTap(id); return; }
+    if (id) { selectStar(id); view.focusId = id; }
+    else if (view.selectedId) { selectStar(null); }
+  });
+
+  function starsSortedBy(axis) {
+    var sp = screenPositions();
+    return state.stars.slice().sort(function (a, b) {
+      var pa = sp.get(a.id), pb = sp.get(b.id);
+      return (pa[axis] - pb[axis]) || (pa[axis === 'x' ? 'y' : 'x'] - pb[axis === 'x' ? 'y' : 'x']);
+    });
+  }
+  function describeStar(s) {
+    return s.title + ', ' + whenText(s) + ', ' + FEEL[s.feeling].name + ', mattered ' + s.mattered + ' of 5' + (s.example ? ', example' : '') + '.';
+  }
+  canvas.addEventListener('keydown', function (ev) {
+    var k = ev.key;
+    if (!state.stars.length) return;
+    if (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowUp' || k === 'ArrowDown' || k === 'Home' || k === 'End') {
+      ev.preventDefault();
+      var list = starsSortedBy(k === 'ArrowUp' || k === 'ArrowDown' ? 'y' : 'x');
+      var idx = -1;
+      for (var i = 0; i < list.length; i++) if (list[i].id === view.focusId) idx = i;
+      if (k === 'Home') idx = 0;
+      else if (k === 'End') idx = list.length - 1;
+      else if (idx < 0) idx = 0;
+      else idx = (idx + ((k === 'ArrowRight' || k === 'ArrowDown') ? 1 : -1) + list.length) % list.length;
+      view.focusId = list[idx].id;
+      announce(describeStar(list[idx]) + (conn.active ? ' Press Enter to join it.' : ' Press Enter to read it.'));
+      requestDraw();
+    } else if (k === 'Enter' || k === ' ') {
+      if (!view.focusId) return;
+      ev.preventDefault();
+      if (conn.active) connectTap(view.focusId);
+      else { selectStar(view.focusId); announce('Selected. ' + describeStar(starById(view.focusId)) + ' The readout shows the full entry.'); }
+    } else if (k === 'Escape') {
+      if (view.above) { setAbove(false); }
+      else if (view.selectedId) selectStar(null);
+    }
+  });
+  canvas.addEventListener('focus', function () {
+    if (!view.focusId && state.stars.length) view.focusId = (view.selectedId || starsSortedBy('x')[0].id);
+    requestDraw();
+  });
+  canvas.addEventListener('blur', function () { requestDraw(); });
+
+  /* ================= Selection ================= */
+  function selectStar(id) {
+    view.selectedId = id;
+    pendingDelete = pendingDelete && pendingDelete.where === 'readout' ? null : pendingDelete;
+    renderReadout(); renderPeek(); requestDraw();
+  }
+
+  /* ================= Connect mode ================= */
+  function startConnect(opts) {
+    opts = opts || {};
+    if (view.above) setAbove(false, true);
+    conn.active = true; conn.history = [];
+    conn.figureId = opts.figureId || null;
+    conn.edges = opts.edges ? opts.edges.map(function (e) { return e.slice(); }) : [];
+    conn.pen = opts.pen || null;
+    view.highlightFig = null; view.highlight = null;
+    hideTip();
+    renderConnectBar(); renderHlNote(); updateVantageUI(); requestDraw();
+    $('#side-scroll').scrollTop = 0;
+    var btn = $('#btn-connect'); btn.setAttribute('aria-pressed', 'true');
+    announce('Drawing a figure. Select stars in the order you want to join them.');
+  }
+  function endConnect() {
+    conn.active = false; conn.edges = []; conn.pen = null; conn.history = []; conn.figureId = null;
+    $('#btn-connect').setAttribute('aria-pressed', 'false');
+    renderConnectBar(); requestDraw();
+  }
+  function connectTap(id) {
+    conn.history.push({ edges: conn.edges.map(function (e) { return e.slice(); }), pen: conn.pen });
+    var s = starById(id);
+    if (conn.pen === null) { conn.pen = id; announce('Pen on ' + s.title + '. Select the next star to draw a line.'); }
+    else if (conn.pen === id) { conn.pen = null; announce('Pen lifted. Select any star to carry on from there.'); }
+    else {
+      var from = starById(conn.pen);
+      if (!hasEdge(conn.edges, conn.pen, id)) { conn.edges.push([conn.pen, id]); announce('Line drawn from ' + from.title + ' to ' + s.title + '.'); }
+      else announce('Those two are already joined. Pen moved to ' + s.title + '.');
+      conn.pen = id;
+    }
+    renderConnectBar(); requestDraw();
+  }
+  function connectUndo() {
+    var h = conn.history.pop(); if (!h) return;
+    conn.edges = h.edges; conn.pen = h.pen;
+    renderConnectBar(); requestDraw(); announce('Undone.');
+  }
+  function renderConnectBar() {
+    var bar = $('#connect-bar');
+    if (!conn.active) { bar.hidden = true; bar.innerHTML = ''; renderPeek(); return; }
+    var nStars = 0, seen = {};
+    conn.edges.forEach(function (e) { if (!seen[e[0]]) { seen[e[0]] = 1; nStars++; } if (!seen[e[1]]) { seen[e[1]] = 1; nStars++; } });
+    var pen = conn.pen ? starById(conn.pen) : null;
+    var status = plural(conn.edges.length, 'line') + ' joining ' + plural(nStars, 'star') + '. ' +
+      (pen ? 'Pen on “' + pen.title + '”.' : (conn.edges.length ? 'Pen lifted.' : 'Select a first star.'));
+    var opts = state.stars.slice().sort(byTime).map(function (s) {
+      return '<option value="' + esc(s.id) + '">' + esc(trunc(s.title, 48)) + ' (' + esc(whenText(s)) + ')</option>';
+    }).join('');
+    var editing = conn.figureId ? figById(conn.figureId) : null;
+    var prevFocus = document.activeElement && document.activeElement.id;
+    var prevPick = $('#connect-pick') ? $('#connect-pick').value : null;
+    bar.innerHTML =
+      '<div class="cb-head"><p class="cb-title">' + (editing ? 'Redrawing “' + esc(editing.name) + '”' : 'Drawing a figure') + '</p>' +
+      '<p class="cb-help">Select stars on the chart in the order you want to join them. Select the last star again to lift the pen, then pick any star to carry on from there.</p></div>' +
+      '<p class="cb-status" aria-live="polite">' + esc(status) + '</p>' +
+      '<div class="cb-pick"><label for="connect-pick">Or join a star by name</label><select id="connect-pick">' + opts + '</select>' +
+      '<button type="button" class="btn btn-small" id="connect-join">Join this star</button>' +
+      '<button type="button" class="btn btn-small" id="connect-lift"' + (pen ? '' : ' disabled') + '>Lift the pen</button></div>' +
+      '<div class="cb-row">' +
+      '<button type="button" class="btn btn-small btn-primary" id="connect-name"' + (conn.edges.length ? '' : ' disabled') + '>' + (editing ? 'Save these lines' : 'Name this figure') + '</button>' +
+      '<button type="button" class="btn btn-small" id="connect-undo"' + (conn.history.length ? '' : ' disabled') + '>Undo last step</button>' +
+      '<button type="button" class="btn btn-small" id="connect-cancel">Cancel drawing</button></div>';
+    bar.hidden = false;
+    renderPeek();
+    if (prevPick && $('#connect-pick')) $('#connect-pick').value = prevPick;
+    if (prevFocus && $('#' + prevFocus) && bar.contains($('#' + prevFocus))) {
+      var el = $('#' + prevFocus); if (el.disabled) el = $('#connect-pick'); el.focus();
+    }
+  }
+  $('#connect-bar').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button'); if (!b) return;
+    if (b.id === 'connect-join') { var v = $('#connect-pick').value; if (v) connectTap(v); }
+    else if (b.id === 'connect-lift') { if (conn.pen) connectTap(conn.pen); }
+    else if (b.id === 'connect-undo') connectUndo();
+    else if (b.id === 'connect-cancel') { endConnect(); announce('Drawing cancelled.'); $('#btn-connect').focus(); }
+    else if (b.id === 'connect-name') openFigureDialog(conn.figureId ? 'lines' : 'new', conn.figureId);
+  });
+
+  /* ================= Figure dialog ================= */
+  var figDlg = $('#figure-dialog');
+  var figMode = 'new', figEditId = null, figOpener = null;
+  function openDialog(d) {
+    try { if (!d.open) d.showModal(); } catch (e) { d.setAttribute('open', ''); }
+  }
+  function closeDialog(d) { try { d.close(); } catch (e) { d.removeAttribute('open'); } }
+  function openFigureDialog(mode, id) {
+    figMode = mode; figEditId = id || null; figOpener = document.activeElement;
+    var f = id ? figById(id) : null;
+    var edges = mode === 'meta' ? f.edges : conn.edges;
+    var ids = [];
+    edges.forEach(function (e) { if (ids.indexOf(e[0]) < 0) ids.push(e[0]); if (ids.indexOf(e[1]) < 0) ids.push(e[1]); });
+    $('#figure-dialog-h').textContent = mode === 'new' ? 'Name this figure' : 'Edit figure';
+    $('#figure-summary').textContent = 'Joins ' + plural(ids.length, 'star') + ': ' + ids.map(function (i) { var s = starById(i); return s ? s.title : ''; }).join(', ') + '.';
+    $('#fig-name').value = f ? f.name : '';
+    $('#fig-meaning').value = f ? f.meaning : '';
+    $('#fig-error').textContent = '';
+    $('#fig-back').textContent = mode === 'meta' ? 'Cancel' : 'Back to drawing';
+    openDialog(figDlg);
+    $('#fig-name').focus();
+  }
+  $('#fig-back').addEventListener('click', function () { closeDialog(figDlg); if (figOpener && figOpener.focus) figOpener.focus(); });
+  $('#figure-form').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var name = $('#fig-name').value.trim(), meaning = $('#fig-meaning').value.trim();
+    if (!name) { $('#fig-error').textContent = 'Give the figure a name, even a working one.'; $('#fig-name').focus(); return; }
+    var savedId;
+    if (figMode === 'meta') {
+      var f = figById(figEditId); f.name = name; f.meaning = meaning; f.example = false; savedId = f.id;
+    } else if (figMode === 'lines') {
+      var g = figById(figEditId); g.name = name; g.meaning = meaning; g.edges = conn.edges.map(function (e) { return e.slice(); }); g.example = false; savedId = g.id;
+      endConnect();
+    } else {
+      var nf = { id: uid('f'), name: name, meaning: meaning, edges: conn.edges.map(function (e) { return e.slice(); }), example: false, created: new Date().toISOString() };
+      state.figures.push(nf); savedId = nf.id;
+      endConnect();
+    }
+    save();
+    closeDialog(figDlg);
+    view.highlightFig = null;
+    renderAll(); requestDraw();
+    announce('Figure “' + name + '” saved.');
+    var target = document.querySelector('[data-fk="fig-show:' + savedId + '"]');
+    if (target) target.focus(); else canvas.focus();
+  });
+
+  /* ================= Star dialog ================= */
+  var starDlg = $('#star-dialog');
+  var starEditId = null, starOpener = null, formThreads = [];
+  function buildFormControls() {
+    $('#feel-grid').innerHTML = FEELINGS.map(function (f) {
+      return '<label class="feel-opt" for="feel-' + f.id + '"><input type="radio" name="star-feeling" id="feel-' + f.id + '" value="' + f.id + '">' +
+        '<span class="sw" style="--c:' + f.color + '"></span>' +
+        '<span class="fname">' + f.name + '<span class="cls">' + f.cls + '</span></span>' +
+        '<span class="fgloss">' + esc(f.gloss) + '</span></label>';
+    }).join('');
+    $('#mag-row').innerHTML = [1, 2, 3, 4, 5].map(function (m) {
+      var d = Math.round(2 * (2.1 + m * 1.3));
+      return '<label class="mag-opt" for="mat-' + m + '"><span class="magdot" style="width:' + d + 'px;height:' + d + 'px" aria-hidden="true"></span>' +
+        '<input type="radio" name="star-mattered" id="mat-' + m + '" value="' + m + '"><span>' + m + '<span class="sr-only">' + (m === 1 ? ', a little' : m === 5 ? ', a great deal' : '') + '</span></span></label>';
+    }).join('');
+    $('#key-feel').insertAdjacentHTML('beforeend', FEELINGS.map(function (f) {
+      return '<span class="key-item"><span class="sw" style="--c:' + f.color + '"></span>' + f.cls + ' ' + f.name + '</span>';
+    }).join(''));
+    $('#key-mag').insertAdjacentHTML('beforeend', [1, 2, 3, 4, 5].map(function (m) {
+      var d = Math.round(2 * (2.1 + m * 1.3) * 0.8);
+      return '<span class="key-item"><span class="magdot" style="width:' + d + 'px;height:' + d + 'px"></span>' + m + '</span>';
+    }).join('') + '<span class="key-item">(5 = magnitude 0, the brightest)</span>');
+  }
+  function renderThreadChips() {
+    $('#star-thread-chips').innerHTML = formThreads.map(function (t, i) {
+      return '<li>' + esc(t) + '<button type="button" data-rm="' + i + '" aria-label="Remove thread ' + esc(t) + '">×</button></li>';
+    }).join('');
+    var all = allThreads().map(function (t) { return t[0]; });
+    $('#thread-options').innerHTML = all.map(function (t) { return '<option value="' + esc(t) + '"></option>'; }).join('');
+    var sugg = all.filter(function (t) { return formThreads.indexOf(t) < 0; }).slice(0, 10);
+    var full = formThreads.length >= 3;
+    $('#star-thread-suggest').innerHTML = (sugg.length && !full) ? '<span>Threads you’ve used:</span>' + sugg.map(function (t) {
+      return '<button type="button" data-add="' + esc(t) + '">' + esc(t) + '</button>';
+    }).join('') : (full ? '<span>That’s three threads, the most a star can carry.</span>' : '');
+    $('#star-thread-input').disabled = full; $('#star-thread-add').disabled = full;
+  }
+  function addFormThread(t) {
+    t = normThread(t);
+    if (!t) return false;
+    if (formThreads.length >= 3) { $('#star-error').textContent = 'A star can carry up to three threads.'; return false; }
+    if (formThreads.indexOf(t) < 0) formThreads.push(t);
+    $('#star-thread-input').value = '';
+    renderThreadChips();
+    return true;
+  }
+  $('#star-thread-add').addEventListener('click', function () { addFormThread($('#star-thread-input').value); $('#star-thread-input').focus(); });
+  $('#star-thread-input').addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter' || ev.key === ',') { ev.preventDefault(); addFormThread(this.value); }
+  });
+  $('#star-thread-chips').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button[data-rm]'); if (!b) return;
+    formThreads.splice(Number(b.getAttribute('data-rm')), 1); renderThreadChips(); $('#star-thread-input').focus();
+  });
+  $('#star-thread-suggest').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button[data-add]'); if (!b) return;
+    addFormThread(b.getAttribute('data-add'));
+    var first = $('#star-thread-suggest button'); if (first) first.focus(); else $('#star-thread-input').focus();
+  });
+  function updateBornField() {
+    $('#born-field').hidden = !($('#star-when-type').value === 'age' && !state.birthYear);
+  }
+  $('#star-when-type').addEventListener('change', updateBornField);
+  function openStarDialog(id) {
+    starEditId = id || null; starOpener = document.activeElement;
+    var s = id ? starById(id) : null;
+    $('#star-dialog-h').textContent = s ? 'Edit star' : 'Add a star';
+    $('#star-save').textContent = s ? 'Save changes' : 'Add this star';
+    $('#star-title').value = s ? s.title : '';
+    $('#star-story').value = s ? s.story : '';
+    $('#star-when').value = s && s.when != null ? s.when : '';
+    $('#star-when-type').value = s ? s.whenType : 'year';
+    $('#star-born').value = '';
+    FEELINGS.forEach(function (f) { $('#feel-' + f.id).checked = !!(s && s.feeling === f.id); });
+    [1, 2, 3, 4, 5].forEach(function (m) { $('#mat-' + m).checked = s ? s.mattered === m : m === 3; });
+    formThreads = s ? s.threads.slice() : [];
+    $('#star-thread-input').value = '';
+    $('#star-error').textContent = '';
+    renderThreadChips(); updateBornField();
+    openDialog(starDlg);
+    $('#star-title').focus();
+  }
+  $('#star-cancel').addEventListener('click', function () { closeDialog(starDlg); if (starOpener && starOpener.focus) starOpener.focus(); });
+  $('#star-form').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var err = $('#star-error');
+    var title = $('#star-title').value.trim();
+    if (!title) { err.textContent = 'Give the moment a short title, a few words is enough.'; $('#star-title').focus(); return; }
+    var whenRaw = $('#star-when').value.trim(), whenType = $('#star-when-type').value, when = null;
+    if (whenRaw !== '') {
+      when = Math.round(Number(whenRaw));
+      if (!isFinite(when)) { err.textContent = 'The date needs to be a number, like 2014 or 23.'; $('#star-when').focus(); return; }
+      if (whenType === 'year' && (when < 1900 || when > NOW_YEAR)) {
+        err.textContent = when <= 120 ? 'That looks like an age. Change "year" to "my age then", or enter a year between 1900 and ' + NOW_YEAR + '.' : 'Enter a year between 1900 and ' + NOW_YEAR + '.';
+        $('#star-when').focus(); return;
+      }
+      if (whenType === 'age' && (when < 0 || when > 120)) { err.textContent = 'Enter an age between 0 and 120.'; $('#star-when').focus(); return; }
+    } else { err.textContent = 'Add a rough year or age. A guess is fine; it places the star in time.'; $('#star-when').focus(); return; }
+    var feelEl = document.querySelector('input[name="star-feeling"]:checked');
+    if (!feelEl) { err.textContent = 'Choose how it felt. Pick the closest; you can change it later.'; $('#feel-awe').focus(); return; }
+    var matEl = document.querySelector('input[name="star-mattered"]:checked');
+    var pendingThread = normThread($('#star-thread-input').value);
+    if (pendingThread && formThreads.length < 3 && formThreads.indexOf(pendingThread) < 0) formThreads.push(pendingThread);
+    var bornRaw = $('#star-born').value.trim();
+    if (!$('#born-field').hidden && bornRaw) {
+      if (!validYear(Number(bornRaw))) { err.textContent = 'Enter the year you were born as four digits, or leave it empty.'; $('#star-born').focus(); return; }
+      state.birthYear = Number(bornRaw); state.birthYearExample = false;
+    }
+    var s;
+    if (starEditId) {
+      s = starById(starEditId);
+      s.title = title; s.story = $('#star-story').value.trim(); s.when = when; s.whenType = whenType;
+      s.feeling = feelEl.value; s.mattered = Number(matEl ? matEl.value : 3); s.threads = formThreads.slice(0, 3);
+      s.example = false;
+    } else {
+      var id = uid('s');
+      var pos = pickGroundSpot(id, state.stars);
+      s = { id: id, num: state.nextNum++, title: title, story: $('#star-story').value.trim(), when: when, whenType: whenType,
+        feeling: feelEl.value, mattered: Number(matEl ? matEl.value : 3), threads: formThreads.slice(0, 3),
+        ra: pos.ra, dec: pos.dec, example: false, created: new Date().toISOString() };
+      state.stars.push(s);
+    }
+    save();
+    closeDialog(starDlg);
+    relayout(true);
+    view.selectedId = s.id; view.focusId = s.id;
+    renderAll();
+    announce((starEditId ? 'Saved changes to ' : 'Added a star: ') + s.title + '.');
+    var h = $('#readout-title'); if (h) h.focus();
+  });
+
+  /* ================= Data dialog ================= */
+  var dataDlg = $('#data-dialog'), dataOpener = null;
+  function exportJSON() {
+    return JSON.stringify({ app: 'vantage', exported: new Date().toISOString(), v: 1, birthYear: state.birthYear, birthYearExample: state.birthYearExample,
+      stars: state.stars, figures: state.figures, prefs: state.prefs }, null, 2);
+  }
+  function openDataDialog() {
+    dataOpener = document.activeElement;
+    $('#export-text').value = exportJSON();
+    $('#data-born').value = state.birthYear || '';
+    ['#export-msg', '#import-msg', '#erase-msg', '#data-born-msg'].forEach(function (s) { $(s).textContent = ''; });
+    $('#erase-confirm').hidden = true; $('#erase-start').hidden = false;
+    openDialog(dataDlg);
+    $('#data-close').focus();
+  }
+  $('#data-close').addEventListener('click', function () { closeDialog(dataDlg); if (dataOpener && dataOpener.focus) dataOpener.focus(); });
+  $('#data-born-save').addEventListener('click', function () {
+    var v = $('#data-born').value.trim();
+    if (v === '') { state.birthYear = null; state.birthYearExample = false; $('#data-born-msg').textContent = 'Birth year removed.'; }
+    else if (!validYear(Number(v))) { $('#data-born-msg').textContent = 'Enter a four-digit year between 1900 and ' + NOW_YEAR + '.'; return; }
+    else { state.birthYear = Number(v); state.birthYearExample = false; $('#data-born-msg').textContent = 'Saved. Stars dated by age are now placed in time.'; }
+    save(); relayout(true); renderAll(); $('#export-text').value = exportJSON();
+  });
+  $('#export-copy').addEventListener('click', function () {
+    var ta = $('#export-text'), msg = $('#export-msg'), text = ta.value;
+    function fallback() {
+      ta.focus(); ta.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      msg.textContent = ok ? 'Copied.' : 'Selected. Press Ctrl+C (or Cmd+C) to copy.';
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { msg.textContent = 'Copied.'; }, fallback);
+      } else fallback();
+    } catch (e) { fallback(); }
+  });
+  $('#import-go').addEventListener('click', function () {
+    var raw = $('#import-text').value.trim(), msg = $('#import-msg');
+    if (!raw) { msg.textContent = 'Paste an export into the box first.'; $('#import-text').focus(); return; }
+    var parsed;
+    try { parsed = JSON.parse(raw); } catch (e) { msg.textContent = 'That isn’t valid JSON. Check that the whole export was pasted, from the first { to the last }.'; return; }
+    var next;
+    try { next = sanitize(parsed); } catch (e) { msg.textContent = 'That doesn’t look like a Vantage export: ' + e.message; return; }
+    state = next;
+    if (!VANTAGES[state.prefs.vantage]) state.prefs.vantage = 'ground';
+    state.prefs.vantage = view.vantage;
+    resetViewState();
+    save();
+    relayout(false); renderAll();
+    $('#export-text').value = exportJSON();
+    $('#data-born').value = state.birthYear || '';
+    msg.textContent = 'Imported ' + plural(state.stars.length, 'star') + ' and ' + plural(state.figures.length, 'figure') + '.';
+    $('#import-text').value = '';
+  });
+  $('#erase-start').addEventListener('click', function () {
+    $('#erase-confirm').hidden = false; $('#erase-start').hidden = true; $('#erase-msg').textContent = ''; $('#erase-no').focus();
+  });
+  $('#erase-no').addEventListener('click', function () { $('#erase-confirm').hidden = true; $('#erase-start').hidden = false; $('#erase-start').focus(); });
+  $('#erase-yes').addEventListener('click', function () {
+    try { window.localStorage.removeItem(KEY); } catch (e) { /* storage blocked */ }
+    state = emptyState(); state.prefs.vantage = view.vantage;
+    resetViewState();
+    relayout(false); renderAll();
+    $('#export-text').value = exportJSON(); $('#data-born').value = '';
+    $('#erase-confirm').hidden = true; $('#erase-start').hidden = false;
+    $('#erase-msg').textContent = 'Everything has been erased from this device.';
+    $('#erase-start').focus();
+  });
+  function resetViewState() {
+    if (conn.active) endConnect();
+    view.selectedId = null; view.focusId = null; view.hoverId = null; view.highlight = null; view.highlightFig = null;
+    pendingDelete = null;
+  }
+
+  /* ================= Mutations ================= */
+  function deleteStar(id) {
+    var s = starById(id); if (!s) return;
+    state.stars = state.stars.filter(function (x) { return x.id !== id; });
+    state.figures.forEach(function (f) { f.edges = f.edges.filter(function (e) { return e[0] !== id && e[1] !== id; }); });
+    state.figures = state.figures.filter(function (f) { return f.edges.length; });
+    if (view.selectedId === id) view.selectedId = null;
+    if (view.focusId === id) view.focusId = null;
+    if (view.highlight) { view.highlight.ids = view.highlight.ids.filter(function (x) { return x !== id; }); if (!view.highlight.ids.length) view.highlight = null; }
+    if (conn.active) { conn.edges = conn.edges.filter(function (e) { return e[0] !== id && e[1] !== id; }); if (conn.pen === id) conn.pen = null; conn.history = []; }
+    view.disp.delete(id);
+    pendingDelete = null;
+    save(); relayout(true); renderAll();
+    announce('Deleted “' + s.title + '”.');
+  }
+  function deleteFigure(id) {
+    var f = figById(id); if (!f) return;
+    state.figures = state.figures.filter(function (x) { return x.id !== id; });
+    if (view.highlightFig === id) view.highlightFig = null;
+    pendingDelete = null;
+    save(); renderAll(); requestDraw();
+    announce('Deleted the figure “' + f.name + '”.');
+  }
+  function clearExamples() {
+    var exIds = state.stars.filter(function (s) { return s.example; }).map(function (s) { return s.id; });
+    state.stars = state.stars.filter(function (s) { return !s.example; });
+    state.figures = state.figures.filter(function (f) { return !f.example; });
+    state.figures.forEach(function (f) { f.edges = f.edges.filter(function (e) { return exIds.indexOf(e[0]) < 0 && exIds.indexOf(e[1]) < 0; }); });
+    state.figures = state.figures.filter(function (f) { return f.edges.length; });
+    if (state.birthYearExample) { state.birthYear = null; state.birthYearExample = false; }
+    if (!state.stars.length) state.nextNum = 1;
+    exIds.forEach(function (id) { view.disp.delete(id); });
+    resetViewState();
+    save(); relayout(true); renderAll();
+    announce('Examples cleared. ' + (state.stars.length ? plural(state.stars.length, 'star') + ' of your own remain.' : 'The sky is empty and ready for your first star.'));
+    var t = state.stars.length ? $('#btn-add') : $('#empty-add');
+    if (t) t.focus();
+  }
+  function restoreExamples() {
+    var ex = exampleData();
+    var have = {};
+    state.stars.forEach(function (s) { have[s.id] = true; });
+    var offset = state.stars.length ? state.nextNum - 1 : 0;
+    ex.stars.forEach(function (s) { if (!have[s.id]) { s.num += offset; state.stars.push(s); } });
+    ex.figures.forEach(function (f) { if (!figById(f.id)) state.figures.push(f); });
+    if (!state.birthYear) { state.birthYear = ex.birthYear; state.birthYearExample = true; }
+    state.nextNum = state.stars.reduce(function (m, s) { return Math.max(m, s.num); }, 0) + 1;
+    save(); relayout(true); renderAll();
+    announce('The example sky is back.');
+    $('#btn-clear-examples').focus();
+  }
+
+  /* ================= Observations ================= */
+  function eraOfAge(a) {
+    if (a < 13) return { k: 'c', label: 'your childhood (before 13)' };
+    if (a < 20) return { k: 't', label: 'your teens' };
+    var d = Math.floor(a / 10);
+    return { k: 'a' + d, label: 'your ' + (ERA_WORDS[d - 2] || (d * 10) + 's') };
+  }
+  function eraOf(s) {
+    var a = ageOf(s);
+    if (a != null && a >= 0) return eraOfAge(a);
+    var y = yearOf(s);
+    if (y != null) { var dd = Math.floor(y / 10) * 10; return { k: 'd' + dd, label: 'the ' + dd + 's' }; }
+    return null;
+  }
+  function currentEraKey() {
+    if (state.birthYear) return eraOfAge(NOW_YEAR - state.birthYear).k;
+    return 'd' + Math.floor(NOW_YEAR / 10) * 10;
+  }
+  function computeObservations() {
+    var S = state.stars, out = [];
+    if (S.length < 5) return { few: true, list: [] };
+
+    // 1. threads on the brightest stars
+    var bright = S.filter(function (s) { return s.mattered >= 4; }), brightLabel = 'the ones marked 4 or 5';
+    if (bright.length < 3) { bright = S.slice().sort(function (a, b) { return b.mattered - a.mattered || byTime(a, b); }).slice(0, 3); brightLabel = 'the three marked highest'; }
+    var c = {};
+    bright.forEach(function (s) { s.threads.forEach(function (t) { c[t] = (c[t] || 0) + 1; }); });
+    var top = Object.keys(c).map(function (k) { return [k, c[k]]; }).sort(function (a, b) { return b[1] - a[1] || a[0].localeCompare(b[0]); });
+    if (top.length && top[0][1] >= 2) {
+      var n = top[0][1], ties = top.filter(function (x) { return x[1] === n; }).map(function (x) { return x[0]; });
+      var ids = bright.filter(function (s) { return s.threads.some(function (t) { return ties.indexOf(t) >= 0; }); }).map(function (s) { return s.id; });
+      if (ties.length === 1) {
+        var t1 = ties[0];
+        var dim = S.filter(function (s) { return bright.indexOf(s) < 0 && s.threads.indexOf(t1) >= 0; }).length;
+        out.push({ text: quoteT(t1) + ' is on ' + n + ' of your ' + bright.length + ' brightest stars (' + brightLabel + '). No other thread is on as many. ' +
+          (dim ? 'It is on ' + plural(dim, 'dimmer star') + ' as well.' : 'It isn’t on any of the dimmer ones.'),
+          q: 'Read those ' + n + ' side by side. What else do they share?', ids: ids });
+      } else {
+        out.push({ text: listWords(ties.map(quoteT)) + ' are each on ' + n + ' of your ' + bright.length + ' brightest stars (' + brightLabel + ').',
+          q: 'Do those threads have anything in common, or do they pull in different directions?', ids: ids });
+      }
+    }
+
+    // 2. gaps in time
+    var T = timeScale();
+    var dated = S.filter(function (s) { return T.keyFn(s) != null; }).sort(function (a, b) { return T.keyFn(a) - T.keyFn(b); });
+    var gaps = [];
+    for (var i = 0; i + 1 < dated.length; i++) {
+      var g = T.keyFn(dated[i + 1]) - T.keyFn(dated[i]);
+      if (g >= 4) gaps.push({ a: dated[i], b: dated[i + 1], g: g });
+    }
+    gaps.sort(function (x, y) { return y.g - x.g; }).slice(0, 2).forEach(function (gp) {
+      var ka = T.keyFn(gp.a), kb = T.keyFn(gp.b), txt;
+      if (T.mode === 'age') txt = 'Nothing between age ' + ka + ' and age ' + kb + '.';
+      else {
+        txt = 'Nothing between ' + ka + ' and ' + kb + '.';
+        if (state.birthYear) txt = 'Nothing between ' + ka + ' and ' + kb + ' (age ' + (ka - state.birthYear) + ' to ' + (kb - state.birthYear) + ').';
+      }
+      out.push({ text: txt, q: 'Was that a quiet time, or a time you haven’t looked at yet?', ids: [gp.a.id, gp.b.id] });
+    });
+
+    // 3. feelings concentrated in one period
+    var feelCount = 0;
+    FEELINGS.forEach(function (f) {
+      if (feelCount >= 2) return;
+      var fs = S.filter(function (s) { return s.feeling === f.id && eraOf(s); });
+      if (fs.length < 3) return;
+      var by = {}, labels = {};
+      fs.forEach(function (s) { var e = eraOf(s); (by[e.k] = by[e.k] || []).push(s); labels[e.k] = e.label; });
+      var bestK = null;
+      Object.keys(by).forEach(function (k) { if (!bestK || by[k].length > by[bestK].length) bestK = k; });
+      var cnt = by[bestK].length;
+      if (cnt >= 2 && cnt / fs.length >= 0.6) {
+        feelCount++;
+        out.push({ text: (cnt === fs.length ? 'All ' + cnt : cnt + ' of your ' + fs.length) + ' ' + f.name + ' stars are from ' + labels[bestK] + '.',
+          q: 'Is that about the period itself, or about which moments you’ve chosen to add so far?', ids: by[bestK].map(function (s) { return s.id; }) });
+      }
+    });
+
+    // 4. a star in several figures
+    var multi = S.map(function (s) { return { s: s, f: figuresOf(s.id) }; }).filter(function (x) { return x.f.length >= 2; })
+      .sort(function (a, b) { return b.f.length - a.f.length || a.s.num - b.s.num; }).slice(0, 2);
+    multi.forEach(function (x) {
+      out.push({ text: '“' + x.s.title + '” is part of ' + (x.f.length === state.figures.length && x.f.length === 2 ? 'both' : x.f.length) + ' of your figures: ' + listWords(x.f.map(function (f) { return f.name; })) + '.',
+        q: 'Does it mean the same thing in each of them?', ids: [x.s.id] });
+    });
+
+    // 5. threads that only appear in one period
+    var cur = currentEraKey(), tc = 0;
+    allThreads().forEach(function (t) {
+      if (tc >= 2 || t[1] < 2) return;
+      var ts = S.filter(function (s) { return s.threads.indexOf(t[0]) >= 0; });
+      var eras = ts.map(eraOf);
+      if (eras.some(function (e) { return !e; })) return;
+      var k = eras[0].k;
+      if (k === cur || !eras.every(function (e) { return e.k === k; })) return;
+      tc++;
+      out.push({ text: 'Every star with the thread ' + quoteT(t[0]) + ' (' + plural(ts.length, 'star') + ') is from ' + eras[0].label + '.',
+        q: 'Is that thread still running somewhere you haven’t marked, or did it end there?', ids: ts.map(function (s) { return s.id; }) });
+    });
+
+    // 6. threads that travel together
+    var pairs = {};
+    S.forEach(function (s) {
+      var th = s.threads.slice().sort();
+      for (var a = 0; a < th.length; a++) for (var b = a + 1; b < th.length; b++) {
+        var key = th[a] + '\u0000' + th[b]; (pairs[key] = pairs[key] || []).push(s.id);
+      }
+    });
+    Object.keys(pairs).filter(function (k) { return pairs[k].length >= 2; })
+      .sort(function (a, b) { return pairs[b].length - pairs[a].length || a.localeCompare(b); }).slice(0, 2).forEach(function (k) {
+        var p = k.split('\u0000');
+        out.push({ text: quoteT(p[0]) + ' and ' + quoteT(p[1]) + ' appear together on ' + pairs[k].length + ' stars.',
+          q: 'When one of them turns up in your life, does the other tend to follow?', ids: pairs[k] });
+      });
+
+    // 7. how much each feeling mattered, on average
+    var avgs = FEELINGS.map(function (f) {
+      var fs = S.filter(function (s) { return s.feeling === f.id; });
+      return { f: f, n: fs.length, avg: fs.length ? fs.reduce(function (m, s) { return m + s.mattered; }, 0) / fs.length : 0, ids: fs.map(function (s) { return s.id; }) };
+    }).filter(function (x) { return x.n >= 2; });
+    if (avgs.length >= 2) {
+      avgs.sort(function (a, b) { return b.avg - a.avg; });
+      var hi = avgs[0], loV = avgs[avgs.length - 1].avg;
+      var lo = avgs.filter(function (x) { return Math.abs(x.avg - loV) < 0.01; });
+      if (hi.avg - loV >= 0.75) {
+        var fmt = function (v) { return (Math.round(v * 10) / 10).toString(); };
+        out.push({ text: 'Your ' + hi.f.name + ' stars average ' + fmt(hi.avg) + ' out of 5 for how much they mattered. Your ' + listWords(lo.map(function (x) { return x.f.name; })) + ' stars average ' + fmt(loV) + '.',
+          q: 'Did the ' + hi.f.name + ' moments matter more, or are they easier to remember?', ids: hi.ids });
+      }
+    }
+
+    // 8. stars not in any figure
+    var loose = S.filter(function (s) { return !figuresOf(s.id).length; });
+    if (!state.figures.length) {
+      out.push({ text: 'None of your ' + S.length + ' stars are joined into figures yet.', q: 'Which two would you connect first, and why those?', ids: [] });
+    } else if (loose.length) {
+      out.push({ text: plural(loose.length, 'star') + ' of ' + S.length + (loose.length === 1 ? ' isn’t' : ' aren’t') + ' part of any figure yet.',
+        q: 'Do any of them belong together?', ids: loose.map(function (s) { return s.id; }) });
+    }
+    return { few: false, list: out };
+  }
+
+  /* ================= Rendering (DOM) ================= */
+  function withFocus(fn) {
+    var a = document.activeElement, fk = a && a.getAttribute ? a.getAttribute('data-fk') : null;
+    fn();
+    if (fk) { var el = document.querySelector('[data-fk="' + fk.replace(/"/g, '\\"') + '"]'); if (el) el.focus(); }
+  }
+  function confirmHTML(kind, id, where, text) {
+    return '<div class="confirm" role="group" aria-label="Confirm delete"><p>' + text + '</p><div class="row-actions">' +
+      '<button type="button" class="btn btn-small btn-danger" data-act="' + kind + '-del-yes" data-id="' + esc(id) + '" data-fk="' + kind + '-del-yes:' + esc(id) + ':' + where + '">Yes, delete it</button>' +
+      '<button type="button" class="btn btn-small" data-act="del-cancel" data-id="' + esc(id) + '" data-fk="del-cancel:' + esc(id) + ':' + where + '">Keep it</button></div></div>';
+  }
+  function starDeleteText(s) {
+    var fs = figuresOf(s.id);
+    return 'Delete “' + esc(s.title) + '”?' + (fs.length ? ' It is in ' + plural(fs.length, 'figure') + ' (' + esc(fs.map(function (f) { return f.name; }).join(', ')) + '); lines to it will go too.' : '') + ' This can’t be undone.';
+  }
+  function swatch(f) { return '<span class="sw" style="--c:' + f.color + '" aria-hidden="true"></span>'; }
+
+  function renderReadout() {
+    var body = $('#readout-body');
+    var s = view.selectedId ? starById(view.selectedId) : null;
+    if (!s) {
+      body.innerHTML = '<p class="quiet">' + (state.stars.length ? 'Nothing selected. Click a star to read it, or tap it on a touch screen. With a keyboard, focus the chart, use the arrow keys, then press Enter. Every star is also listed in the catalogue below.' : 'There are no stars yet. Add one and it will appear here when you select it.') + '</p>';
+      return;
+    }
+    var f = FEEL[s.feeling], figs = figuresOf(s.id);
+    var figTxt = figs.map(function (fg) { var b = bayer(fg); return '<b>' + esc(b.letter[s.id]) + ' ' + esc(fg.name) + '</b>'; }).join(', ');
+    var del = pendingDelete && pendingDelete.kind === 'star' && pendingDelete.id === s.id && pendingDelete.where === 'readout';
+    body.innerHTML =
+      '<article class="entry">' +
+      '<p class="entry-desig"><span>No. ' + s.num + '</span>' + (s.example ? '<span class="tag">Example</span>' : '') + '</p>' +
+      '<h3 class="entry-title" id="readout-title" tabindex="-1">' + esc(s.title) + '</h3>' +
+      '<dl class="meta">' +
+      '<dt>When</dt><dd>' + esc(whenText(s)) + '</dd>' +
+      '<dt>Felt</dt><dd>' + swatch(f) + ' ' + f.name + '<span class="sub">class ' + f.cls + '</span></dd>' +
+      '<dt>Mattered</dt><dd>' + s.mattered + ' of 5<span class="sub">magnitude ' + (5 - s.mattered) + '</span></dd>' +
+      '<dt>Threads</dt><dd>' + (s.threads.length ? '<ul class="thread-list">' + s.threads.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' : '<span class="quiet">none</span>') + '</dd>' +
+      '<dt>Figures</dt><dd>' + (figs.length ? figTxt : '<span class="quiet">not in any figure</span>') + '</dd>' +
+      '<dt>Position</dt><dd class="mono" style="font-size:12.5px">RA ' + raText(s.ra) + ' · Dec ' + decText(s.dec) + '</dd>' +
+      '</dl>' +
+      (s.story ? '<p class="story">' + esc(s.story) + '</p>' : '') +
+      '<div class="row-actions">' +
+      '<button type="button" class="btn btn-small" data-act="edit-star" data-id="' + esc(s.id) + '" data-fk="edit-star:' + esc(s.id) + ':r">Edit</button>' +
+      '<button type="button" class="btn btn-small" data-act="start-fig-here" data-id="' + esc(s.id) + '" data-fk="start-fig:' + esc(s.id) + '">Start a figure from this star</button>' +
+      '<button type="button" class="btn btn-small btn-danger" data-act="del-star" data-where="readout" data-id="' + esc(s.id) + '" data-fk="del-star:' + esc(s.id) + ':readout"' + (del ? ' aria-expanded="true"' : '') + '>Delete</button>' +
+      '</div>' +
+      (del ? confirmHTML('star', s.id, 'readout', starDeleteText(s)) : '') +
+      '</article>';
+  }
+
+  function renderPeek() {
+    var pk = $('#peek');
+    var small = !!(narrowMQ && narrowMQ.matches);
+    if (conn.active && small) {
+      // On narrow screens the drawing controls sit below the chart, so keep the essentials on the plate.
+      var pen = conn.pen ? starById(conn.pen) : null;
+      pk.innerHTML = '<p class="p-title" style="font-style:normal">' + plural(conn.edges.length, 'line') + ' drawn<span class="p-meta">' + esc(pen ? 'pen on ' + pen.title : (conn.edges.length ? 'pen lifted' : 'tap a first star')) + '</span></p>' +
+        '<button type="button" class="btn btn-small" data-act="conn-undo" data-fk="conn-undo"' + (conn.history.length ? '' : ' disabled') + '>Undo</button>' +
+        '<button type="button" class="btn btn-small btn-primary" data-act="conn-name" data-fk="conn-name"' + (conn.edges.length ? '' : ' disabled') + '>' + (conn.figureId ? 'Save lines' : 'Name it') + '</button>';
+      pk.hidden = false;
+      return;
+    }
+    var s = view.selectedId ? starById(view.selectedId) : null;
+    if (!s || !(narrowMQ && narrowMQ.matches) || view.above) { pk.hidden = true; return; }
+    pk.innerHTML = '<p class="p-title">' + esc(s.title) + '<span class="p-meta">' + esc(whenText(s)) + ' · ' + FEEL[s.feeling].name + ' · mattered ' + s.mattered + '</span></p>' +
+      '<button type="button" class="btn btn-small" data-act="read-entry" data-fk="read-entry">Read entry</button>' +
+      '<button type="button" class="btn btn-small p-x" data-act="deselect" data-fk="deselect" aria-label="Close this summary">×</button>';
+    pk.hidden = false;
+  }
+
+  function spanPct(f, layout, P) {
+    var tot = 0, n = 0;
+    f.edges.forEach(function (e) {
+      var a = layout.get(e[0]), b = layout.get(e[1]);
+      if (a && b) { tot += Math.hypot(a.x - b.x, a.y - b.y); n++; }
+    });
+    return n ? tot / n / P.w * 100 : 0;
+  }
+  function renderFigures() {
+    var body = $('#figures-body');
+    if (!state.figures.length) {
+      body.innerHTML = '<p class="quiet">No figures yet. Choose “Draw a figure”, then select stars in the order you want to join them. The app never draws figures for you.</p>';
+      return;
+    }
+    var P = view.plot, here = view.target, ground = view.vantage === 'ground' ? here : layoutGround(P);
+    body.innerHTML = '<ul class="figs">' + state.figures.map(function (f) {
+      var b = bayer(f);
+      var h = spanPct(f, here, P), g = spanPct(f, ground, P);
+      var span;
+      if (view.vantage === 'ground') span = 'Average line length: <b>' + Math.round(h) + '%</b> of the chart’s width.';
+      else {
+        var ratio = g ? h / g : 1;
+        var word = ratio > 1.25 ? 'Looser than from Ground.' : ratio < 0.8 ? 'Tighter than from Ground.' : 'About the same as from Ground.';
+        span = 'Average line length here: <b>' + Math.round(h) + '%</b> of the chart’s width (from Ground: ' + Math.round(g) + '%). ' + word;
+      }
+      var on = view.highlightFig === f.id;
+      return '<li><h3 class="fig-name">' + esc(f.name) + (f.example ? ' <span class="tag">Example</span>' : '') + '</h3>' +
+        (f.meaning ? '<p class="fig-meaning">“' + esc(f.meaning) + '”</p>' : '') +
+        '<p class="fig-stars">' + b.order.map(function (s) { return esc(b.letter[s.id]) + ' ' + esc(s.title); }).join(' · ') + '</p>' +
+        '<p class="fig-span">' + span + '</p>' +
+        '<div class="row-actions"><button type="button" class="btn-link" data-act="fig-show" data-id="' + esc(f.id) + '" data-fk="fig-show:' + esc(f.id) + '" aria-pressed="' + on + '">' + (on ? 'Stop highlighting' : 'Highlight on the chart') + '</button></div></li>';
+    }).join('') + '</ul>';
+  }
+
+  var lastObs = [];
+  function renderObservations() {
+    var body = $('#obs-body'), res = computeObservations();
+    lastObs = res.list;
+    if (res.few) {
+      body.innerHTML = '<p class="quiet">Observations appear once there are at least five stars to count. There ' + (state.stars.length === 1 ? 'is 1' : 'are ' + state.stars.length) + ' so far. Some patterns only show after a while, and there’s no hurry.</p>';
+      return;
+    }
+    if (!res.list.length) { body.innerHTML = '<p class="quiet">Nothing stands out in the counts yet. Patterns tend to show as more stars arrive.</p>'; return; }
+    var exNote = hasExamples() ? '<p class="hint" style="margin-bottom:10px">These are counted from the example stars, so they describe the invented person, not you.</p>' : '';
+    body.innerHTML = exNote + '<ol class="obs">' + res.list.map(function (o, i) {
+      return '<li><p class="o-text">' + esc(o.text) + '</p><p class="o-q">' + esc(o.q) + '</p>' +
+        (o.ids.length ? '<button type="button" class="btn-link" data-act="obs-show" data-i="' + i + '" data-fk="obs-show:' + i + '">Show ' + (o.ids.length === 1 ? 'this star' : 'these ' + o.ids.length + ' stars') + ' on the chart</button>' : '') + '</li>';
+    }).join('') + '</ol>';
+  }
+
+  function renderCatalogue() {
+    var stars = state.stars.slice().sort(byTime);
+    $('#cat-stars-h').textContent = 'Stars (' + stars.length + ')';
+    $('#cat-stars').innerHTML = stars.length ? stars.map(function (s) {
+      var f = FEEL[s.feeling], figs = figuresOf(s.id);
+      var del = pendingDelete && pendingDelete.kind === 'star' && pendingDelete.id === s.id && pendingDelete.where === 'cat';
+      return '<li class="cat-row" id="cat-' + esc(s.id) + '"><span class="cat-num">No. ' + s.num + '</span><div class="cat-body">' +
+        '<h4 class="cat-title">' + esc(s.title) + (s.example ? ' <span class="tag">Example</span>' : '') + '</h4>' +
+        '<p class="cat-meta"><span>' + esc(whenText(s)) + '</span><span class="feel">' + swatch(f) + f.name + ' (' + f.cls + ')</span><span>mattered ' + s.mattered + '</span>' +
+        (s.threads.length ? '<span>threads: ' + esc(s.threads.join(', ')) + '</span>' : '') + '</p>' +
+        (s.story ? '<p class="cat-story">' + esc(s.story) + '</p>' : '') +
+        (figs.length ? '<p class="cat-figs">In ' + figs.map(function (fg) { return esc(bayer(fg).letter[s.id] + ' ' + fg.name); }).join(', ') + '</p>' : '') +
+        '<div class="row-actions">' +
+        '<button type="button" class="btn btn-small" data-act="select-star" data-id="' + esc(s.id) + '" data-fk="select-star:' + esc(s.id) + '">Show on the chart</button>' +
+        '<button type="button" class="btn btn-small" data-act="edit-star" data-id="' + esc(s.id) + '" data-fk="edit-star:' + esc(s.id) + ':c">Edit</button>' +
+        '<button type="button" class="btn btn-small btn-danger" data-act="del-star" data-where="cat" data-id="' + esc(s.id) + '" data-fk="del-star:' + esc(s.id) + ':cat"' + (del ? ' aria-expanded="true"' : '') + '>Delete</button></div>' +
+        (del ? confirmHTML('star', s.id, 'cat', starDeleteText(s)) : '') +
+        '</div></li>';
+    }).join('') : '<li class="cat-row"><span class="cat-num"> </span><p class="quiet">No stars yet.</p></li>';
+
+    $('#cat-figs-h').textContent = 'Figures (' + state.figures.length + ')';
+    $('#cat-figs').innerHTML = state.figures.length ? state.figures.map(function (f) {
+      var b = bayer(f);
+      var del = pendingDelete && pendingDelete.kind === 'fig' && pendingDelete.id === f.id;
+      return '<li class="cat-row"><span class="cat-num">' + plural(f.edges.length, 'line') + '</span><div class="cat-body">' +
+        '<h4 class="fig-name">' + esc(f.name) + (f.example ? ' <span class="tag">Example</span>' : '') + '</h4>' +
+        (f.meaning ? '<p class="fig-meaning">“' + esc(f.meaning) + '”</p>' : '') +
+        '<p class="cat-figs">Stars, brightest first: ' + b.order.map(function (s) { return esc(b.letter[s.id] + ' ' + s.title); }).join('; ') + '</p>' +
+        '<p class="cat-figs">Lines: ' + f.edges.map(function (e) { var a = starById(e[0]), c = starById(e[1]); return esc((a ? a.title : '?') + ' to ' + (c ? c.title : '?')); }).join('; ') + '</p>' +
+        '<div class="row-actions">' +
+        '<button type="button" class="btn btn-small" data-act="fig-show" data-id="' + esc(f.id) + '" data-fk="fig-show-c:' + esc(f.id) + '" aria-pressed="' + (view.highlightFig === f.id) + '">Highlight on the chart</button>' +
+        '<button type="button" class="btn btn-small" data-act="fig-edit" data-id="' + esc(f.id) + '" data-fk="fig-edit:' + esc(f.id) + '">Edit name and meaning</button>' +
+        '<button type="button" class="btn btn-small" data-act="fig-lines" data-id="' + esc(f.id) + '" data-fk="fig-lines:' + esc(f.id) + '">Redraw lines</button>' +
+        '<button type="button" class="btn btn-small btn-danger" data-act="del-fig" data-id="' + esc(f.id) + '" data-fk="del-fig:' + esc(f.id) + '">Delete</button></div>' +
+        (del ? confirmHTML('fig', f.id, 'cat', 'Delete the figure “' + esc(f.name) + '”? Its stars stay; only the lines and the name go. This can’t be undone.') : '') +
+        '</div></li>';
+    }).join('') : '<li class="cat-row"><span class="cat-num"> </span><p class="quiet">No figures yet.</p></li>';
+  }
+
+  function renderBanner() {
+    var ex = hasExamples();
+    $('#example-strip').hidden = !ex;
+    if (ex) {
+      var ns = state.stars.filter(function (s) { return s.example; }).length, nf = state.figures.filter(function (f) { return f.example; }).length;
+      $('#example-text').textContent = 'These ' + plural(ns, 'star') + ' and ' + plural(nf, 'figure') + ' belong to an invented person, to show how Vantage works. Nothing here is yours yet.';
+    }
+    $('#empty-sky').hidden = state.stars.length > 0;
+    $('#empty-restore').hidden = hasExamples();
+  }
+  function renderHlNote() {
+    var n = $('#hl-note');
+    if (view.highlight) {
+      n.innerHTML = '<span>Showing ' + plural(view.highlight.ids.length, 'star') + ' from observation ' + esc(view.highlight.label) + '.</span><button type="button" class="btn-link" data-act="clear-highlight" data-fk="clear-highlight">Show all stars</button>';
+      n.hidden = false;
+    } else { n.hidden = true; n.innerHTML = ''; }
+  }
+  function updateVantageUI() {
+    document.querySelectorAll('.vb[data-vantage]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(!view.above && b.getAttribute('data-vantage') === view.vantage));
+    });
+    $('#btn-above').setAttribute('aria-pressed', String(view.above));
+    var V = VANTAGES[view.vantage];
+    if (view.above) {
+      $('#plate-title').innerHTML = '<span class="num">VI</span> From above';
+      $('#plate-caption').textContent = ABOVE_CAPTION;
+    } else {
+      $('#plate-title').innerHTML = '<span class="num">' + V.num + '</span> ' + esc(V.name);
+      var cap = V.caption;
+      if (view.vantage === 'time') {
+        var TS = timeScale();
+        var und = state.stars.filter(function (s) { return TS.keyFn(s) == null; }).length;
+        if (und) cap += ' ' + plural(und, 'star is', 'stars are') + ' dated by age with no birth year, so ' + (und === 1 ? 'it sits' : 'they sit') + ' apart, bottom left. You can add a birth year under Your data.';
+      }
+      $('#plate-caption').textContent = cap;
+    }
+    canvas.setAttribute('aria-label', 'Star chart, ' + (view.above ? 'view from above' : V.name + ' vantage') + ', ' + plural(state.stars.length, 'star') +
+      '. Use the arrow keys to move between stars and Enter to ' + (conn.active ? 'join them into a figure' : 'read one') + '. The catalogue below lists everything as text.');
+    $('#btn-connect').disabled = state.stars.length < 2 && !conn.active;
+    renderPeek();
+  }
+  function renderAll() {
+    withFocus(function () {
+      renderBanner(); renderReadout(); renderPeek(); renderFigures(); renderObservations(); renderCatalogue(); renderHlNote(); updateVantageUI();
+      if (conn.active) renderConnectBar();
+    });
+  }
+
+  function scrollPlateIntoView() {
+    var r = plateEl.getBoundingClientRect();
+    if (r.top < 0 || r.bottom > window.innerHeight) plateEl.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
+  }
+
+  /* ================= Event delegation ================= */
+  $('#vt').addEventListener('click', function (ev) {
+    var vb = ev.target.closest('.vb[data-vantage]');
+    if (vb) { setVantage(vb.getAttribute('data-vantage')); return; }
+    var b = ev.target.closest('[data-act]'); if (!b) return;
+    var act = b.getAttribute('data-act'), id = b.getAttribute('data-id');
+    switch (act) {
+      case 'add': openStarDialog(null); break;
+      case 'toggle-connect':
+        if (conn.active) { endConnect(); announce('Drawing cancelled.'); }
+        else { startConnect({}); var pick = $('#connect-pick'); if (pick && ev.detail === 0) pick.focus(); }
+        break;
+      case 'open-data': openDataDialog(); break;
+      case 'clear-examples': clearExamples(); break;
+      case 'restore-examples': restoreExamples(); break;
+      case 'toggle-above': setAbove(!view.above); if (!view.above) $('#btn-above').focus(); break;
+      case 'above-next':
+        view.aboveQ++; $('#above-q').textContent = ABOVE_QUESTIONS[view.aboveQ % ABOVE_QUESTIONS.length]; announce($('#above-q').textContent); break;
+      case 'select-star':
+        if (view.above) setAbove(false, true);
+        view.focusId = id; selectStar(id); scrollPlateIntoView(); announce('Selected ' + starById(id).title + ' on the chart.'); break;
+      case 'edit-star': openStarDialog(id); break;
+      case 'start-fig-here': startConnect({ pen: id }); scrollPlateIntoView(); $('#connect-pick') && $('#connect-pick').focus(); break;
+      case 'del-star':
+        pendingDelete = { kind: 'star', id: id, where: b.getAttribute('data-where') };
+        renderAll();
+        var y = document.querySelector('[data-fk="star-del-yes:' + id + ':' + pendingDelete.where + '"]'); if (y) y.focus();
+        break;
+      case 'star-del-yes': {
+        var where = pendingDelete ? pendingDelete.where : 'cat';
+        deleteStar(id);
+        var nextFocus = where === 'readout' ? $('#readout-h') : $('#cat-stars-h');
+        if (nextFocus) { nextFocus.setAttribute('tabindex', '-1'); nextFocus.focus(); }
+        break;
+      }
+      case 'del-fig':
+        pendingDelete = { kind: 'fig', id: id, where: 'cat' }; renderAll();
+        var yf = document.querySelector('[data-fk="fig-del-yes:' + id + ':cat"]'); if (yf) yf.focus();
+        break;
+      case 'fig-del-yes': deleteFigure(id); $('#cat-figs-h').setAttribute('tabindex', '-1'); $('#cat-figs-h').focus(); break;
+      case 'del-cancel': {
+        var pd = pendingDelete; pendingDelete = null; renderAll();
+        if (pd) { var back = document.querySelector('[data-fk="' + (pd.kind === 'fig' ? 'del-fig:' + pd.id : 'del-star:' + pd.id + ':' + pd.where) + '"]'); if (back) back.focus(); }
+        break;
+      }
+      case 'fig-show':
+        if (view.above) setAbove(false, true);
+        view.highlightFig = view.highlightFig === id ? null : id; view.highlight = null;
+        renderAll(); requestDraw();
+        if (view.highlightFig) { scrollPlateIntoView(); announce('Highlighting ' + figById(id).name + '.'); }
+        break;
+      case 'fig-edit': openFigureDialog('meta', id); break;
+      case 'fig-lines': { var f = figById(id); startConnect({ figureId: id, edges: f.edges }); scrollPlateIntoView(); var pk = $('#connect-pick'); if (pk) pk.focus(); break; }
+      case 'obs-show': {
+        var i = Number(b.getAttribute('data-i')), o = lastObs[i];
+        if (!o) break;
+        if (view.above) setAbove(false, true);
+        view.highlight = { ids: o.ids.slice(), label: ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x', 'xi', 'xii'][i] || String(i + 1) };
+        view.highlightFig = null;
+        renderHlNote(); renderFigures(); requestDraw(); scrollPlateIntoView();
+        announce('Highlighting ' + plural(o.ids.length, 'star') + ': ' + o.ids.map(function (x) { return starById(x).title; }).join(', ') + '.');
+        break;
+      }
+      case 'clear-highlight': view.highlight = null; renderHlNote(); requestDraw(); canvas.focus(); break;
+      case 'read-entry': { var rt = $('#readout-title'); if (rt) { rt.scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' }); rt.focus({ preventScroll: true }); } break; }
+      case 'deselect': selectStar(null); canvas.focus(); break;
+      case 'conn-undo': connectUndo(); break;
+      case 'conn-name': if (conn.edges.length) openFigureDialog(conn.figureId ? 'lines' : 'new', conn.figureId); break;
+    }
+  });
+
+  /* ================= Boot ================= */
+  buildFormControls();
+  save();
+  renderAll();
+  var ro = window.ResizeObserver ? new ResizeObserver(function () { resize(false); renderFigures(); }) : null;
+  if (ro) ro.observe(plateEl); else window.addEventListener('resize', function () { resize(false); });
+  resize(true);
+  renderFigures();
+  if (narrowMQ) { var onN = function () { renderPeek(); resize(true); }; if (narrowMQ.addEventListener) narrowMQ.addEventListener('change', onN); else if (narrowMQ.addListener) narrowMQ.addListener(onN); }
+  window.addEventListener('resize', function () { resize(false); });
+  try {
+    if (document.fonts) {
+      Promise.all([
+        document.fonts.load('italic 13px "Spectral"'), document.fonts.load('500 12px "Spectral SC"'), document.fonts.load('10px "Azeret Mono"')
+      ]).then(function () { requestDraw(); }, function () {});
+      document.fonts.ready.then(function () { requestDraw(); });
+    }
+  } catch (e) { /* fonts API unavailable */ }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) requestDraw(); });
+  requestDraw();
+
+  // Hook for automated tests: read-only snapshot of state and on-screen star positions (CSS px, relative to the canvas).
+  window.__vantage = {
+    state: function () { return JSON.parse(JSON.stringify(state)); },
+    positions: function () { var o = {}; screenPositions().forEach(function (p, id) { o[id] = { x: p.x, y: p.y }; }); return o; },
+    busy: function () { return !!(view.anim || view.zoomAnim); },
+    vantage: function () { return view.vantage; }
+  };
+})();
+</script>
+</body>
+</html>
