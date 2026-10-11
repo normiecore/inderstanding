@@ -1,0 +1,1333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Long Way</title>
+<style>
+/* Design plan: The Long Way
+   Layout concept: a waymarked footpath. Today's station is a trail sign you stand in front of;
+   the map is a contoured route where walked stretches are solid and the rest is dashed footpath.
+   The one bold thing is the pilgrim waymark (route blue plate, yellow arrow), used for today's
+   station and for stations that shifted something. Type is Overpass, a free cut of the
+   US highway signage face, with its mono for chainage, dates and station numbers. */
+:root{
+  --paper:#edf1ec;      /* survey-map paper */
+  --surface:#fafcf9;    /* sign board */
+  --ink:#15201b;        /* print */
+  --muted:#4b5951;      /* secondary print */
+  --contour:#c4d0c2;    /* contour lines, light rules */
+  --route:#1c4d8f;      /* route blue */
+  --mark:#efb70c;       /* waymark yellow */
+  --font-sign:"Overpass","Trebuchet MS","Segoe UI",system-ui,sans-serif;
+  --font-mono:"Overpass Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --on-route:#ffffff;
+  --on-mark:#1b1a0f;
+  --route-soft:rgba(28,77,143,.09);
+  --mark-soft:rgba(239,183,12,.20);
+  --line:#9aab98;
+  --danger:#9e2318;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0e1512; --surface:#151f1a; --ink:#e2e9e3; --muted:#a3b1a8; --contour:#2a3a32;
+    --route:#8fb5ec; --mark:#f3c740; --on-route:#0b1220; --on-mark:#1b1a0f;
+    --route-soft:rgba(143,181,236,.13); --mark-soft:rgba(243,199,64,.15); --line:#46594d; --danger:#ff9182;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0e1512; --surface:#151f1a; --ink:#e2e9e3; --muted:#a3b1a8; --contour:#2a3a32;
+  --route:#8fb5ec; --mark:#f3c740; --on-route:#0b1220; --on-mark:#1b1a0f;
+  --route-soft:rgba(143,181,236,.13); --mark-soft:rgba(243,199,64,.15); --line:#46594d; --danger:#ff9182;
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-sign);font-size:16px;line-height:1.5}
+.lw{background:var(--paper);color:var(--ink);font-family:var(--font-sign);padding-inline:16px;padding-block:0 40px;min-height:100%;-webkit-text-size-adjust:100%}
+@media (min-width:720px){.lw{padding-inline:28px}}
+.wrap{max-width:1180px;margin-inline:auto}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--route);outline-offset:2px}
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+.skip{position:absolute;left:16px;top:-60px;background:var(--route);color:var(--on-route);padding:8px 12px;border-radius:4px;z-index:30}
+.skip:focus{top:8px}
+.mono{font-family:var(--font-mono)}
+.muted{color:var(--muted)}
+p{margin:0 0 10px}
+a{color:var(--route)}
+
+/* Header */
+.top{position:relative;z-index:10;background:var(--paper);border-bottom:1.5px solid var(--ink)}
+@media (min-width:720px){.top{position:sticky;top:env(safe-area-inset-top,0px)}}
+.mobile-only{display:inline-flex}
+@media (min-width:900px){.mobile-only{display:none}}
+.top-in{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 20px;padding-block:10px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand svg{flex:none;width:30px;height:30px}
+.brand-name{font-weight:800;font-size:21px;letter-spacing:.01em;line-height:1}
+.clock{font-family:var(--font-mono);font-size:11.5px;padding:2px 7px;border:1px dashed var(--muted);border-radius:3px;color:var(--muted)}
+.tabs{display:flex;flex-wrap:wrap;gap:4px}
+.tab{font-size:15px;font-weight:600;padding:7px 11px 5px;border:1.5px solid transparent;border-radius:4px;background:none;cursor:pointer;line-height:1.2}
+.tab:hover{border-color:var(--line)}
+.tab[aria-current="page"]{background:var(--route);color:var(--on-route);border-color:var(--route)}
+
+/* Example banner and tags */
+.example-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-top:14px;padding:10px 14px;border:1.5px dashed var(--line);border-radius:4px;background:var(--mark-soft);font-size:15px}
+.example-bar p{margin:0;flex:1 1 280px}
+.tag{display:inline-block;font-family:var(--font-mono);font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;padding:2px 6px 1px;border:1px solid currentColor;border-radius:3px;line-height:1.4;vertical-align:2px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;padding:2px 9px;border:1px solid var(--line);border-radius:3px;background:var(--paper)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:600;padding:9px 14px 7px;border:1.5px solid var(--ink);background:var(--surface);border-radius:4px;cursor:pointer;line-height:1.25;text-align:left}
+.btn:hover{background:var(--route-soft)}
+.btn.primary{background:var(--route);border-color:var(--route);color:var(--on-route)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.quiet{border-color:var(--line)}
+.btn.danger{border-color:var(--danger);color:var(--danger)}
+.btn.small{font-size:13.5px;padding:5px 10px 4px}
+.btn-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.linkish{background:none;border:0;padding:0;color:var(--route);text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-weight:600}
+
+/* Section headings */
+.view{padding-top:18px}
+.view-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 20px;margin-bottom:6px}
+.view-head h1{font-size:clamp(26px,3.4vw,34px);font-weight:800;line-height:1.1;margin:0}
+.lede{max-width:68ch;color:var(--muted);font-size:16px}
+.rule-note{display:flex;gap:8px;align-items:flex-start;font-size:14.5px;color:var(--muted);margin:8px 0 0;max-width:80ch}
+.rule-note svg{flex:none;margin-top:2px}
+
+/* Elevation profile */
+.profile{margin-top:4px}
+.profile-top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;font-family:var(--font-mono);font-size:13px;color:var(--muted)}
+.profile-top strong{color:var(--ink);font-weight:600}
+.profile-box{position:relative;height:64px;margin-top:6px;border-bottom:1.5px solid var(--ink)}
+.profile-box svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.pf-area{fill:var(--route-soft)}
+.pf-line{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:2 4}
+.pf-walk{fill:none;stroke:var(--route);stroke-width:3}
+.pf-div{stroke:var(--line);stroke-width:1;stroke-dasharray:3 3}
+.pf-dot{position:absolute;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:var(--ink);border:1.5px solid var(--surface)}
+.pf-dot.yes{background:var(--mark);border-color:var(--on-mark)}
+.pf-dot.little{box-shadow:0 0 0 2.5px var(--mark)}
+.pf-here{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px;background:var(--route);border:2px solid var(--surface);border-radius:3px;transform:rotate(45deg)}
+.profile-regions{display:grid;grid-template-columns:7fr 7fr 7fr 6fr 7fr 6fr;font-family:var(--font-mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.profile-regions span{padding:4px 4px 0;border-left:1px dashed var(--line);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.profile-regions span.on{color:var(--route);font-weight:600}
+.rg-full{display:none}
+@media (min-width:760px){.rg-full{display:inline}.rg-short{display:none}}
+
+/* Today */
+.today-grid{display:grid;gap:20px;margin-top:20px}
+@media (min-width:920px){.today-grid{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);align-items:start}}
+.sign{background:var(--surface);border:2px solid var(--ink);border-radius:6px;overflow:hidden}
+.sign-plate{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--route);color:var(--on-route);padding:10px 16px 8px}
+.sign-plate svg{flex:none}
+.plate-num{font-family:var(--font-mono);font-weight:600;font-size:15px}
+.plate-num small{font-size:12px;opacity:.8}
+.plate-region{margin-left:auto;font-weight:800;text-transform:uppercase;letter-spacing:.07em;font-size:13px}
+.sign-body{padding:18px 20px 22px}
+.strand{font-family:var(--font-mono);font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0}
+.sign h2{font-size:clamp(25px,3.6vw,33px);font-weight:800;line-height:1.12;margin:6px 0 10px}
+.term{margin:0 0 6px}
+.term dfn{display:block;font-style:italic;font-weight:600;font-size:19px}
+.term span{color:var(--muted)}
+.sign h3{font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:18px 0 4px;font-weight:600}
+.do{font-size:18px;line-height:1.55;margin:0}
+.why{margin:0}
+.question{margin-top:18px;padding:12px 14px;background:var(--mark-soft);border:1px solid var(--line);border-radius:4px}
+.question h3{margin-top:0}
+.question p{font-size:17px;font-weight:600;margin:0}
+.sign.compact .sign-body{padding:14px 16px 16px}
+.sign.compact h2{font-size:24px}
+.sign.compact .do{font-size:16.5px}
+
+.panel{background:var(--surface);border:1.5px solid var(--line);border-radius:6px;padding:18px}
+.panel h2{font-size:21px;font-weight:800;margin:0 0 6px;line-height:1.2}
+.panel h3{font-size:16px;font-weight:800;margin:16px 0 4px}
+.hint{color:var(--muted);font-size:15px}
+.field-label{display:block;font-weight:600;margin:12px 0 6px}
+textarea,input[type="date"],select{width:100%;font-size:16px;padding:9px 10px;border:1.5px solid var(--line);border-radius:4px;background:var(--paper);color:var(--ink)}
+select{width:auto}
+input[type="date"]{width:auto;max-width:100%}
+textarea{resize:vertical;line-height:1.45}
+fieldset{border:0;padding:0;margin:16px 0 0;min-width:0}
+legend{font-weight:600;padding:0;margin-bottom:6px}
+.seg{position:relative;display:inline-flex;flex-wrap:wrap;border:1.5px solid var(--ink);border-radius:4px;overflow:hidden;max-width:100%}
+.seg input{position:absolute;left:0;top:0;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.seg label{padding:8px 16px 6px;cursor:pointer;font-weight:600;border-left:1.5px solid var(--ink);margin:0}
+.seg label:first-of-type{border-left:0}
+.seg input:checked+label{background:var(--ink);color:var(--paper)}
+.seg input.y:checked+label{background:var(--mark);color:var(--on-mark)}
+.seg input:focus-visible+label{box-shadow:inset 0 0 0 3px var(--route)}
+.form-msg{min-height:1.4em;font-size:14.5px;margin:10px 0 0;color:var(--danger)}
+.form-msg.ok{color:var(--muted)}
+.said{font-size:18px;font-style:italic;margin:4px 0 10px}
+.said-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.next{margin-top:16px;padding-top:12px;border-top:1.5px dashed var(--line);font-size:15px}
+.next .mono{font-size:13px;color:var(--muted);display:block;text-transform:uppercase;letter-spacing:.05em}
+.aside-stack{display:grid;gap:16px}
+details.why40{font-size:15px}
+details.why40 summary{cursor:pointer;font-weight:600}
+details.why40 p{margin-top:8px}
+
+/* Start screen */
+.start-grid{display:grid;gap:24px;margin-top:16px}
+@media (min-width:920px){.start-grid{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);align-items:start}}
+.route-card{width:100%;border-collapse:collapse;font-size:15px}
+.route-card th,.route-card td{text-align:left;padding:8px 6px;border-bottom:1px dashed var(--line);vertical-align:top}
+.route-card th{font-family:var(--font-mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.route-card td.mono{font-size:13px;white-space:nowrap}
+
+/* Map */
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:10px 0 0;padding:0;list-style:none;font-size:14px}
+.legend li{display:flex;align-items:center;gap:6px}
+.map-grid{display:grid;gap:20px;margin-top:16px}
+@media (min-width:900px){.map-grid{grid-template-columns:minmax(0,440px) minmax(0,1fr);align-items:start}}
+.map-frame{background:var(--surface);border:1.5px solid var(--line);border-radius:6px;padding:6px}
+.map-frame svg{display:block;width:100%;height:auto}
+@media (min-width:900px){.map-detail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px)}}
+.contour{fill:none;stroke:var(--contour);stroke-width:1.2}
+.band-line{stroke:var(--line);stroke-width:1;stroke-dasharray:6 5}
+.band-label{font-family:var(--font-mono);font-size:11px;font-weight:600;fill:var(--muted);letter-spacing:.08em}
+.path-future{fill:none;stroke:var(--muted);stroke-width:2.2;stroke-dasharray:1.5 7;stroke-linecap:round}
+.path-walked{fill:none;stroke:var(--route);stroke-width:4.5;stroke-linecap:round}
+.stn{cursor:pointer}
+.stn:focus{outline:none}
+.stn .hit{fill:transparent}
+.stn .dot{fill:var(--surface);stroke:var(--muted);stroke-width:1.5;stroke-dasharray:2.5 2}
+.stn .num{font-family:var(--font-mono);font-size:10px;font-weight:600;fill:var(--muted);text-anchor:middle}
+.stn.walked .dot{fill:var(--ink);stroke:var(--ink);stroke-dasharray:none}
+.stn.walked .num{fill:var(--paper)}
+.stn.yes .dot{fill:var(--mark);stroke:var(--on-mark)}
+.stn.yes .num{fill:var(--on-mark)}
+.stn .ring{fill:none;stroke:var(--mark);stroke-width:3.5}
+.stn.today .dot{fill:var(--route);stroke:var(--route);stroke-dasharray:none}
+.stn.today .num{fill:var(--on-route)}
+.stn .pulse{fill:none;stroke:var(--route);stroke-width:2;transform-box:fill-box;transform-origin:center;animation:pulse 2.4s ease-out infinite}
+.stn .sel{fill:none;stroke:var(--ink);stroke-width:2;opacity:0}
+.stn.selected .sel{opacity:1}
+.stn:focus-visible .sel{opacity:1;stroke:var(--route);stroke-width:3}
+.lbl{font-family:var(--font-sign);font-size:12px;font-style:italic;font-weight:600;fill:var(--ink)}
+.lbl.today{fill:var(--route);font-style:normal;font-weight:800}
+.end-lbl{font-family:var(--font-mono);font-size:10.5px;fill:var(--muted);letter-spacing:.06em}
+@keyframes pulse{0%{transform:scale(1);opacity:.9}100%{transform:scale(1.9);opacity:0}}
+.map-list{margin-top:18px}
+.map-list summary{cursor:pointer;font-weight:600}
+.map-list ol{columns:2 260px;column-gap:24px;padding-left:0;list-style:none;margin:10px 0 0;font-size:14.5px}
+.map-list li{break-inside:avoid;padding:3px 0;display:flex;gap:8px;align-items:baseline}
+.map-list .mono{font-size:12px;color:var(--muted);min-width:2.2em}
+.sw{display:inline-block;width:12px;height:12px;border-radius:50%;border:1.5px solid var(--ink);background:var(--ink);flex:none}
+.sw.yes{background:var(--mark);border-color:var(--on-mark)}
+.sw.little{box-shadow:0 0 0 2.5px var(--mark)}
+.sw.today{background:var(--route);border-color:var(--route)}
+.sw.locked{background:var(--surface);border:1.5px dashed var(--muted)}
+.report-block{margin-top:16px;padding-top:12px;border-top:1.5px dashed var(--line)}
+.panel>.report-block:first-child{margin-top:0;padding-top:0;border-top:0}
+.report-block h3{margin-top:0}
+
+/* What moved you */
+.tally{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 18px;margin:14px 0 4px;font-size:15px}
+.tally-q{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px}
+.tally b{font-family:var(--font-mono);font-size:22px;margin-right:4px}
+.moved-grid{display:grid;gap:20px;margin-top:16px}
+@media (min-width:900px){.moved-grid{grid-template-columns:1fr 1fr;align-items:start}}
+.group-list{list-style:none;margin:8px 0 0;padding:0}
+.group-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.g-name{font-weight:700}
+.g-count{font-family:var(--font-mono);font-weight:600;display:flex;align-items:center;gap:6px}
+.g-items{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;padding:3px 8px 2px;border:1px solid var(--line);background:var(--paper);border-radius:3px;cursor:pointer}
+.chip:hover{border-color:var(--ink)}
+.chip i{font-style:italic}
+.ask{margin-top:20px;font-size:17px;max-width:70ch}
+
+/* Rule */
+.rule-grid{display:grid;gap:24px;margin-top:16px}
+@media (min-width:960px){.rule-grid{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);align-items:start}}
+.rule-list{list-style:none;margin:0;padding:0}
+.rule-line{display:grid;grid-template-columns:42px minmax(0,1fr);gap:4px 10px;padding:14px 0;border-bottom:1px solid var(--contour)}
+.rl-num{font-family:var(--font-mono);font-weight:600;font-size:15px;color:var(--route);padding-top:10px}
+.rl-text{font-size:17px;font-weight:600;resize:none;overflow:hidden;min-height:2.6em}
+.rl-meta{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-top:8px;font-size:13.5px;color:var(--muted)}
+.rl-meta label{font-weight:600;color:var(--ink)}
+.rl-meta select{font-size:14px;padding:4px 8px}
+.rl-actions{grid-column:2;display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.rule-read{background:var(--surface);border:2px solid var(--ink);border-radius:6px;padding:20px 22px}
+.rule-read h2{font-size:24px;font-weight:800;margin:0 0 2px}
+.rule-read h3{font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:18px 0 6px;font-weight:600;border-bottom:1px dashed var(--line);padding-bottom:4px}
+.rule-read ol{margin:0;padding-left:1.4em;font-size:17px}
+.rule-read li{margin-bottom:6px}
+@media (min-width:960px){.rule-read{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px)}}
+
+/* Settings */
+.set-grid{display:grid;gap:20px;margin-top:16px}
+@media (min-width:900px){.set-grid{grid-template-columns:1fr 1fr;align-items:start}}
+.confirm{margin-top:12px;padding:12px;border:1.5px solid var(--danger);border-radius:4px}
+
+.foot{margin-top:44px;padding-top:14px;border-top:1px dashed var(--line);font-size:13.5px;color:var(--muted)}
+
+@media (prefers-reduced-motion: reduce){
+  *{scroll-behavior:auto!important}
+  .stn .pulse{animation:none;opacity:.45;transform:scale(1.35)}
+}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:ital,wght@0,400;0,600;0,800;1,400;1,600&family=Overpass+Mono:wght@400;600&display=swap">
+</head>
+<body>
+<div class="lw" id="app">
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="wrap">
+    <header class="top">
+      <div class="top-in">
+        <div class="brand">
+          <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="4" fill="var(--route)"/><path d="M7 16h14M15.5 9.5 22 16l-6.5 6.5" stroke="var(--mark)" stroke-width="4" fill="none" stroke-linecap="square"/></svg>
+          <span class="brand-name">The Long Way</span>
+          <span class="clock" id="demo-clock" hidden></span>
+        </div>
+        <nav class="tabs" aria-label="Sections">
+          <button type="button" class="tab" id="tab-today" data-action="view" data-view="today">Today</button>
+          <button type="button" class="tab" id="tab-map" data-action="view" data-view="map">Map</button>
+          <button type="button" class="tab" id="tab-moved" data-action="view" data-view="moved">What moved you</button>
+          <button type="button" class="tab" id="tab-rule" data-action="view" data-view="rule">Your Rule</button>
+          <button type="button" class="tab" id="tab-settings" data-action="view" data-view="settings">Settings</button>
+        </nav>
+      </div>
+    </header>
+    <div class="example-bar" id="example-bar" hidden>
+      <p><span class="tag">Example</span> This is an example walk, started 9 days ago with 8 evening reports, so you can see how it works. None of it is yours.</p>
+      <button type="button" class="btn small" id="clear-examples-top" data-action="clear-examples">Clear examples and start my own</button>
+    </div>
+    <main id="main" tabindex="-1">
+      <section class="view" id="view-today" aria-label="Today"></section>
+      <section class="view" id="view-map" aria-label="Map" hidden></section>
+      <section class="view" id="view-moved" aria-label="What moved you" hidden></section>
+      <section class="view" id="view-rule" aria-label="Your Rule" hidden></section>
+      <section class="view" id="view-settings" aria-label="Settings" hidden></section>
+    </main>
+    <footer class="foot">
+      <p>Everything stays in this browser: no accounts, no tracking. You can export a copy from Settings.</p>
+    </footer>
+  </div>
+</div>
+<script>
+'use strict';
+/* Forty stations. r = region, fam = tradition family, type = kind of practice,
+   rule/freq = suggested wording for the draft Rule (the user rewrites it). */
+const STATIONS = [
+/* 1 */ {r:'attention', fam:'Buddhism', strand:'Zen (Sōtō)', name:'Work as practice', term:'samu',
+  gloss:'work practice: ordinary chores done with full attention, as part of meditation',
+  today:'Pick one chore you would normally rush: washing up, sweeping, making the bed. Do it with no audio and no phone, a little slower than usual. When your mind jumps to the next thing, bring it back to the water or the broom.',
+  why:'In Zen monasteries, cleaning and cooking count as practice, not as breaks from it. Dōgen’s Instructions for the Cook (Tenzo Kyōkun, 1237) treats preparing a meal as seriously as sitting meditation.',
+  q:'What did you notice in the chore that you usually miss?', type:'attention',
+  rule:'Do one chore a day slowly, with nothing else on.', freq:'daily'},
+/* 2 */ {r:'attention', fam:'Buddhism', strand:'Theravāda', name:'Ten breaths', term:'ānāpānasati',
+  gloss:'mindfulness of breathing in and out',
+  today:'Three times today (say, before opening email, after lunch, and before you leave work) stop and follow ten breaths. Don’t change them. Notice each one come in and go out, and count.',
+  why:'The Ānāpānasati Sutta in the Pali Canon sets out attention to the breath as a complete path of meditation. Theravāda teachers often say the training is in the returning: noticing you have drifted and coming back, many times.',
+  q:'What was going on in you just before each pause?', type:'stillness',
+  rule:'Stop for ten breaths before opening email.', freq:'daily'},
+/* 3 */ {r:'attention', fam:'Christianity', strand:'Benedictine', name:'Pause at the threshold', term:'statio',
+  gloss:'standing still: a deliberate pause before moving into the next thing',
+  today:'Before each change of scene today (walking into a meeting, getting into the car, opening your front door) stop at the threshold for three breaths. Arrive on purpose rather than in a rush.',
+  why:'Benedictine monks keep statio: they gather and stand still in a set place before going into church for the Office, so they arrive ready instead of being carried in by the last task.',
+  q:'Did stopping change how you were in what came next?', type:'stillness',
+  rule:'Pause for three breaths at the front door before going in.', freq:'daily'},
+/* 4 */ {r:'attention', fam:'Daoism', strand:'Zhuangzi', name:'Listen with an empty mind', term:'xīn zhāi',
+  gloss:'fasting of the heart-mind: emptying yourself so you can take in what is there',
+  today:'In one conversation today, listen without preparing your reply. When you catch yourself composing an answer, drop it and keep listening. Let a pause sit before you speak.',
+  why:'In chapter 4 of the Zhuangzi, Confucius (used as a character) teaches his student Yan Hui to fast the heart-mind: to listen not with the ears or the mind but with qi, which is empty and waits on things (paraphrase).',
+  q:'What did you hear that you would normally have talked over?', type:'attention',
+  rule:'In one conversation a day, listen without planning my reply.', freq:'daily'},
+/* 5 */ {r:'attention', fam:'Stoicism', strand:'Epictetus', name:'Catch the judgement', term:'prosochē',
+  gloss:'attention: the Stoic habit of watching your own judgements as they form',
+  today:'Each time you feel irritated or anxious today, name the judgement under it in a few words: “this is unfair”, “they’re wasting my time”, “I’ll look stupid”. You don’t have to argue with it. Just catch it before you act.',
+  why:'Epictetus taught that people are disturbed not by things but by their judgements about things (Enchiridion 5, paraphrased). Prosochē is the steady attention that lets you see a judgement as a judgement.',
+  q:'Which judgement turned up most often?', type:'attention',
+  rule:'When I’m irritated, name the judgement before I act.', freq:'needed'},
+/* 6 */ {r:'attention', fam:'Christianity', strand:'Ignatian (Jesuit)', name:'Review of the day', term:'examen',
+  gloss:'a short prayerful review of the day, looking for where you were drawn toward life and where away from it',
+  today:'Tonight, before sleep, take ten minutes. Start with something from the day you are grateful for. Replay the day like a film and notice one moment of consolation (more alive, more connected, or, if you pray, closer to God) and one of desolation (drained, cut off). Don’t judge them. Then think briefly about tomorrow.',
+  why:'Ignatius of Loyola built the examen into his Spiritual Exercises, and Jesuit tradition holds that he asked his companions to keep it even on days when they dropped other prayer.',
+  q:'Where were you most alive today, and where most drained?', type:'gratitude',
+  rule:'Review the day before sleep: one consolation, one desolation.', freq:'daily'},
+/* 7 */ {r:'attention', fam:'Islam', strand:'Sufism', name:'Remembrance while walking', term:'dhikr',
+  gloss:'remembrance: repeating a name of God or a short phrase to keep the heart turned toward God',
+  today:'On one walk today (to the station, round the block, to the shops) keep a short phrase going under your breath, in time with your steps. If you are Muslim you may already have a dhikr; if not, choose a few words you actually mean. When you notice you have stopped, start again.',
+  why:'Sufi orders practise dhikr alone and in gatherings, sometimes joined to breath and movement. The Qur’an speaks of hearts finding rest in the remembrance of God (13:28).',
+  q:'What happened to the walk while the phrase was going?', type:'stillness',
+  rule:'Keep a short phrase going on my walk to work.', freq:'daily'},
+/* 8 */ {r:'letting', fam:'Daoism', strand:'Daodejing', name:'Stop forcing one thing', term:'wú wéi',
+  gloss:'non-forcing: acting in step with how things are moving rather than against them',
+  today:'Pick one thing you have been pushing on: a stuck email thread, an argument, a plan that won’t come together. For today, stop pushing. Do only what has an obvious opening, and let the rest sit.',
+  why:'The Daodejing describes the sage as acting without forcing, and compares the Way to water, the softest thing, which still wears down the hardest (chapter 78, paraphrased). Wu wei is not doing nothing; it is not straining against the grain.',
+  q:'What happened to the thing you stopped pushing?', type:'letting',
+  rule:'When something is stuck, stop pushing for a day and see what opens.', freq:'needed'},
+/* 9 */ {r:'letting', fam:'Stoicism', strand:'Epictetus', name:'Sort the worry', term:'eph’ hēmin',
+  gloss:'what is up to us: our own judgements, intentions and actions, as opposed to everything else',
+  today:'Take the thing you are most worried about today. Split it, in your head or on a scrap of paper, into what is up to you and what is not. Do one thing from the first pile. When your mind drifts back to the second, say “not up to me” and return.',
+  why:'The Enchiridion opens with this division: some things are up to us and some are not (Enchiridion 1, paraphrased). The Stoics thought most misery comes from treating the second kind as if it were the first.',
+  q:'What was left once you had done your part?', type:'letting',
+  rule:'Split a worry into “up to me” and “not up to me”, then act on the first.', freq:'needed'},
+/* 10 */ {r:'letting', fam:'Epicureanism', strand:'Epicurus', name:'Which kind of want is this?', term:'ataraxia',
+  gloss:'freedom from disturbance, the settled calm Epicurus thought was the best pleasure',
+  today:'Before you buy, order or reach for something today, ask which kind of desire it is: natural and necessary (food when hungry, rest when tired), natural but not necessary (a fancier version of those), or empty (status, more for the sake of more). Let one empty one go.',
+  why:'In his Letter to Menoeceus, Epicurus sorts desires into natural and empty, and the natural ones into necessary and unnecessary. The necessary ones are easy to satisfy; chasing the empty ones keeps people anxious. Despite the modern meaning of “epicurean”, the early Epicureans were known for plain living.',
+  q:'Which desire did you let go, and did you miss it?', type:'discipline',
+  rule:'Before buying something, ask whether it is a need, a nice extra, or an empty want.', freq:'needed'},
+/* 11 */ {r:'letting', fam:'Christianity', strand:'Franciscan', name:'Give one thing away', term:'sine proprio',
+  gloss:'without anything of one’s own: the Franciscan form of poverty',
+  today:'Find one thing you own and don’t use that someone else would: a coat, a book, a tool. Give it away today, directly to a person or a place that will use it, rather than into a bag for later.',
+  why:'The Franciscan Rule of 1223 asks the brothers to live “without anything of their own”. Francis treated possessions as a weight that keeps you apart from people, the poor especially, and giving them up as a kind of freedom.',
+  q:'Was it harder to choose the thing or to hand it over?', type:'letting',
+  rule:'Give away one thing I don’t use each week.', freq:'weekly'},
+/* 12 */ {r:'letting', fam:'Christianity', strand:'Contemplative (Centering Prayer)', name:'Let the thoughts pass', term:'Centering Prayer',
+  gloss:'a method of silent prayer taught by Thomas Keating and others, drawing on the 14th-century Cloud of Unknowing',
+  today:'Sit for ten minutes somewhere you won’t be interrupted. Choose one short word (the tradition suggests something like “God”, “peace” or “love”). When you notice you are caught up in a thought, return to the word gently, without scolding yourself. Each return is the practice.',
+  why:'Centering Prayer was developed in the 1970s by Trappist monks including Thomas Keating, Basil Pennington and William Meninger. It draws on The Cloud of Unknowing, an anonymous English text that recommends a single short word to hold the attention. Keating described it as consenting to God’s presence rather than reaching a special state (paraphrase).',
+  q:'Roughly how many times did you come back, and how did coming back feel?', type:'stillness',
+  rule:'Ten minutes of silent sitting with one word, most mornings.', freq:'daily'},
+/* 13 */ {r:'letting', fam:'Buddhism', strand:'Zen', name:'Be a beginner at something you know', term:'shoshin',
+  gloss:'beginner’s mind: meeting a thing with openness rather than expertise',
+  today:'Take one thing you are experienced at (a report, a recipe, a route) and do it as if for the first time. Better still, ask someone newer than you how they would approach it, and try their way.',
+  why:'Shunryu Suzuki, who taught Sōtō Zen in San Francisco, wrote: “In the beginner’s mind there are many possibilities, but in the expert’s mind there are few.” (Zen Mind, Beginner’s Mind, 1970)',
+  q:'What did you see once you stopped knowing?', type:'letting',
+  rule:'Once a week, ask someone newer than me how they would do it, and try it.', freq:'weekly'},
+/* 14 */ {r:'letting', fam:'Islam', strand:'Wider Islamic practice', name:'Tie your camel', term:'tawakkul',
+  gloss:'trust in God: doing your part fully, then leaving the outcome',
+  today:'Pick one thing you are anxious about. Do every sensible thing that is yours to do today: send the email, make the call, prepare. Then deliberately hand over the outcome. If you pray, put it into words; if not, tell yourself plainly that you have done your part.',
+  why:'A well-known hadith in Tirmidhi’s collection tells of a man who asked whether he should tie his camel or trust in God. The answer: tie it, and trust (paraphrase). Tawakkul is effort followed by release, not passivity.',
+  q:'Once you had done your part, could you let the rest go?', type:'letting',
+  rule:'Do my part fully, then hand the outcome over.', freq:'needed'},
+/* 15 */ {r:'others', fam:'Buddhism', strand:'Theravāda', name:'Wish strangers well', term:'mettā',
+  gloss:'loving-kindness: warm goodwill toward beings, including ones you don’t know',
+  today:'On your commute or in a queue, silently offer a phrase to people you pass: “May you be well. May you be at ease.” Include at least one person who irritates you.',
+  why:'The Karaniya Metta Sutta asks the practitioner to wish that all beings be happy and at ease (paraphrase). Theravāda teachers train mettā like a muscle, starting with someone easy and widening out to strangers and difficult people.',
+  q:'Did the irritating person look any different afterwards?', type:'attention',
+  rule:'Wish people well silently on the commute.', freq:'daily'},
+/* 16 */ {r:'others', fam:'Islam', strand:'Wider Islamic practice', name:'An unannounced gift', term:'ṣadaqah',
+  gloss:'voluntary charity, given freely and ideally quietly',
+  today:'Do one act of giving today that nobody will credit you for: pay for the next person’s coffee, clear an obstacle off a pavement, give money to someone who asks, or give an hour of your time. Don’t mention it.',
+  why:'Sadaqah is distinct from zakat, the obligatory alms. In well-known hadiths the Prophet Muhammad counts even a smile, or moving something harmful out of a path, as sadaqah (paraphrase). The Qur’an praises giving in secret (2:271).',
+  q:'Who received it, and how did it feel not to mention it?', type:'service',
+  rule:'One quiet act of giving a week, unmentioned.', freq:'weekly'},
+/* 17 */ {r:'others', fam:'Judaism', strand:'Mussar', name:'Guard your speech', term:'shmirat ha-lashon',
+  gloss:'guarding the tongue: avoiding lashon hara, speech that harms someone even when it is true',
+  today:'For one day, say nothing negative about anyone who is not present, even if it is true. When a conversation turns to gossip, change the subject or stay quiet.',
+  why:'Rabbi Yisrael Meir Kagan’s book Chofetz Chaim (1873) sets out the laws of speech in detail, and Mussar practice takes them up as daily training. A Talmudic teaching holds that harmful speech injures three people: the speaker, the listener and the one spoken about (paraphrase).',
+  q:'How often did you nearly slip, and what did you say instead?', type:'discipline',
+  rule:'Say nothing negative about people who aren’t there.', freq:'daily'},
+/* 18 */ {r:'others', fam:'Ubuntu', strand:'Southern African (Nguni) ethic', name:'Learn someone’s name', term:'ubuntu',
+  gloss:'humanness, from the Nguni saying umuntu ngumuntu ngabantu: a person is a person through other people',
+  today:'Find one person you see often but don’t really know: a cleaner, a security guard, a barista, a neighbour. Learn their name if you don’t know it, use it, and ask them something real. Listen to the answer.',
+  why:'Ubuntu holds that your humanity is bound up with other people’s, so overlooking someone diminishes you as well. Desmond Tutu, explaining the idea, described a person with ubuntu as open and available to others (paraphrase).',
+  q:'What did you learn about them?', type:'service',
+  rule:'Know the names of the people I see every day.', freq:'weekly'},
+/* 19 */ {r:'others', fam:'Christianity', strand:'Quaker (Religious Society of Friends)', name:'Answer the good in someone difficult', term:'that of God in everyone',
+  gloss:'the Quaker conviction that every person carries something of the divine, the Inner Light',
+  today:'Think of the person who most annoys you that you will meet today. Before you see them, find one thing in them you can respect. When you talk, speak to that part of them.',
+  why:'In 1656 George Fox wrote to Friends urging them to “walk cheerfully over the world, answering that of God in every one.” Quakers treat this as a practice: responding to the best in a person, especially when it is hard to see.',
+  q:'What did you find, and did it change the conversation?', type:'attention',
+  rule:'With someone difficult, find one thing to respect and speak to that.', freq:'needed'},
+/* 20 */ {r:'others', fam:'Buddhism', strand:'Tibetan Mahāyāna', name:'Breathe in their difficulty', term:'tonglen',
+  gloss:'sending and taking: breathing in another’s suffering and breathing out relief',
+  today:'When you see someone struggling today (a stressed colleague, a crying child on the bus), take a few breaths for them. On the in-breath, imagine taking in their difficulty; on the out-breath, sending them ease. Then, if there is something practical you can do, do it. If it feels too heavy, simply wish them well instead.',
+  why:'Tonglen comes from the Tibetan lojong (mind training) teachings associated with Atiśa and the Seven Points of Mind Training. It deliberately reverses the habit of pulling in what is pleasant and pushing away what is not. Pema Chödrön has taught it widely in the West.',
+  q:'Did it make you more able to help, or less?', type:'letting',
+  rule:'When someone is struggling, a few breaths of tonglen, then something practical.', freq:'needed'},
+/* 21 */ {r:'others', fam:'Christianity', strand:'Liberation theology', name:'Find out who is going without', term:'preferential option for the poor',
+  gloss:'the conviction that faith is tested by where it stands with poor people',
+  today:'Find out one concrete need near you today: your local food bank’s shortage list, a shelter’s wish list, a neighbour who can’t get out. Do one thing about it, however small, before the week is out.',
+  why:'The Peruvian priest Gustavo Gutiérrez set out liberation theology in A Theology of Liberation (1971). It insists that faith shows itself in solidarity with poor people, and in changing what keeps them poor, as well as in private prayer.',
+  q:'What did you find out, and what did you do?', type:'service',
+  rule:'Check what the local food bank is short of, and bring some.', freq:'weekly'},
+/* 22 */ {r:'mortality', fam:'Stoicism', strand:'Seneca', name:'Rehearse a setback', term:'premeditatio malorum',
+  gloss:'the premeditation of evils: imagining in advance what could go wrong',
+  today:'This morning, spend two minutes imagining one thing going wrong today: the train is cancelled, a meeting goes badly, someone lets you down. Picture how you would like to respond. Then get on with the day. Keep it small and brief if you are prone to worry.',
+  why:'Seneca advised thinking through misfortunes before they arrive, so they lose their power to knock you over (Letters to Lucilius, for example Letter 91, paraphrased). It is rehearsal, not gloom.',
+  q:'Did anything go wrong, and were you readier for it?', type:'mortality',
+  rule:'Two minutes each morning imagining one thing going wrong and how I’d meet it.', freq:'daily'},
+/* 23 */ {r:'mortality', fam:'Christianity', strand:'Benedictine', name:'Remember you will die', term:'memento mori',
+  gloss:'remember that you will die',
+  today:'Once today, at an ordinary moment (in a queue, at your desk, washing your hands), remind yourself plainly that you will die, and that this day won’t come again. Then do the next thing the way you would want to have done it.',
+  why:'Chapter 4 of the Rule of St Benedict, a list of “tools for good works”, includes keeping death daily before your eyes (RB 4.47). For Benedict this was a way of keeping each day honest, not a taste for the morbid.',
+  q:'What changed, if anything, in the moment after?', type:'mortality',
+  rule:'Once a day, remember I will die, then do the next thing well.', freq:'daily'},
+/* 24 */ {r:'mortality', fam:'Buddhism', strand:'Japanese way of tea (Zen-influenced)', name:'This meeting happens once', term:'ichi-go ichi-e',
+  gloss:'one time, one meeting: each encounter happens once and will not recur',
+  today:'Treat one meeting with someone today as if it will not happen again in quite this way. Put your phone out of sight, look at them, and notice what is particular about this time.',
+  why:'The phrase comes from the Japanese way of tea, where each gathering is treated as unrepeatable. It is linked to the teaching of the tea master Sen no Rikyū and was popularised by Ii Naosuke in the nineteenth century.',
+  q:'What did you notice that you would usually miss?', type:'attention',
+  rule:'Treat one meeting a day as if it won’t come again.', freq:'daily'},
+/* 25 */ {r:'mortality', fam:'Epicureanism', strand:'Epicurus and Philodemus', name:'The four-part cure', term:'tetrapharmakos',
+  gloss:'the four-part remedy: an Epicurean summary to reach for when anxious',
+  today:'When a worry about the future comes up today (ageing, illness, money, being forgotten), go through the four lines: don’t fear the gods; don’t fear death; what is good is easy to get; what is terrible is easy to endure. Then notice what is actually in front of you.',
+  why:'The four lines survive in a papyrus by Philodemus, a first-century BCE Epicurean, summarising Epicurus. Epicurus argued in his Letter to Menoeceus that death is nothing to us: where we are, death is not, and where death is, we are not (paraphrase). The last line is his claim that severe pain tends to be brief and long pain mild; it is a teaching, not medical advice.',
+  q:'Which of the four lines helped, if any?', type:'mortality',
+  rule:'When future-worry hits, go through the four-part cure.', freq:'needed'},
+/* 26 */ {r:'mortality', fam:'Judaism', strand:'Shabbat', name:'A few hours of making nothing', term:'Shabbat',
+  gloss:'the Sabbath: a weekly day of rest, from Friday sunset to Saturday nightfall',
+  today:'Set aside three hours, today or on your next free day. During them, don’t work, buy, fix or produce anything, and keep screens off. Eat, walk, talk, rest. Mark the start and the end with something small, like lighting a candle.',
+  why:'Observant Jews keep Shabbat every week, with detailed laws about what counts as work; this is a borrowed taste of it, not the observance itself. Abraham Joshua Heschel called the Sabbath “a palace in time” (The Sabbath, 1951): holiness found in a stretch of time rather than a place.',
+  q:'What did you reach for during those hours, and what happened when you didn’t?', type:'stillness',
+  rule:'Three hours a week of making and buying nothing, screens off.', freq:'weekly'},
+/* 27 */ {r:'mortality', fam:'Buddhism', strand:'Theravāda (Pali Canon)', name:'Five things to remember', term:'the five remembrances',
+  gloss:'five facts the Buddha recommended reflecting on often',
+  today:'Read these slowly this morning and again tonight (paraphrased): I will grow old. I will get ill. I will die. Everyone and everything I love will change, and I will be parted from them. My actions are what I truly own. In between, notice when they come back to you. If you are grieving right now, skip this one and come back to it later.',
+  why:'In the Upajjhatthana Sutta (Anguttara Nikaya 5.57) the Buddha recommends reflecting on these five often, so that pride in youth, health and life loosens and conduct improves (paraphrase).',
+  q:'Which of the five was hardest to say?', type:'mortality',
+  rule:'Read the five remembrances once a week.', freq:'weekly'},
+/* 28 */ {r:'meaning', fam:'Hinduism', strand:'Karma yoga (Bhagavad Gītā)', name:'Do the work, release the result', term:'karma yoga',
+  gloss:'the discipline of action: doing your work well without clinging to its results',
+  today:'Choose one piece of work today. Do it as well as you can, as an offering rather than a bid for approval. When it is done, leave alone how it is received: no refreshing, no checking for replies.',
+  why:'In the Bhagavad Gītā, Krishna tells Arjuna that he has a right to his actions but never to their fruits (2.47, paraphrased). Karma yoga is one of the paths the Gītā describes, alongside knowledge and devotion.',
+  q:'Could you leave the result alone? What pulled you back to it?', type:'service',
+  rule:'Do the work properly, then stop checking how it landed.', freq:'daily'},
+/* 29 */ {r:'meaning', fam:'Confucianism', strand:'Analects', name:'Be what your role asks', term:'zhèngmíng',
+  gloss:'rectifying names: making what you do match what your role means',
+  today:'Pick one role you hold (parent, son or daughter, manager, colleague, friend). Ask what that role properly asks of you that you have let slide. Do one piece of it today.',
+  why:'Asked about government, Confucius answered: let the ruler be a ruler, the minister a minister, the father a father, the son a son (Analects 12.11, paraphrased). For Confucians a good life is lived inside relationships, and roles are obligations as much as titles.',
+  q:'Which role did you choose, and what did you do?', type:'discipline',
+  rule:'Each week, do one thing a role of mine asks that I’ve let slide.', freq:'weekly'},
+/* 30 */ {r:'meaning', fam:'Islam', strand:'Wider Islamic practice', name:'Do it well when nobody is checking', term:'iḥsān',
+  gloss:'excellence, doing what is beautiful: acting as though you see God, knowing God sees you',
+  today:'Pick one task nobody will check: tidying a shared space, a part of the job no one reviews, a reply to someone who can do nothing for you. Do it to the standard you would use if the person you most respect were watching.',
+  why:'In the Hadith of Gabriel (Sahih Muslim), the Prophet describes ihsan as worshipping God as though you see Him, and if you don’t see Him, knowing that He sees you (paraphrase). Muslims apply it to work and to how they treat people, not only to prayer.',
+  q:'Did the quality change, or only how it felt?', type:'discipline',
+  rule:'Do the unchecked jobs to the same standard as the checked ones.', freq:'daily'},
+/* 31 */ {r:'meaning', fam:'Judaism', strand:'Mussar', name:'Keep a tally of one trait', term:'cheshbon ha-nefesh',
+  gloss:'accounting of the soul: honest daily tracking of one trait (middah)',
+  today:'Pick one middah to watch today: patience (savlanut), order (seder) or humility (anavah). Each time something tests it, make a mark: a tick on your hand or a note on your phone. No verdicts, just count.',
+  why:'In Cheshbon HaNefesh (1812), Rabbi Menachem Mendel Lefin of Satanov set out thirteen middot and a weekly tally chart, adapting a method from Benjamin Franklin. The Mussar movement treats character as something trained through small daily attention.',
+  q:'How many marks, and what tested you most?', type:'discipline',
+  rule:'Each week, pick one trait and keep a tally of it.', freq:'weekly'},
+/* 32 */ {r:'meaning', fam:'Existentialism', strand:'Jean-Paul Sartre', name:'Swap “I have to” for “I’m choosing to”', term:'mauvaise foi',
+  gloss:'bad faith: pretending you have no choice, to escape responsibility for what you do',
+  today:'Each time you think or say “I have to” today, check whether it is really “I’m choosing to, because…”. Say the second version, at least in your head, and finish the sentence.',
+  why:'In Being and Nothingness (1943), Sartre describes bad faith as lying to yourself about your own freedom, with the example of a café waiter who plays the role so completely that he hides from himself that he chose it. Owning your choices, for Sartre, is where honest living starts.',
+  q:'Which “have to” turned out to be a choice, and did you still choose it?', type:'attention',
+  rule:'Say “I’m choosing to” instead of “I have to”, and mean it.', freq:'daily'},
+/* 33 */ {r:'meaning', fam:'Existentialism', strand:'Søren Kierkegaard (Christian existentialism)', name:'Will one thing', term:'purity of heart',
+  gloss:'Kierkegaard’s phrase for a life gathered around one aim instead of split between many',
+  today:'This morning, decide the one thing that matters most today: the most important, not the most urgent. Do it before anything else gets a look in. Notice how many other things ask for you while you do.',
+  why:'Kierkegaard’s 1847 discourse is titled Purity of Heart Is to Will One Thing. He argued that a divided heart, wanting the good and also wanting reward or approval, cannot fully commit to anything (paraphrase).',
+  q:'Did you do the one thing? What tried to get in first?', type:'discipline',
+  rule:'Decide the one thing that matters most each morning, and do it first.', freq:'daily'},
+/* 34 */ {r:'meaning', fam:'Secular humanism', strand:'Humanist ethics', name:'Something for people you will never meet', term:'humanism',
+  gloss:'meaning made here and now, by people and for people, without appeal to the supernatural',
+  today:'Do one thing today that helps people you will never meet: report the broken streetlight, correct a mistake in a public resource, write a review that would genuinely help someone, check whether you can give blood, or give to a cause with good evidence behind it.',
+  why:'Humanists hold that this is the one life we know we have, and that its meaning comes from what we do for each other in it. Much of humanist ethics is about widening the circle of people whose wellbeing counts, strangers and future people included.',
+  q:'What did you do, and does it matter to you that you won’t see the result?', type:'service',
+  rule:'Once a week, do something for people I’ll never meet.', freq:'weekly'},
+/* 35 */ {r:'wonder', fam:'Reciprocity (Kimmerer)', strand:'Robin Wall Kimmerer, Citizen Potawatomi Nation', name:'Call one living thing “who”', term:'grammar of animacy',
+  gloss:'Kimmerer’s phrase for how Potawatomi speaks of living beings as someone, not something',
+  today:'Pick one tree, plant or bird on your usual route. Find out what it is if you don’t know. For the rest of the day, think and speak of it as “who” rather than “it”.',
+  why:'In Braiding Sweetgrass (2013), the botanist Robin Wall Kimmerer writes that in Potawatomi much of the living world is grammatically animate, spoken of as a being. She suggests English speakers could borrow the habit as a way of paying attention (paraphrase). She writes from her own Nation’s tradition, not for all Indigenous peoples.',
+  q:'Did it feel different to walk past them today?', type:'attention',
+  rule:'Learn the names of the trees on my street.', freq:'weekly'},
+/* 36 */ {r:'wonder', fam:'Christianity', strand:'Franciscan', name:'Thank the weather', term:'Canticle of the Creatures',
+  gloss:'Francis’s song of praise, which addresses sun, wind and water as brother and sister',
+  today:'Go outside at some point today and give thanks for one element as Francis did: Brother Sun, Sister Water, Brother Wind. Out loud if you can, under your breath if you can’t. Rain counts.',
+  why:'Francis of Assisi composed the Canticle around 1225, near the end of his life, when he was ill and almost blind. It praises God through “Brother Sun”, “Sister Moon”, “Brother Wind” and “Sister Water”, treating creation as family rather than scenery.',
+  q:'What did you thank, and what was it like to address it directly?', type:'gratitude',
+  rule:'Step outside once a day and thank something out loud.', freq:'daily'},
+/* 37 */ {r:'wonder', fam:'Judaism', strand:'Rabbinic practice (berakhot)', name:'A line of thanks before you eat', term:'berakhah',
+  gloss:'a blessing: a short formula of thanks said before eating, on seeing something remarkable, and at many other moments',
+  today:'Before each thing you eat or drink today, pause and say one line of thanks, in your own words if you don’t use the traditional ones. If you see something remarkable (a rainbow, the sea, a tree in blossom), say one for that too.',
+  why:'Jewish tradition has blessings for food, for rainbows, for lightning, for seeing the sea, even for meeting a wise person. The Talmud attributes to Rabbi Meir the teaching that a person should say a hundred blessings every day (Menachot 43b, paraphrased).',
+  q:'How many did you say? Did any surprise you?', type:'gratitude',
+  rule:'Pause for a line of thanks before eating.', freq:'daily'},
+/* 38 */ {r:'wonder', fam:'Daoism', strand:'Zhuangzi', name:'Do something useless', term:'xiāoyáo yóu',
+  gloss:'free and easy wandering: the title of the Zhuangzi’s first chapter',
+  today:'Spend half an hour today on something with no use at all: wander with no destination, watch clouds, doodle. If you catch yourself turning it into self-improvement, let that go too.',
+  why:'The Zhuangzi opens with “Free and Easy Wandering”, and that chapter ends with a huge gnarled tree that no carpenter will cut because its wood is useless, so it lives on (paraphrase). Zhuangzi distrusted a life measured only by usefulness.',
+  q:'What did you do, and was it hard not to make it useful?', type:'letting',
+  rule:'Half an hour of useless wandering a week.', freq:'weekly'},
+/* 39 */ {r:'wonder', fam:'Hinduism', strand:'Bhakti', name:'Make a small offering', term:'bhakti',
+  gloss:'loving devotion to God, shown in ordinary acts as much as in worship',
+  today:'Make one small offering today, with care: put a flower or a leaf somewhere deliberately, cook something for someone with full attention, sing one song properly. Do it out of love for whatever you hold dear, not for the result.',
+  why:'In the Bhagavad Gītā, Krishna says that if someone offers him with devotion a leaf, a flower, a fruit or water, he accepts it (9.26, paraphrased). Bhakti poets such as Mirabai sang that devotion counts for more than rank or ritual.',
+  q:'What did you offer, and to whom or what?', type:'gratitude',
+  rule:'Make one small offering a week, done with care.', freq:'weekly'},
+/* 40 */ {r:'wonder', fam:'Reciprocity (Kimmerer)', strand:'Robin Wall Kimmerer, Citizen Potawatomi Nation', name:'Give something back', term:'the Honorable Harvest',
+  gloss:'Kimmerer’s account of how to take from the living world: take only what you need, and give a gift in return',
+  today:'Notice one thing you take from the living world today: food, wood, paper, water. Take only what you will use. Then give something back: water a street tree, pick up litter in a green space, compost your scraps, or plant something.',
+  why:'In Braiding Sweetgrass, Kimmerer describes the Honorable Harvest, unwritten guidelines she learned from her people and from plants: ask permission, take only what you need, use everything you take, share, and give a gift in return (paraphrase).',
+  q:'What did you take, and what did you give back?', type:'gratitude',
+  rule:'Give something back to the living world each week.', freq:'weekly'}
+];
+
+const KEY = 'inderstanding.long-way.v1';
+const REGIONS = [
+  {id:'attention', name:'Attention', elev:.22},
+  {id:'letting',   name:'Letting go', elev:.55},
+  {id:'others',    name:'Other people', elev:.40},
+  {id:'mortality', name:'Mortality and time', elev:.88},
+  {id:'meaning',   name:'Meaning and work', elev:.50},
+  {id:'wonder',    name:'Wonder', elev:.72}
+];
+const TYPES = [['attention','Attention'],['stillness','Stillness'],['service','Service'],['letting','Letting go'],['discipline','Discipline'],['gratitude','Gratitude'],['mortality','Facing mortality']];
+const TYPE_NAME = Object.fromEntries(TYPES);
+const FREQS = [['daily','Daily'],['weekly','Weekly'],['needed','When needed']];
+const SHIFT_NAME = {no:'No', little:'A little', yes:'Yes'};
+const UNLOCK_RULE = 'A new station opens the morning after you send in an evening report. Miss a day and the path waits for you; nothing resets.';
+const ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI','XXII','XXIII','XXIV','XXV','XXVI','XXVII','XXVIII','XXIX','XXX','XXXI','XXXII','XXXIII','XXXIV','XXXV','XXXVI','XXXVII','XXXVIII','XXXIX','XL'];
+
+const st = n => STATIONS[n-1];
+const regionOf = n => REGIONS.find(r => r.id === st(n).r);
+const regionIndex = id => REGIONS.findIndex(r => r.id === id);
+const two = n => String(n).padStart(2,'0');
+
+/* ---------- dates (local calendar days as YYYY-MM-DD) ---------- */
+function iso(d){ return d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate()); }
+function parseISO(s){ const [y,m,d] = String(s).split('-').map(Number); return new Date(y, m-1, d); }
+function addDays(s,k){ const d = parseISO(s); d.setDate(d.getDate()+k); return iso(d); }
+function daysBetween(a,b){ const A = parseISO(a), B = parseISO(b);
+  return Math.round((Date.UTC(B.getFullYear(),B.getMonth(),B.getDate()) - Date.UTC(A.getFullYear(),A.getMonth(),A.getDate()))/864e5); }
+function realToday(){ return iso(new Date()); }
+function today(){ return addDays(realToday(), state.dayOffset || 0); }
+function fmt(s, long){ try { return parseISO(s).toLocaleDateString('en-GB', long ? {weekday:'long', day:'numeric', month:'long'} : {weekday:'short', day:'numeric', month:'short'}); } catch(e){ return s; } }
+function isDate(s){ return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(parseISO(s).getTime()); }
+
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------- state ---------- */
+function blank(){ return {v:1, example:false, startDate:null, opened:{}, reports:{}, rule:[], ruleDismissed:[], dayOffset:0, seq:1}; }
+
+function exampleState(){
+  const t = realToday();
+  const s = blank();
+  s.example = true;
+  s.startDate = addDays(t, -9);
+  // Station 5 was missed on its day and reported a day late, so the walk waited one day.
+  const opened = [-9,-8,-7,-6,-5,-3,-2,-1,0];
+  opened.forEach((o,i) => { s.opened[i+1] = addDays(t, o); });
+  const R = [
+    [1,'Washed up after dinner with no radio. Noticed I rush it to get to the sofa, and the rushing was the unpleasant part.','little',true,-9],
+    [2,'Managed two of the three pauses. The one before email was the useful one; I was already braced before I opened it.','yes',true,-8],
+    [3,'Forgot all day until my own front door. Stood there feeling a bit daft, but came in less ratty than usual.','little',true,-7],
+    [4,'Listened to Sam talk about his move without trying to fix anything. He talked for twice as long and thanked me at the end.','yes',true,-6],
+    [5,'Missed it on the day. Did it the day after: caught “they’re wasting my time” twice in one meeting. Naming it didn’t make it go away.','no',false,-4],
+    [6,'Best moment was the walk to the station in the rain. Worst was the 3pm call, which I had dreaded far more than it deserved.','little',true,-3],
+    [7,'Felt self-conscious repeating anything. Tried “here, now” on the walk and kept forgetting.','no',false,-2],
+    [8,'Stopped pushing the budget thread and left it overnight. Priya sorted it in the morning without me.','yes',true,-1]
+  ];
+  R.forEach(([n,text,shift,again,o]) => { s.reports[n] = {text, shift, again, date:addDays(t,o), example:true}; });
+  const lines = [
+    [4,'When someone is telling me something hard, listen right to the end before I say anything.',true],
+    [1,null,false],[2,null,false],[6,null,false],[3,null,false],
+    [8,'If a thread is stuck, leave it overnight before pushing again.',true]
+  ];
+  lines.forEach(([n,text,edited]) => { s.rule.push({id:'r'+(s.seq++), station:n, text:text || st(n).rule, freq:st(n).freq, edited, example:true}); });
+  return s;
+}
+
+function normalize(p){
+  const s = blank();
+  if (!p || typeof p !== 'object') return null;
+  if (typeof p.opened !== 'object' || typeof p.reports !== 'object' || !Array.isArray(p.rule)) return null;
+  s.example = !!p.example;
+  s.startDate = isDate(p.startDate) ? p.startDate : null;
+  for (const k in p.opened){ const n = +k; if (n>=1 && n<=40 && isDate(p.opened[k])) s.opened[n] = p.opened[k]; }
+  for (const k in p.reports){ const n = +k, r = p.reports[k];
+    if (n>=1 && n<=40 && r && typeof r === 'object' && SHIFT_NAME[r.shift]){
+      s.reports[n] = {text:String(r.text || '').slice(0,2000), shift:r.shift, again:!!r.again, date:isDate(r.date) ? r.date : (s.opened[n] || realToday()), example:!!r.example};
+    } }
+  let seq = 1;
+  p.rule.forEach(l => { if (l && typeof l.text === 'string'){
+    const n = +l.station;
+    s.rule.push({id:'r'+(seq++), station:(n>=1 && n<=40) ? n : null, text:l.text.slice(0,500), freq:FREQS.some(f => f[0]===l.freq) ? l.freq : 'daily', edited:!!l.edited, example:!!l.example});
+  } });
+  s.seq = seq;
+  s.ruleDismissed = Array.isArray(p.ruleDismissed) ? p.ruleDismissed.map(Number).filter(n => n>=1 && n<=40) : [];
+  s.dayOffset = Number.isFinite(+p.dayOffset) ? Math.max(0, Math.min(400, Math.round(+p.dayOffset))) : 0;
+  if (s.startDate && !s.opened[1] && Object.keys(s.opened).length) s.opened[1] = s.startDate;
+  return s;
+}
+
+let storageOK = true;
+function load(){
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw){ const s = normalize(JSON.parse(raw)); if (s) return s; }
+  } catch(e){ storageOK = false; }
+  return exampleState();
+}
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(state)); storageOK = true; }
+  catch(e){ storageOK = false; }
+}
+
+/* ---------- the unlock rule ---------- */
+function maxOpened(){ let m = 0; for (const k in state.opened) m = Math.max(m, +k); return m; }
+function status(n){
+  if (state.reports[n]) return 'walked';
+  if (state.opened[n]) return 'open';
+  return 'locked';
+}
+/* Opens at most one station per call: station 1 on the start date; after that, the next station
+   opens on the first calendar day after the previous station's evening report. */
+function advance(){
+  if (!state.startDate) return false;
+  const t = today();
+  if (!state.opened[1]){
+    if (daysBetween(state.startDate, t) >= 0){ state.opened[1] = state.startDate; return true; }
+    return false;
+  }
+  const n = maxOpened();
+  if (n >= 40) return false;
+  const rep = state.reports[n];
+  if (rep && daysBetween(rep.date, t) >= 1){ state.opened[n+1] = t; return true; }
+  return false;
+}
+function nextOpensText(){
+  const n = maxOpened();
+  if (n >= 40) return '';
+  const rep = state.reports[n];
+  if (!rep) return '';
+  const d = addDays(rep.date, 1);
+  const gap = daysBetween(today(), d);
+  return gap <= 0 ? 'today' : (gap === 1 ? 'tomorrow, ' + fmt(d) : fmt(d));
+}
+
+/* Keep the draft Rule in step with "Would you do this again?" */
+function syncRule(n){
+  const rep = state.reports[n];
+  const i = state.rule.findIndex(l => l.station === n);
+  if (rep && rep.again){
+    if (i < 0 && !state.ruleDismissed.includes(n)) state.rule.push({id:'r'+(state.seq++), station:n, text:st(n).rule, freq:st(n).freq, edited:false, example:state.example});
+  } else if (i >= 0 && !state.rule[i].edited){
+    state.rule.splice(i,1);
+  }
+}
+
+let state = load();
+const ui = {view:'today', sel:null, editing:null, exportOpen:false, eraseStep:0, msg:{}, focus:null};
+
+/* ---------- shared pieces ---------- */
+const ARROW = '<svg width="26" height="18" viewBox="0 0 26 18" aria-hidden="true" focusable="false"><path d="M1 9h19M13 2l8 7-8 7" stroke="var(--mark)" stroke-width="3.6" fill="none" stroke-linecap="square"/></svg>';
+const WAYMARK = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect width="16" height="16" rx="2" fill="var(--route)"/><path d="M3.5 8h7M8 4.5 11.5 8 8 11.5" stroke="var(--mark)" stroke-width="2.2" fill="none"/></svg>';
+const exTag = on => on ? ' <span class="tag">Example</span>' : '';
+
+function signHTML(n, opts){
+  opts = opts || {};
+  const s = st(n), hid = opts.idp || 'st';
+  return `<article class="sign${opts.compact ? ' compact' : ''}" aria-labelledby="${hid}-title">
+    <div class="sign-plate">${ARROW}<span class="plate-num">Station ${two(n)}<small>/40</small></span><span class="plate-region">${esc(regionOf(n).name)}</span></div>
+    <div class="sign-body">
+      <p class="strand">${esc(s.fam)} · ${esc(s.strand)}</p>
+      <h2 id="${hid}-title">${esc(s.name)}</h2>
+      <p class="term"><dfn>${esc(s.term)}</dfn><span>${esc(s.gloss)}</span></p>
+      <h3>What to do today</h3>
+      <p class="do">${esc(s.today)}</p>
+      <h3>Why this tradition does it</h3>
+      <p class="why">${esc(s.why)}</p>
+      <div class="question"><h3>The evening question</h3><p>${esc(s.q)}</p></div>
+    </div>
+  </article>`;
+}
+
+function reportForm(n, p, rep){
+  rep = rep || {};
+  const radio = (name, val, label, cls) => `<input type="radio" name="${p}-${name}" id="${p}-${name}-${val}" value="${val}"${cls ? ` class="${cls}"` : ''}${rep[name] === val || (name === 'again' && rep.again !== undefined && (rep.again ? 'yes' : 'no') === val) ? ' checked' : ''}><label for="${p}-${name}-${val}">${label}</label>`;
+  return `<form class="report-form" data-station="${n}" data-prefix="${p}" novalidate>
+    <label class="field-label" for="${p}-text">What happened? A sentence is plenty.</label>
+    <textarea id="${p}-text" rows="3" maxlength="2000">${esc(rep.text || '')}</textarea>
+    <fieldset><legend>Did it shift anything?</legend>
+      <div class="seg">${radio('shift','no','No')}${radio('shift','little','A little','y')}${radio('shift','yes','Yes','y')}</div>
+    </fieldset>
+    <fieldset><legend>Would you do this again?</legend>
+      <div class="seg">${radio('again','yes','Yes')}${radio('again','no','No')}</div>
+    </fieldset>
+    <p class="form-msg" id="${p}-msg" role="status">${esc(ui.msg[p] || '')}</p>
+    <div class="btn-row"><button type="submit" class="btn primary" id="${p}-save">Save evening report</button>${rep.text !== undefined && rep.shift ? `<button type="button" class="btn quiet" data-action="cancel-edit" id="${p}-cancel">Cancel</button>` : ''}</div>
+  </form>`;
+}
+
+function reportShown(n){
+  const r = state.reports[n];
+  return `<p class="said">“${esc(r.text)}”</p>
+    <div class="said-meta">
+      <span class="pill"><span class="sw ${r.shift === 'yes' ? 'yes' : r.shift === 'little' ? 'little' : ''}" aria-hidden="true"></span>Shifted: ${SHIFT_NAME[r.shift]}</span>
+      <span class="pill">Again: ${r.again ? 'Yes' : 'No'}</span>
+      <span class="pill mono">${esc(fmt(r.date))}</span>${exTag(r.example)}
+    </div>`;
+}
+
+/* ---------- elevation profile: the whole walk at a glance ---------- */
+function elevations(){
+  const raw = STATIONS.map((s,i) => regionOf(i+1).elev + .05*Math.sin(i*1.9) + .03*Math.cos(i*0.7));
+  return raw.map((v,i) => (raw[Math.max(0,i-1)] + 2*v + raw[Math.min(39,i+1)])/4);
+}
+function profileHTML(cur){
+  const el = elevations(), W = 400, H = 64;
+  const X = k => (k-0.5)/40*W, Y = e => H - 6 - e*(H-14);
+  const pts = el.map((e,i) => [X(i+1), Y(e)]);
+  const line = pts.map(p => p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+  const walked = cur ? pts.slice(0, cur).map(p => p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ') : '';
+  let divs = '', acc = 0;
+  REGIONS.forEach((r,i) => { const c = STATIONS.filter(s => s.r === r.id).length; if (i) divs += `<line class="pf-div" x1="${acc/40*W}" x2="${acc/40*W}" y1="0" y2="${H}" vector-effect="non-scaling-stroke"/>`; acc += c; });
+  let dots = '';
+  for (let k=1; k<=maxOpened(); k++){
+    const r = state.reports[k]; if (!r) continue;
+    dots += `<span class="pf-dot ${r.shift === 'yes' ? 'yes' : r.shift === 'little' ? 'little' : ''}" style="left:${(X(k)/W*100).toFixed(2)}%;top:${(pts[k-1][1]/H*100).toFixed(2)}%"></span>`;
+  }
+  const here = cur && !state.reports[cur] ? `<span class="pf-here" style="left:${(X(cur)/W*100).toFixed(2)}%;top:${(pts[cur-1][1]/H*100).toFixed(2)}%"></span>` : '';
+  const curRegion = cur ? st(cur).r : null;
+  const regs = REGIONS.map((r,i) => `<span class="${r.id === curRegion ? 'on' : ''}" title="${esc(r.name)}"><span class="rg-short">${two(i+1)}</span><span class="rg-full">${esc(r.name)}</span></span>`).join('');
+  const dayNo = state.startDate ? daysBetween(state.startDate, today()) + 1 : 0;
+  const reported = Object.keys(state.reports).length;
+  return `<div class="profile" role="img" aria-label="Route profile: station ${cur} of 40, ${reported} reported, in the ${esc(cur ? regionOf(cur).name : '')} stretch.">
+    <div class="profile-top"><span><strong>Day ${dayNo}</strong> since you set out on ${esc(fmt(state.startDate))}</span><span><strong>Station ${cur} of 40</strong> · ${40-cur} to go</span></div>
+    <div class="profile-box" aria-hidden="true">
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" focusable="false">
+        <polygon class="pf-area" points="0,${H} ${line} ${W},${H}"/>
+        ${divs}
+        <polyline class="pf-line" points="${line}" vector-effect="non-scaling-stroke"/>
+        ${walked ? `<polyline class="pf-walk" points="${walked}" vector-effect="non-scaling-stroke"/>` : ''}
+      </svg>${dots}${here}
+    </div>
+    <div class="profile-regions" aria-hidden="true">${regs}</div>
+  </div>`;
+}
+
+const WHY40 = 'Forty days is a span that turns up across traditions: Lent, Jesus’s forty days in the wilderness, Moses’s forty days on Sinai, and the Sufi chilla, a forty-day retreat. It is also long enough for a practice to stop being a novelty and show you what it is actually like.';
+
+/* ---------- Today ---------- */
+function renderToday(){
+  if (!state.startDate) return startHTML();
+  const t = today();
+  if (!state.opened[1]){
+    return `<div class="view-head"><h1 id="today-h" tabindex="-1">Your walk starts on ${esc(fmt(state.startDate, true))}</h1></div>
+      <p class="lede">Station 1 opens that morning. Until then there is nothing to do; the trail is on the Map if you want a look at the regions ahead.</p>
+      <p class="rule-note">${WAYMARK}<span>${esc(UNLOCK_RULE)}</span></p>
+      <div class="btn-row"><button type="button" class="btn primary" data-action="start-today" id="start-today">Start today instead</button><button type="button" class="btn quiet" data-action="change-start" id="change-start">Pick a different date</button></div>`;
+  }
+  const n = maxOpened(), s = st(n), rep = state.reports[n];
+  const waited = !rep && daysBetween(state.opened[n], t) >= 1;
+  let right;
+  if (!rep || ui.editing === n){
+    right = `<section class="panel" aria-labelledby="rep-h">
+      <h2 id="rep-h" tabindex="-1">Evening report${rep ? ': editing' : ''}</h2>
+      ${waited ? `<p class="hint">This station opened on ${esc(fmt(state.opened[n]))} and has been waiting for you since. Nothing is lost.</p>` : `<p class="hint">Do the practice out in your day first. This evening, come back and say what happened, including if you didn’t manage it.</p>`}
+      ${state.example ? '<p class="hint"><span class="tag">Example</span> This is the example walk; a report you add here is cleared with the examples.</p>' : ''}
+      ${reportForm(n, 'rep', rep)}
+    </section>`;
+  } else {
+    const nx = nextOpensText();
+    right = `<section class="panel" aria-labelledby="rep-h">
+      <h2 id="rep-h" tabindex="-1">Reported${exTag(rep.example)}</h2>
+      ${reportShown(n)}
+      <button type="button" class="btn small quiet" data-action="edit-report" data-st="${n}" id="rep-edit">Edit this report</button>
+      ${n < 40 ? `<div class="next"><span class="mono">Next waymark</span>Station ${n+1}, in the ${esc(regionOf(n+1).name)} stretch, opens ${esc(nx)}. ${daysBetween(t, addDays(rep.date,1)) > 0 ? 'Until then, the practice above is still yours for the day.' : ''}</div>`
+        : `<div class="next"><span class="mono">End of the trail</span>That was the fortieth station. Your draft Rule is waiting. <button type="button" class="linkish" data-action="view" data-view="rule">Open your Rule</button></div>`}
+    </section>`;
+  }
+  return `<div class="view-head"><h1 id="today-h" tabindex="-1">Today’s station</h1><span class="mono muted">${esc(fmt(t, true))}</span></div>
+    ${profileHTML(n)}
+    <p class="rule-note">${WAYMARK}<span>${esc(UNLOCK_RULE)}</span></p>
+    <div class="today-grid">
+      ${signHTML(n)}
+      <div class="aside-stack">${right}
+        <details class="why40 panel"><summary>Why forty days?</summary><p>${esc(WHY40)}</p></details>
+      </div>
+    </div>`;
+}
+
+function startHTML(){
+  const rows = REGIONS.map((r,i) => { const ns = STATIONS.map((s,j) => s.r === r.id ? j+1 : 0).filter(Boolean);
+    return `<tr><td class="mono">${two(i+1)}</td><td>${esc(r.name)}</td><td class="mono">${ns[0]} to ${ns[ns.length-1]}</td></tr>`; }).join('');
+  return `<div class="start-grid">
+    <div>
+      <div class="view-head"><h1 id="today-h" tabindex="-1">Start a forty-day walk</h1></div>
+      <p class="lede">You can’t read your way into a tradition; you have to try its practices. Each day one station opens with a small practice from one tradition, to do out in your ordinary day. In the evening you say in a sentence what happened and whether it shifted anything. At the end, the practices you would keep become a draft Rule of Life, in your own words.</p>
+      <p>${esc(WHY40)}</p>
+      <p class="rule-note">${WAYMARK}<span>${esc(UNLOCK_RULE)}</span></p>
+      <form id="start-form" class="panel" style="margin-top:16px" novalidate>
+        <label class="field-label" for="start-date" style="margin-top:0">Start date</label>
+        <input type="date" id="start-date" value="${today()}">
+        <p class="form-msg" id="start-msg" role="status">${esc(ui.msg.start || '')}</p>
+        <button type="submit" class="btn primary" id="start-go">Start the walk</button>
+      </form>
+    </div>
+    <div class="panel">
+      <h2>Route card</h2>
+      <p class="hint">Forty stations in six stretches. You see each practice only when you reach it.</p>
+      <table class="route-card"><thead><tr><th scope="col">Stage</th><th scope="col">Stretch</th><th scope="col">Stations</th></tr></thead><tbody>${rows}</tbody></table>
+    </div>
+  </div>`;
+}
+
+/* ---------- Map ---------- */
+function mapGeometry(){
+  const pts = STATIONS.map((s,i) => {
+    const ri = regionIndex(s.r);
+    return [200 + 112*Math.sin(i*0.58 + 0.5), 74 + i*33 + ri*46];
+  });
+  const start = [200 + 112*Math.sin(-0.08), 30];
+  const last = pts[39];
+  const end = [last[0] + (200-last[0])*0.5, last[1] + 40];
+  return {pts, start, end, H: end[1] + 26};
+}
+function smoothSeg(all, a, b){
+  let d = `M${all[a][0].toFixed(1)},${all[a][1].toFixed(1)}`;
+  for (let i=a; i<b; i++){
+    const p0 = all[i-1] || all[i], p1 = all[i], p2 = all[i+1], p3 = all[i+2] || p2;
+    const c1 = [p1[0]+(p2[0]-p0[0])/6, p1[1]+(p2[1]-p0[1])/6];
+    const c2 = [p2[0]-(p3[0]-p1[0])/6, p2[1]-(p3[1]-p1[1])/6];
+    d += ` C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
+function contourRings(cx, cy, rx, ry, seed){
+  let out = '';
+  for (let j=0; j<4; j++){
+    const k = 1 - j*0.24, pts = [];
+    for (let a=0; a<40; a++){
+      const t = a/40*Math.PI*2;
+      const w = 1 + .13*Math.sin(3*t + seed + j*.4) + .07*Math.cos(5*t + seed*2);
+      pts.push((cx + Math.cos(t)*rx*k*w).toFixed(1)+','+(cy + Math.sin(t)*ry*k*w).toFixed(1));
+    }
+    out += `<polygon class="contour" points="${pts.join(' ')}"/>`;
+  }
+  return out + `<path d="M${cx-5},${cy+4}h10l-5,-9z" fill="var(--muted)" opacity=".7"/>`;
+}
+
+function mapSVG(){
+  const {pts, start, end, H} = mapGeometry();
+  const all = [start, ...pts, end];
+  const cur = maxOpened();
+  const sel = ui.sel || cur || 1;
+  let bands = '';
+  REGIONS.forEach((r,ri) => {
+    const idx = STATIONS.map((s,i) => s.r === r.id ? i : -1).filter(i => i >= 0);
+    const top = pts[idx[0]][1] - 30, bottom = pts[idx[idx.length-1]][1] + 16;
+    const meanX = idx.reduce((a,i) => a + pts[i][0], 0)/idx.length;
+    const cx = meanX > 200 ? 78 : 322, cy = (top + bottom)/2;
+    bands += contourRings(cx, cy, 66, (bottom-top)*0.36, ri*1.7 + 0.6);
+    bands += `<line class="band-line" x1="0" x2="400" y1="${top}" y2="${top}"/>`;
+    const lblRight = pts[idx[0]][0] < 200;
+    bands += `<text class="band-label" x="${lblRight ? 390 : 10}" y="${top+15}" text-anchor="${lblRight ? 'end' : 'start'}">${two(ri+1)} · ${esc(r.name.toUpperCase())}</text>`;
+  });
+  const future = `<path class="path-future" d="${smoothSeg(all, 0, all.length-1)}"/>`;
+  const walked = cur ? `<path class="path-walked" d="${smoothSeg(all, 0, cur)}"/>` : '';
+  let marks = '', labels = '';
+  pts.forEach((p,i) => {
+    const n = i+1, s = st(n), sts = status(n), rep = state.reports[n];
+    const cls = ['stn', sts === 'walked' ? 'walked' : sts === 'open' ? 'today' : 'locked'];
+    if (rep && rep.shift === 'yes') cls.push('yes');
+    if (n === sel) cls.push('selected');
+    const desc = sts === 'locked' ? `Station ${n}, ${regionOf(n).name}, not reached yet`
+      : sts === 'open' ? `Station ${n}, ${regionOf(n).name}, ${s.term}, today's station`
+      : `Station ${n}, ${regionOf(n).name}, ${s.term}, walked, shifted: ${SHIFT_NAME[rep.shift]}`;
+    marks += `<g class="${cls.join(' ')}" transform="translate(${p[0].toFixed(1)} ${p[1].toFixed(1)})" tabindex="0" role="button" aria-label="${esc(desc)}" data-action="sel" data-st="${n}" id="stn-${n}">
+      <circle class="hit" r="17"/>${sts === 'open' ? '<circle class="pulse" r="12"/>' : ''}
+      <circle class="sel" r="17.5"/>${rep && rep.shift === 'little' ? '<circle class="ring" r="14"/>' : ''}
+      <circle class="dot" r="11"/><text class="num" y="3.6">${n}</text></g>`;
+    if (sts !== 'locked'){
+      const right = p[0] < 200;
+      labels += `<text class="lbl${sts === 'open' ? ' today' : ''}" x="${(p[0] + (right ? 19 : -19)).toFixed(1)}" y="${(p[1]+4).toFixed(1)}" text-anchor="${right ? 'start' : 'end'}" paint-order="stroke" stroke="var(--surface)" stroke-width="4" stroke-linejoin="round" aria-hidden="true">${sts === 'open' ? 'Today: ' : ''}${esc(s.term)}</text>`;
+    }
+  });
+  const ends = `<g aria-hidden="true"><rect x="${(start[0]-7).toFixed(1)}" y="${start[1]-7}" width="14" height="14" fill="var(--route)" rx="2"/>
+      <text class="end-lbl" x="${(start[0]+14).toFixed(1)}" y="${start[1]+4}">TRAILHEAD${state.startDate ? ' · ' + esc(fmt(state.startDate).toUpperCase()) : ''}</text>
+      <path d="M${end[0]-8},${end[1]+7}h16l-8,-15z" fill="var(--ink)"/>
+      <text class="end-lbl" x="${(end[0]+14).toFixed(1)}" y="${end[1]+4}">END OF THE WALK</text></g>`;
+  return `<svg viewBox="0 0 400 ${H}" role="group" aria-label="Trail map of the forty stations" focusable="false">${bands}${future}${walked}${ends}${labels}${marks}</svg>`;
+}
+
+function backBtn(n){ return `<div class="btn-row"><button type="button" class="btn small quiet mobile-only" data-action="back-to-map" data-st="${n}" id="back-to-map">Back to station ${n} on the map</button></div>`; }
+function detailHTML(n){
+  const sts = status(n), cur = maxOpened();
+  if (sts === 'locked'){
+    return `<div class="panel"><p class="strand">Station ${two(n)} · ${esc(regionOf(n).name)}</p>
+      <h2 id="detail-h" tabindex="-1">Not reached yet</h2>
+      <p>The practice at this station stays hidden until you get there.${cur ? ` You are at station ${cur}, so it is ${n-cur} ${n-cur === 1 ? 'station' : 'stations'} ahead.` : ''}</p>
+      <p class="rule-note">${WAYMARK}<span>${esc(UNLOCK_RULE)}</span></p></div>` + backBtn(n);
+  }
+  const rep = state.reports[n];
+  let foot;
+  if (sts === 'open'){
+    foot = `<div class="report-block"><h3 id="detail-h" tabindex="-1">Today’s station</h3><p class="hint">Not reported yet. The evening report is on the Today page.</p>
+      <button type="button" class="btn small" data-action="view" data-view="today">Go to today</button></div>`;
+  } else if (ui.editing === n){
+    foot = `<div class="report-block"><h3 id="detail-h" tabindex="-1">Edit your report</h3>${reportForm(n, 'edit', rep)}</div>`;
+  } else {
+    foot = `<div class="report-block"><h3 id="detail-h" tabindex="-1">Your evening report</h3>${reportShown(n)}
+      <button type="button" class="btn small quiet" data-action="edit-report" data-st="${n}" id="edit-open">Edit this report</button></div>`;
+  }
+  return signHTML(n, {compact:true, idp:'det'}) + `<div class="panel" style="margin-top:12px">${foot}</div>` + backBtn(n);
+}
+
+function renderMap(){
+  if (!state.startDate) ui.sel = ui.sel || 1;
+  const cur = maxOpened();
+  const sel = ui.sel || cur || 1;
+  const list = STATIONS.map((s,i) => {
+    const n = i+1, sts = status(n), rep = state.reports[n];
+    const sw = sts === 'locked' ? 'locked' : sts === 'open' ? 'today' : rep.shift === 'yes' ? 'yes' : rep.shift === 'little' ? 'little' : '';
+    const label = sts === 'locked' ? `${esc(regionOf(n).name)}, not reached yet`
+      : `<button type="button" class="linkish" data-action="sel" data-st="${n}">${esc(s.term)}</button> <span class="muted">${esc(s.fam)}${sts === 'open' ? ', today' : ', shifted: ' + SHIFT_NAME[rep.shift].toLowerCase()}</span>`;
+    return `<li><span class="mono">${two(n)}</span><span class="sw ${sw}" aria-hidden="true"></span><span>${label}</span></li>`;
+  }).join('');
+  return `<div class="view-head"><h1 id="map-h" tabindex="-1">The trail</h1><span class="mono muted">${Object.keys(state.reports).length} of 40 walked</span></div>
+    <p class="lede">Forty stations through six stretches. The solid line is the way you have walked; the dashes are footpath still ahead. Select a walked station to see its practice and your report.</p>
+    <ul class="legend" aria-label="Map key">
+      <li><span class="sw" aria-hidden="true"></span>Walked</li>
+      <li><span class="sw yes" aria-hidden="true"></span>Shifted something</li>
+      <li><span class="sw little" aria-hidden="true"></span>Shifted a little</li>
+      <li><span class="sw today" aria-hidden="true"></span>Today</li>
+      <li><span class="sw locked" aria-hidden="true"></span>Not reached yet</li>
+    </ul>
+    <div class="map-grid">
+      <div class="map-frame">${mapSVG()}</div>
+      <div class="map-detail" id="map-detail" aria-live="polite">${detailHTML(sel)}</div>
+    </div>
+    <details class="map-list panel"><summary>All stations as a list</summary><ol>${list}</ol></details>`;
+}
+
+/* ---------- What moved you ---------- */
+function groupBy(nums, keyFn){
+  const g = {};
+  nums.forEach(n => { const k = keyFn(n); (g[k] = g[k] || []).push(n); });
+  return Object.entries(g).sort((a,b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+}
+function chip(n){
+  const r = state.reports[n];
+  return `<button type="button" class="chip" data-action="goto-st" data-st="${n}" aria-label="Station ${n}, ${esc(st(n).term)}, shifted: ${SHIFT_NAME[r.shift]}. Open on the map"><span class="sw ${r.shift === 'yes' ? 'yes' : r.shift === 'little' ? 'little' : ''}" aria-hidden="true"></span><i>${esc(st(n).term)}</i><span class="mono muted">${two(n)}</span></button>`;
+}
+function groupList(groups, nameFn){
+  return `<ul class="group-list">${groups.map(([k, ns]) => {
+    const y = ns.filter(n => state.reports[n].shift === 'yes').length, l = ns.length - y;
+    return `<li><span class="g-name">${esc(nameFn(k))}</span><span class="g-count">${ns.length}<span class="muted" style="font-weight:400">(${[y ? y + ' yes' : '', l ? l + ' a little' : ''].filter(Boolean).join(', ')})</span></span><span class="g-items">${ns.map(chip).join('')}</span></li>`;
+  }).join('')}</ul>`;
+}
+function renderMoved(){
+  const done = Object.keys(state.reports).map(Number).sort((a,b) => a-b);
+  const moved = done.filter(n => state.reports[n].shift !== 'no');
+  const notMoved = done.filter(n => state.reports[n].shift === 'no');
+  const yes = moved.filter(n => state.reports[n].shift === 'yes').length;
+  const head = `<div class="view-head"><h1 id="moved-h" tabindex="-1">What moved you${exTag(state.example)}</h1></div>
+    <p class="lede">The practices you said shifted something, sorted two ways: by the tradition they come from, and by the kind of practice. Plain counts from your own reports; nothing is scored.</p>`;
+  if (!done.length){
+    return head + `<div class="panel" style="margin-top:16px"><h2>Nothing here yet</h2><p class="hint">After your first evening report, the practices that shifted something will gather here, along with the ones that didn’t.</p></div>`;
+  }
+  return head + `<div class="tally" aria-label="Totals">
+      <span><b>${done.length}</b>evening ${done.length === 1 ? 'report' : 'reports'}.</span>
+      <span class="tally-q"><span>Did it shift anything?</span> <span><b>${yes}</b>Yes</span> <span><b>${moved.length - yes}</b>A little</span> <span><b>${notMoved.length}</b>No</span></span>
+    </div>
+    ${moved.length ? `<div class="moved-grid">
+      <section class="panel" aria-labelledby="by-trad"><h2 id="by-trad">By tradition</h2>${groupList(groupBy(moved, n => st(n).fam), k => k)}</section>
+      <section class="panel" aria-labelledby="by-type"><h2 id="by-type">By kind of practice</h2>${groupList(groupBy(moved, n => st(n).type), k => TYPE_NAME[k])}</section>
+    </div>` : `<div class="panel" style="margin-top:16px"><p>None of your reports so far say a practice shifted anything. That is information too.</p></div>`}
+    ${notMoved.length ? `<section class="panel" style="margin-top:20px" aria-labelledby="not-moved"><h2 id="not-moved">Didn’t shift anything</h2>
+      <p class="hint">Worth keeping in view. Knowing what doesn’t reach you is part of knowing what does.</p>
+      <div class="g-items" style="margin-top:8px">${notMoved.map(chip).join('')}</div></section>` : ''}
+    <p class="ask"><strong>A question to sit with:</strong> is what moved you about the tradition, or about the kind of practice? The two lists above may not agree.</p>`;
+}
+
+/* ---------- Your Rule ---------- */
+function ruleReadHTML(){
+  if (!state.rule.length) return '<p class="hint">Your Rule will read here once it has a line.</p>';
+  return FREQS.map(([f, name]) => {
+    const ls = state.rule.filter(l => l.freq === f && l.text.trim());
+    return ls.length ? `<h3>${name}</h3><ol>${ls.map(l => `<li>${esc(l.text)}</li>`).join('')}</ol>` : '';
+  }).join('');
+}
+function renderRule(){
+  const dismissed = state.ruleDismissed.filter(n => state.reports[n] && state.reports[n].again && !state.rule.some(l => l.station === n));
+  const lines = state.rule.map((l,i) => {
+    const s = l.station ? st(l.station) : null;
+    return `<li class="rule-line" data-id="${l.id}">
+      <span class="rl-num" aria-hidden="true">${ROMAN[i] || i+1}</span>
+      <div>
+        <label class="vh" for="rule-text-${l.id}">Line ${i+1} of your Rule</label>
+        <textarea class="rl-text" id="rule-text-${l.id}" data-id="${l.id}" rows="1" maxlength="500" placeholder="Write the practice in your own words">${esc(l.text)}</textarea>
+        <div class="rl-meta">
+          <label for="rule-freq-${l.id}">How often</label>
+          <select id="rule-freq-${l.id}" data-id="${l.id}" class="rl-freq">${FREQS.map(([v,nm]) => `<option value="${v}"${l.freq === v ? ' selected' : ''}>${nm}</option>`).join('')}</select>
+          <span>${s ? `From station ${l.station}, <i>${esc(s.term)}</i> (${esc(s.fam)})` : 'Your own line'}</span>
+          ${s && !l.edited ? '<span class="tag sugg">Suggested wording</span>' : ''}${exTag(l.example)}
+        </div>
+      </div>
+      <div class="rl-actions">
+        <button type="button" class="btn small quiet" data-action="rule-up" data-id="${l.id}" id="rule-up-${l.id}"${i === 0 ? ' disabled' : ''}>Move up</button>
+        <button type="button" class="btn small quiet" data-action="rule-down" data-id="${l.id}" id="rule-down-${l.id}"${i === state.rule.length-1 ? ' disabled' : ''}>Move down</button>
+        <button type="button" class="btn small danger" data-action="rule-remove" data-id="${l.id}" id="rule-remove-${l.id}">Remove</button>
+      </div>
+    </li>`;
+  }).join('');
+  return `<div class="view-head"><h1 id="rule-h" tabindex="-1">Your Rule</h1><span class="mono muted">Draft · ${state.rule.length} ${state.rule.length === 1 ? 'line' : 'lines'}</span></div>
+    <p class="lede">A rule of life is a short set of practices a person commits to. The best known is the Rule of St Benedict (sixth century), written for monks living together; Benedict called it a little rule for beginners. This draft is built from the practices you said you would do again. Rewrite each line in your own words, say how often, and cut what doesn’t belong.</p>
+    <div class="rule-grid">
+      <div>
+        ${state.rule.length ? `<ol class="rule-list">${lines}</ol>` : `<div class="panel"><h2>No lines yet</h2><p class="hint">When you answer “Yes” to “Would you do this again?” in an evening report, that practice is drafted here.</p></div>`}
+        <div class="btn-row"><button type="button" class="btn" data-action="rule-add" id="rule-add">Add a line of your own</button></div>
+        ${dismissed.length ? `<div class="panel" style="margin-top:18px"><h2>Taken out</h2><p class="hint">You said you would do these again but removed them from the draft.</p>
+          <div class="btn-row">${dismissed.map(n => `<button type="button" class="btn small quiet" data-action="rule-restore" data-st="${n}" id="rule-restore-${n}">Put back station ${n}: ${esc(st(n).term)}</button>`).join('')}</div></div>` : ''}
+      </div>
+      <aside class="rule-read" aria-labelledby="rule-read-h">
+        <h2 id="rule-read-h">The Rule, read through</h2>
+        <p class="hint">How it reads as a whole, sorted by how often.</p>
+        <div id="rule-read">${ruleReadHTML()}</div>
+      </aside>
+    </div>`;
+}
+
+/* ---------- Settings ---------- */
+function exportText(){
+  return JSON.stringify(Object.assign({app:'inderstanding.long-way', exported:new Date().toISOString()}, state), null, 2);
+}
+function renderSettings(){
+  const cur = maxOpened();
+  const walk = state.startDate
+    ? `<p>${state.example ? '<span class="tag">Example</span> ' : ''}Started ${esc(fmt(state.startDate, true))}. ${cur ? `At station ${cur} of 40, with ${Object.keys(state.reports).length} evening ${Object.keys(state.reports).length === 1 ? 'report' : 'reports'}.` : 'Station 1 has not opened yet.'}</p>`
+    : '<p>No walk started yet.</p>';
+  return `<div class="view-head"><h1 id="settings-h" tabindex="-1">Settings</h1></div>
+    <div class="set-grid">
+      <section class="panel" aria-labelledby="s-walk"><h2 id="s-walk">Your walk</h2>${walk}
+        <p class="rule-note">${WAYMARK}<span>${esc(UNLOCK_RULE)}</span></p>
+        ${state.example ? '<div class="btn-row"><button type="button" class="btn" data-action="clear-examples" id="clear-examples">Clear examples and start my own</button></div>' : ''}
+        ${!storageOK ? '<p class="form-msg">This browser is not letting the page save, so your walk lasts only until you close the tab. Export it below to keep a copy.</p>' : ''}
+      </section>
+      <section class="panel" aria-labelledby="s-demo"><h2 id="s-demo">Demo controls</h2>
+        <p class="hint">For trying out the prototype. This moves a pretend clock forward one day, as if you had slept on it. Stations still follow the rule above, so if today’s station has no report yet, the path waits.</p>
+        <p class="mono" style="font-size:13.5px">Pretend date: ${esc(fmt(today(), true))}${state.dayOffset ? ` (real date + ${state.dayOffset} ${state.dayOffset === 1 ? 'day' : 'days'})` : ' (the real date)'}</p>
+        <div class="btn-row"><button type="button" class="btn" data-action="demo-next" id="demo-next">Demo: unlock the next day</button>
+        ${state.dayOffset ? '<button type="button" class="btn quiet" data-action="demo-reset" id="demo-reset">Go back to the real date</button>' : ''}</div>
+        <p class="form-msg ok" id="demo-msg" role="status">${esc(ui.msg.demo || '')}</p>
+      </section>
+      <section class="panel" aria-labelledby="s-export"><h2 id="s-export">Export your data</h2>
+        <p class="hint">Everything is plain JSON. Copy it somewhere safe; you can paste it back in below.</p>
+        ${ui.exportOpen ? `<label class="field-label" for="export-text">Your data</label><textarea id="export-text" rows="8" readonly>${esc(exportText())}</textarea>
+          <div class="btn-row"><button type="button" class="btn primary" data-action="export-copy" id="export-copy">Copy</button><button type="button" class="btn quiet" data-action="export-hide" id="export-hide">Hide</button></div>`
+          : '<div class="btn-row"><button type="button" class="btn" data-action="export-show" id="export-show">Show my data as JSON</button></div>'}
+        <p class="form-msg ok" id="export-msg" role="status">${esc(ui.msg.export || '')}</p>
+      </section>
+      <section class="panel" aria-labelledby="s-import"><h2 id="s-import">Import data</h2>
+        <p class="hint">Paste JSON exported from The Long Way. It replaces what is on this device now.</p>
+        <label class="field-label" for="import-text">JSON to import</label>
+        <textarea id="import-text" rows="5" spellcheck="false"></textarea>
+        <div class="btn-row"><button type="button" class="btn" data-action="import-do" id="import-do">Import and replace my data</button></div>
+        <p class="form-msg${ui.msg.importOk ? ' ok' : ''}" id="import-msg" role="status">${esc(ui.msg.import || '')}</p>
+      </section>
+      <section class="panel" aria-labelledby="s-erase"><h2 id="s-erase">Erase everything on this device</h2>
+        <p class="hint">Deletes your walk, your reports and your Rule from this browser.</p>
+        ${ui.eraseStep ? `<div class="confirm" role="group" aria-labelledby="erase-q"><p id="erase-q"><strong>Erase everything? This can’t be undone.</strong> Export first if you want a copy.</p>
+          <div class="btn-row"><button type="button" class="btn danger" data-action="erase-yes" id="erase-yes">Yes, erase everything</button><button type="button" class="btn quiet" data-action="erase-no" id="erase-no">Keep my data</button></div></div>`
+          : '<div class="btn-row"><button type="button" class="btn danger" data-action="erase-1" id="erase-1">Erase everything on this device</button></div>'}
+        <p class="form-msg ok" id="erase-msg" role="status">${esc(ui.msg.erase || '')}</p>
+      </section>
+      <section class="panel" aria-labelledby="s-about"><h2 id="s-about">About this walk</h2>
+        <p>${esc(WHY40)}</p>
+        <p class="hint">The practices are drawn from many traditions and described in their own terms. They are small tasters, not the full practice as its tradition keeps it. Quotations are marked as paraphrases where they are not exact.</p>
+      </section>
+    </div>`;
+}
+
+/* ---------- render ---------- */
+const app = document.getElementById('app');
+const VIEWS = {today:renderToday, map:renderMap, moved:renderMoved, rule:renderRule, settings:renderSettings};
+const reduceMotion = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){ return false; } };
+
+function render(){
+  Object.keys(VIEWS).forEach(v => {
+    const sec = document.getElementById('view-' + v), tab = document.getElementById('tab-' + v);
+    if (v === ui.view){ sec.hidden = false; sec.innerHTML = VIEWS[v](); tab.setAttribute('aria-current','page'); }
+    else { sec.hidden = true; sec.innerHTML = ''; tab.removeAttribute('aria-current'); }
+  });
+  document.querySelectorAll('.rl-text').forEach(autoGrow);
+  document.getElementById('example-bar').hidden = !state.example;
+  const clock = document.getElementById('demo-clock');
+  clock.hidden = !state.dayOffset;
+  clock.textContent = state.dayOffset ? 'Demo clock +' + state.dayOffset + (state.dayOffset === 1 ? ' day' : ' days') : '';
+  if (ui.focus){
+    const el = document.getElementById(ui.focus); ui.focus = null;
+    if (el){ try { el.focus({preventScroll:true}); } catch(e){ el.focus(); } }
+  }
+}
+function autoGrow(t){ t.style.height = 'auto'; t.style.height = (t.scrollHeight + 4) + 'px'; }
+window.addEventListener('resize', () => document.querySelectorAll('.rl-text').forEach(autoGrow));
+function go(view, focusId){ ui.view = view; ui.editing = null; ui.eraseStep = 0; ui.msg = {}; ui.focus = focusId || null; render(); }
+function scrollToEl(el){ if (el && el.scrollIntoView) el.scrollIntoView({behavior: reduceMotion() ? 'auto' : 'smooth', block:'start'}); }
+
+/* ---------- actions ---------- */
+function selectStation(n, fromMap){
+  ui.sel = n; ui.editing = null;
+  render();
+  const g = document.getElementById('stn-' + n);
+  if (fromMap && g){ try { g.focus({preventScroll:true}); } catch(e){} }
+  const d = document.getElementById('map-detail');
+  if (d && window.innerWidth < 900){
+    const r = d.getBoundingClientRect();
+    if (r.top > window.innerHeight || r.bottom < 0) scrollToEl(d);
+  }
+}
+
+const actions = {
+  view(b){ go(b.dataset.view); if (b.classList.contains('tab')) b.focus(); else { const h = document.querySelector('#view-' + ui.view + ' h1'); if (h) h.focus(); } window.scrollTo(0,0); },
+  sel(b){ selectStation(+b.dataset.st, b.classList.contains('stn')); },
+  'goto-st'(b){ ui.view = 'map'; ui.msg = {}; selectStation(+b.dataset.st); const d = document.getElementById('map-detail'); scrollToEl(d); const h = document.getElementById('detail-h') || document.getElementById('det-title'); if (h){ h.setAttribute('tabindex','-1'); try { h.focus({preventScroll:true}); } catch(e){} } },
+  'back-to-map'(b){ const g = document.getElementById('stn-' + b.dataset.st); if (g){ g.scrollIntoView({behavior: reduceMotion() ? 'auto' : 'smooth', block:'center'}); try { g.focus({preventScroll:true}); } catch(e){} } },
+  'edit-report'(b){ ui.editing = +b.dataset.st; ui.msg = {}; ui.focus = ui.view === 'today' ? 'rep-text' : 'edit-text'; render(); },
+  'cancel-edit'(){ ui.editing = null; ui.msg = {}; ui.focus = ui.view === 'today' ? 'rep-h' : 'detail-h'; render(); },
+  'clear-examples'(){ state = blank(); ui.sel = null; save(); go('today', 'today-h'); window.scrollTo(0,0); },
+  'start-today'(){ state.startDate = today(); advance(); save(); go('today', 'today-h'); },
+  'change-start'(){ state.startDate = null; state.opened = {}; save(); go('today', 'start-date'); },
+  'demo-next'(){
+    const before = maxOpened();
+    state.dayOffset = (state.dayOffset || 0) + 1;
+    const opened = advance();
+    save();
+    const d = fmt(today(), true), n = maxOpened();
+    let m;
+    if (!state.startDate) m = `Moved the pretend clock to ${d}. There is no walk yet; start one on the Today page.`;
+    else if (opened) m = `Moved the pretend clock to ${d}. Station ${n} (${regionOf(n).name}) is now open on the Today page.`;
+    else if (!state.opened[1]) m = `Moved the pretend clock to ${d}. The walk starts on ${fmt(state.startDate, true)}.`;
+    else if (n >= 40 && state.reports[40]) m = `Moved the pretend clock to ${d}. All forty stations are walked.`;
+    else if (!state.reports[before]) m = `Moved the pretend clock to ${d}. Station ${before} has no evening report yet, so the path waits and nothing new opens. Report it on the Today page, then try again.`;
+    else m = `Moved the pretend clock to ${d}.`;
+    ui.msg = {demo:m}; ui.focus = 'demo-next'; render();
+  },
+  'demo-reset'(){ state.dayOffset = 0; save(); ui.msg = {demo:'Back on the real date. Stations already open stay open.'}; ui.focus = 'demo-next'; render(); },
+  'export-show'(){ ui.exportOpen = true; ui.msg = {}; ui.focus = 'export-text'; render(); const t = document.getElementById('export-text'); if (t) t.select(); },
+  'export-hide'(){ ui.exportOpen = false; ui.msg = {}; ui.focus = 'export-show'; render(); },
+  'export-copy'(){
+    const t = document.getElementById('export-text'), msg = document.getElementById('export-msg');
+    const fallback = () => { t.focus(); t.select(); let ok = false; try { ok = document.execCommand('copy'); } catch(e){} msg.textContent = ok ? 'Copied.' : 'Couldn’t copy automatically. The text is selected: press Ctrl+C (or Cmd+C) to copy it.'; };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(t.value).then(() => { msg.textContent = 'Copied to the clipboard.'; }, fallback);
+      } else fallback();
+    } catch(e){ fallback(); }
+  },
+  'import-do'(){
+    const raw = (document.getElementById('import-text').value || '').trim();
+    let s = null;
+    if (!raw){ ui.msg = {import:'Paste some exported JSON first.'}; ui.focus = 'import-text'; return render(); }
+    try { s = normalize(JSON.parse(raw)); } catch(e){ s = null; }
+    if (!s){ ui.msg = {import:'That doesn’t look like data from The Long Way, so nothing was changed.'}; ui.focus = 'import-text'; return render(); }
+    state = s; advance(); save(); ui.sel = null;
+    ui.msg = {import:`Imported. ${Object.keys(state.reports).length} evening reports and ${state.rule.length} Rule lines.`, importOk:true};
+    ui.focus = 'import-do'; render();
+  },
+  'erase-1'(){ ui.eraseStep = 1; ui.msg = {}; ui.focus = 'erase-no'; render(); },
+  'erase-no'(){ ui.eraseStep = 0; ui.focus = 'erase-1'; render(); },
+  'erase-yes'(){ try { localStorage.removeItem(KEY); } catch(e){} state = blank(); save(); ui.eraseStep = 0; ui.sel = null; ui.exportOpen = false;
+    ui.msg = {erase:'Erased. Nothing from your walk is kept on this device now.'}; ui.focus = 'erase-1'; render(); },
+  'rule-up'(b){ moveLine(b.dataset.id, -1); },
+  'rule-down'(b){ moveLine(b.dataset.id, 1); },
+  'rule-remove'(b){
+    const i = state.rule.findIndex(l => l.id === b.dataset.id); if (i < 0) return;
+    const [l] = state.rule.splice(i,1);
+    if (l.station && !state.ruleDismissed.includes(l.station)) state.ruleDismissed.push(l.station);
+    save();
+    const nxt = state.rule[i] || state.rule[i-1];
+    ui.focus = nxt ? 'rule-text-' + nxt.id : 'rule-add'; render();
+  },
+  'rule-restore'(b){
+    const n = +b.dataset.st;
+    state.ruleDismissed = state.ruleDismissed.filter(x => x !== n);
+    syncRule(n); save();
+    const l = state.rule.find(x => x.station === n);
+    ui.focus = l ? 'rule-text-' + l.id : 'rule-add'; render();
+  },
+  'rule-add'(){
+    const l = {id:'r' + (state.seq++), station:null, text:'', freq:'daily', edited:true, example:false};
+    state.rule.push(l); save(); ui.focus = 'rule-text-' + l.id; render();
+  }
+};
+function moveLine(id, dir){
+  const i = state.rule.findIndex(l => l.id === id), j = i + dir;
+  if (i < 0 || j < 0 || j >= state.rule.length) return;
+  const t = state.rule[i]; state.rule[i] = state.rule[j]; state.rule[j] = t;
+  save();
+  const btn = 'rule-' + (dir < 0 ? 'up' : 'down') + '-' + id;
+  const canStay = dir < 0 ? j > 0 : j < state.rule.length - 1;
+  ui.focus = canStay ? btn : 'rule-text-' + id;
+  render();
+}
+
+function saveReport(form){
+  const n = +form.dataset.station, p = form.dataset.prefix;
+  const text = form.querySelector('#' + p + '-text').value.trim();
+  const shift = (form.querySelector(`input[name="${p}-shift"]:checked`) || {}).value;
+  const again = (form.querySelector(`input[name="${p}-again"]:checked`) || {}).value;
+  const msgEl = document.getElementById(p + '-msg');
+  const missing = [];
+  if (!text) missing.push('a few words about what happened (even “didn’t manage it” counts)');
+  if (!shift) missing.push('whether it shifted anything');
+  if (!again) missing.push('whether you would do it again');
+  if (missing.length){
+    msgEl.textContent = 'Still needed: ' + missing.join('; ') + '.';
+    const first = !text ? '#' + p + '-text' : !shift ? `input[name="${p}-shift"]` : `input[name="${p}-again"]`;
+    const el = form.querySelector(first); if (el) el.focus();
+    return;
+  }
+  if (status(n) === 'locked') return;
+  const prev = state.reports[n];
+  state.reports[n] = {text, shift, again: again === 'yes', date: prev ? prev.date : today(), example: prev ? prev.example : state.example};
+  syncRule(n);
+  save();
+  ui.editing = null; ui.msg = {};
+  ui.focus = p === 'rep' ? 'rep-h' : 'detail-h';
+  render();
+}
+
+app.addEventListener('click', e => {
+  const b = e.target.closest('[data-action]');
+  if (!b || !app.contains(b) || b.disabled) return;
+  const a = actions[b.dataset.action];
+  if (a){ e.preventDefault(); a(b, e); }
+});
+app.addEventListener('keydown', e => {
+  const g = e.target.closest && e.target.closest('.stn');
+  if (g && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); selectStation(+g.dataset.st, true); }
+});
+app.addEventListener('submit', e => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.classList.contains('report-form')) return saveReport(f);
+  if (f.id === 'start-form'){
+    const v = document.getElementById('start-date').value;
+    if (!isDate(v)){ ui.msg = {start:'Pick a start date.'}; ui.focus = 'start-date'; return render(); }
+    const ahead = daysBetween(today(), v);
+    if (ahead > 60){ ui.msg = {start:'Pick a date within the next two months.'}; ui.focus = 'start-date'; return render(); }
+    if (ahead < -60){ ui.msg = {start:'Pick a date no more than two months ago.'}; ui.focus = 'start-date'; return render(); }
+    state = Object.assign(blank(), {startDate:v, dayOffset:state.dayOffset || 0});
+    advance(); save(); ui.sel = null; go('today', 'today-h');
+  }
+});
+app.addEventListener('input', e => {
+  const t = e.target;
+  if (t.classList.contains('rl-text')){
+    const l = state.rule.find(x => x.id === t.dataset.id); if (!l) return;
+    l.text = t.value; l.edited = true; save(); autoGrow(t);
+    const li = t.closest('.rule-line'), tag = li && li.querySelector('.sugg'); if (tag) tag.remove();
+    const r = document.getElementById('rule-read'); if (r) r.innerHTML = ruleReadHTML();
+  }
+});
+app.addEventListener('change', e => {
+  const t = e.target;
+  if (t.classList.contains('rl-freq')){
+    const l = state.rule.find(x => x.id === t.dataset.id); if (!l) return;
+    l.freq = t.value; save();
+    const r = document.getElementById('rule-read'); if (r) r.innerHTML = ruleReadHTML();
+  }
+  if (t.classList.contains('rl-text')){
+    const l = state.rule.find(x => x.id === t.dataset.id);
+    if (l && l.station && l.text.trim() === st(l.station).rule){ l.edited = false; save(); }
+  }
+});
+
+advance();
+save();
+render();
+</script>
+</body>
+</html>
