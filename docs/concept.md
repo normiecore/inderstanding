@@ -45,7 +45,7 @@ All six are in `apps/`, each a single HTML file that runs offline in a browser a
 | Tool | Loop stage | Interaction | Rhythm |
 |---|---|---|---|
 | **Vantage** | Gather | Your experiences are stars. You draw and name your own constellations, then shift vantage and watch the figures stretch or break | Occasional |
-| **Prism** | Look from elsewhere | One real moment, read through 18+ traditions and strands. You mark what lands and what you push back on. A resonance map builds from evidence | Weekly |
+| **Prism** | Look from elsewhere | One real moment, read through 24 lenses from 12 traditions. You mark what lands and what you push back on. A resonance map builds from evidence | Weekly |
 | **The Question Deck** | Look from elsewhere | A tarot-like ritual where every card is a question from a tradition, never an answer. Your answers become a book you wrote | Daily |
 | **Council** | Look from elsewhere, then state | Bring a real decision to a table of tradition voices and personal seats. You rule as chair, and rulings become personal case law with precedent | When a decision comes up |
 | **The Long Way** | Try it in the world | A 40-day walk, one practice per day from a tradition, done in your actual day. Ends in a Rule of Life you write | Seasonal |

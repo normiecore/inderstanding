@@ -1,0 +1,1899 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prism</title>
+<style>
+:root{
+  /* Design plan: Prism.
+     Concept: light through glass. A moment is white light; each lens splits it.
+     The interface itself stays colourless (frosted glass, lead-black ink). Colour only
+     appears where light has been split: tradition swatches, and the resonance map,
+     which sits on a dark optics bench in both themes. That bench is the one bold element.
+     Layout: a single reading column (max 72rem) with the bench at full column width. */
+  --bg:#edf0f4;        /* frosted glass */
+  --surface:#fafbfc;   /* a pane */
+  --ink:#0f131a;       /* lead */
+  --muted:#4d5664;
+  --line:#c6cdd8;
+  --bench:#0a0d13;     /* optics bench, where the light shows */
+  --f-display:"Bodoni Moda","Bodoni 72",Didot,"Times New Roman",serif;
+  --f-body:"Atkinson Hyperlegible","Segoe UI",Roboto,system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+
+  /* supporting tokens */
+  --surface-2:#f2f4f7;
+  --ink-inv:#fafbfc;
+  --focus:#1d4ed8;
+  --sw-stroke:rgba(15,19,26,.38);
+  --bench-ink:#eef1f6;
+  --bench-muted:#a7b1c1;
+  --bench-line:#252d3a;
+  --danger:#a1222b;
+  --ok:#0f6a40;
+  --pane-hi:rgba(255,255,255,.85);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0b0e13; --surface:#121720; --surface-2:#171d27; --ink:#e7ebf1; --ink-inv:#0b0e13;
+    --muted:#9ea8b8; --line:#2c3543; --bench:#05070b; --bench-line:#1e2531;
+    --focus:#93b6ff; --sw-stroke:rgba(255,255,255,.4); --danger:#ff9096; --ok:#76d8a6;
+    --pane-hi:rgba(255,255,255,.04);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0b0e13; --surface:#121720; --surface-2:#171d27; --ink:#e7ebf1; --ink-inv:#0b0e13;
+  --muted:#9ea8b8; --line:#2c3543; --bench:#05070b; --bench-line:#1e2531;
+  --focus:#93b6ff; --sw-stroke:rgba(255,255,255,.4); --danger:#ff9096; --ok:#76d8a6;
+  --pane-hi:rgba(255,255,255,.04);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.app{max-width:72rem;margin-inline:auto;padding-inline:max(16px,env(safe-area-inset-left)) max(16px,env(safe-area-inset-right));padding-block:18px 56px}
+h1,h2,h3,h4{margin:0;font-weight:500;line-height:1.15}
+h2{font-family:var(--f-display);font-size:clamp(2rem,1.3rem + 2.6vw,3.1rem);letter-spacing:-.01em}
+h3{font-family:var(--f-display);font-size:1.45rem}
+h4{font-size:1rem;font-weight:700}
+p{margin:0}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+[hidden]{display:none!important}
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.label{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.muted{color:var(--muted)}
+.tag{display:inline-block;font-family:var(--f-mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;border:1px solid currentColor;padding:1px 6px;line-height:1.5;white-space:nowrap}
+.sw{width:13px;height:13px;flex:none;vertical-align:-1px}
+
+/* header */
+.top{display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px 16px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand svg{width:46px;height:30px;flex:none}
+.brand-name{font-family:var(--f-display);font-style:italic;font-size:1.9rem;line-height:1;font-weight:500}
+.brand-sub{font-family:var(--f-mono);font-size:.72rem;color:var(--muted);letter-spacing:.04em}
+.top nav{grid-column:1 / -1}
+.nav{display:flex;flex-wrap:wrap;gap:4px 2px;list-style:none;margin:0;padding:0}
+.nav button{background:none;border:0;padding:8px 10px 6px;font-family:var(--f-mono);font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
+.nav button:hover{color:var(--ink)}
+@media (max-width:560px){.nav .nl{display:none}.nav button{padding:8px 7px 6px;letter-spacing:.03em}.nav{gap:2px 0}.brand-sub{display:none}}
+.nav button[aria-current="page"]{color:var(--ink);border-bottom-color:var(--ink)}
+#theme-btn{justify-self:end}
+@media (min-width:900px){
+  .top{grid-template-columns:auto 1fr auto}
+  .top nav{order:2;grid-column:auto}
+  #theme-btn{order:3}
+  .nav{justify-content:center}
+}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:.55em 1em;border:1px solid var(--ink);background:transparent;color:var(--ink);border-radius:2px;cursor:pointer;font-weight:700;font-size:.95rem;line-height:1.3;text-align:left}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--ink);color:var(--ink-inv)}
+.btn.primary:hover{opacity:.88}
+.btn.quiet{border-color:var(--line);font-weight:400}
+.btn.small{font-size:.85rem;padding:.4em .75em}
+.btn.danger{border-color:var(--danger);color:var(--danger)}
+.btn.danger.solid{background:var(--danger);color:var(--ink-inv)}
+.btn.link{border:0;padding:.3em 0;background:none;text-decoration:underline;text-underline-offset:3px;font-weight:400;color:var(--muted)}
+.btn.link:hover{color:var(--ink);background:none}
+.btn:disabled{opacity:.55;cursor:default}
+.btn-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+/* banner */
+.examples{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:16px;padding:10px 14px;border:1px dashed var(--muted);background:var(--surface)}
+.examples p{flex:1 1 20rem}
+
+/* views */
+.view{padding-top:28px}
+.view-head{display:grid;gap:12px;margin-bottom:22px}
+@media (min-width:920px){.view-head.split{grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);align-items:end;gap:12px 40px}}
+.lede{max-width:62ch;font-size:1.06rem}
+.section{margin-top:36px}
+.section > h3{margin-bottom:10px}
+
+/* how it works */
+.how{list-style:none;margin:22px 0 0;padding:0;display:grid;gap:1px;background:var(--line);border:1px solid var(--line);grid-template-columns:1fr}
+.how li{background:var(--surface);padding:14px 16px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px}
+.how .n{font-family:var(--f-display);font-size:1.7rem;line-height:1;grid-row:span 2}
+.how strong{font-size:1rem}
+.how span.d{color:var(--muted);font-size:.93rem}
+@media (min-width:760px){.how{grid-template-columns:repeat(3,1fr)}}
+
+/* chips */
+.chips{border:0;padding:0;margin:0 0 16px;display:flex;flex-wrap:wrap;gap:6px}
+.chips legend{padding:0;margin-bottom:8px;width:100%}
+.chip{position:relative}
+.chip input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.chip label{display:inline-block;padding:.32em .7em;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-size:.9rem;border-radius:2px}
+.chip label:hover{border-color:var(--ink)}
+.chip input:checked + label{background:var(--ink);color:var(--ink-inv);border-color:var(--ink)}
+.chip input:focus-visible + label{outline:2px solid var(--focus);outline-offset:2px}
+.form-chips{margin-bottom:18px}
+.form-chips legend{font-weight:700}
+.chip .ct{font-family:var(--f-mono);font-size:.75rem;opacity:.75;margin-left:4px}
+
+/* bench (resonance map) */
+.bench{margin:0;background:var(--bench);color:var(--bench-ink);padding:clamp(10px,2vw,22px);border:1px solid var(--bench-line);border-radius:3px}
+.bench-svg svg{display:block;width:100%;height:auto}
+.bench .t-name{font-family:var(--f-body);font-weight:700;fill:var(--bench-ink)}
+.bench .t-meta{font-family:var(--f-mono);fill:var(--bench-muted)}
+.bench .t-cap{font-family:var(--f-mono);fill:var(--bench-muted);letter-spacing:.04em}
+.legend{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:12px;padding-top:12px;border-top:1px solid var(--bench-line);font-family:var(--f-mono);font-size:.74rem;color:var(--bench-muted)}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.legend i{display:inline-block;width:22px;height:8px}
+.bench-empty{font-family:var(--f-mono);font-size:.85rem;color:var(--bench-muted);padding:6px 4px 0}
+@media (prefers-reduced-motion: no-preference){
+  .animate .band{animation:bandIn .9s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i) * 50ms)}
+  .animate .refl{animation:bandIn 1.1s ease both;animation-delay:.5s}
+  @keyframes bandIn{from{opacity:0}}
+}
+
+.map-cols{display:grid;gap:36px;margin-top:30px}
+.map-cols > div,.new-grid > *,.data-grid > section{min-width:0}
+@media (min-width:920px){.map-cols{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr)}}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+caption{text-align:left;padding:10px 12px 4px;font-family:var(--f-mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+th,td{padding:.5em .75em;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+thead th{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:500;white-space:nowrap}
+td.n,th.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+tbody tr:last-child td,tbody tr:last-child th{border-bottom:0}
+tr.untried th,tr.untried td{color:var(--muted)}
+tbody th{font-weight:700}
+tbody th .sw{margin-right:6px}
+.caveat{font-size:.92rem;color:var(--muted);border-left:0;margin-bottom:12px}
+.qlist{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+.qlist li{padding:12px 14px;background:var(--surface);border:1px solid var(--line);font-size:.98rem}
+.bytheme{margin:0;padding:0;list-style:none;display:grid;gap:14px}
+.bytheme h4{margin-bottom:4px}
+.bytheme h4 .label{margin-left:6px}
+.bytheme p{font-size:.93rem}
+.bytheme b{font-family:var(--f-mono);font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;font-weight:500;color:var(--muted);margin-right:4px}
+
+/* new moment */
+.new-grid{display:grid;gap:30px}
+@media (min-width:920px){.new-grid{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr)}}
+.field{display:grid;gap:6px;margin-bottom:18px}
+.field label,.field legend{font-weight:700}
+.hint{font-size:.88rem;color:var(--muted);font-weight:400}
+textarea,input[type="text"],input[type="date"],select{width:100%;padding:.6em .7em;border:1px solid var(--line);background:var(--surface);border-radius:2px;color:var(--ink)}
+input[type="date"]{max-width:14rem}
+select{max-width:20rem}
+textarea{resize:vertical;min-height:3.2em;line-height:1.5}
+textarea:focus,input:focus,select:focus{border-color:var(--ink)}
+.err{color:var(--danger);font-weight:700;font-size:.93rem}
+.ok{color:var(--ok);font-weight:700;font-size:.93rem}
+.aside{border:1px solid var(--line);background:var(--surface);padding:16px 18px;align-self:start;display:grid;gap:10px;font-size:.95rem}
+.aside h3{font-size:1.2rem}
+.aside ul{margin:0;padding-left:1.1em;display:grid;gap:6px}
+
+/* the moment as white light */
+.beam{position:relative;background:var(--bench);color:var(--bench-ink);padding:18px 20px 16px;border-radius:3px;display:grid;gap:8px;overflow:hidden;margin-bottom:18px}
+.beam .label{color:var(--bench-muted)}
+.beam-meta{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.beam-what{font-size:1.08rem;max-width:62ch;overflow-wrap:anywhere;position:relative}
+.beam-felt{color:var(--bench-muted);max-width:62ch;overflow-wrap:anywhere;position:relative}
+.beam .btn{border-color:var(--bench-muted);color:var(--bench-ink);justify-self:start;position:relative}
+.beam .btn:hover{background:rgba(255,255,255,.08)}
+.beam-art{display:none}
+@media (min-width:900px){
+  .beam{padding-right:230px}
+  .beam-art{display:block;position:absolute;right:14px;top:50%;transform:translateY(-50%);width:200px;height:96px}
+}
+
+.lens-tools{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin:4px 0 18px}
+.lens-grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(min(100%,29rem),1fr))}
+.lens{background:var(--surface);border:1px solid var(--line);padding:18px 20px 16px;display:flex;flex-direction:column;gap:12px;box-shadow:inset 0 1px 0 var(--pane-hi);min-width:0}
+.lens[data-mark="lands"],.lens[data-mark="unsure"],.lens[data-mark="pushes"]{border-color:var(--muted)}
+.lens-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.lens-name{font-family:var(--f-display);font-style:italic;font-size:1.55rem;line-height:1.15;outline-offset:4px}
+.lens .idea{font-size:.98rem}
+.term{font-size:.93rem;padding:8px 10px;background:var(--surface-2);border:1px solid var(--line)}
+.term dfn{font-style:italic;font-weight:700}
+.frame{display:grid;gap:4px;padding-top:12px;border-top:1px solid var(--line)}
+.frame-text{font-size:1.04rem}
+.quote{margin:0;padding:0 0 0 14px;border-left:1px solid var(--ink);font-family:var(--f-display);font-style:italic;font-size:1.06rem;line-height:1.4}
+.quote footer{font-family:var(--f-mono);font-style:normal;font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.4}
+.note{font-size:.84rem;color:var(--muted)}
+.qs{border:0;padding:0;margin:0;display:grid;gap:6px}
+.qs legend{padding:0;margin-bottom:4px}
+.q{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start}
+.q input{margin:.3em 0 0;accent-color:var(--ink);width:1rem;height:1rem}
+.q label{cursor:pointer;font-size:.98rem}
+.ans{display:grid;gap:4px}
+.marks{border:0;padding:12px 0 0;margin:0;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px}
+.marks legend{padding:0;float:left;width:100%;margin-bottom:8px;font-weight:700}
+.marks legend .hint{display:block;font-weight:400}
+.mark{position:relative}
+.mark input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.mark label{display:inline-flex;align-items:center;gap:8px;padding:.45em .8em;border:1px solid var(--line);background:var(--bg);cursor:pointer;font-weight:700;font-size:.92rem;border-radius:2px}
+.mark label:hover{border-color:var(--ink)}
+.mark svg{width:18px;height:18px;flex:none}
+.mark input:checked + label{background:var(--ink);color:var(--ink-inv);border-color:var(--ink)}
+.mark input:focus-visible + label{outline:2px solid var(--focus);outline-offset:2px}
+.lens-foot{display:flex;justify-content:flex-end}
+.save-bar{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center}
+
+.browse{margin:0 0 22px;border:1px solid var(--line);background:var(--surface);padding:16px 18px}
+.browse-fam{padding:12px 0;border-top:1px solid var(--line)}
+.browse-fam:first-of-type{border-top:0}
+.browse-fam h4{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.browse ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.browse li{display:grid;grid-template-columns:1fr auto;gap:6px 16px;align-items:start}
+.browse li p{font-size:.9rem;color:var(--muted)}
+@media (max-width:560px){.browse li{grid-template-columns:1fr}}
+
+.saved{border:1px solid var(--line);background:var(--surface);padding:22px;display:grid;gap:14px;max-width:44rem}
+
+/* doors */
+.door-fam{margin-top:30px;padding-top:22px;border-top:1px solid var(--line)}
+.door-fam > h3{display:flex;align-items:center;gap:10px}
+.door-fam > p{max-width:64ch;margin-top:8px}
+.door-list{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,22rem),1fr))}
+.door{background:var(--surface);border:1px solid var(--line);padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.door h4{font-family:var(--f-display);font-style:italic;font-weight:500;font-size:1.3rem}
+.door .why{font-size:.96rem}
+.door .idea{font-size:.9rem;color:var(--muted)}
+.door .btn{align-self:flex-start;margin-top:auto}
+.door[data-tried="0"]{border-color:var(--ink)}
+.checks{border:1px solid var(--line);background:var(--surface);padding:14px 16px;margin:0;display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(min(100%,13rem),1fr))}
+.checks legend{font-weight:700;padding:0 4px}
+.check{display:flex;gap:8px;align-items:center}
+.check input{width:1.05rem;height:1.05rem;accent-color:var(--ink);margin:0}
+
+/* archive */
+.arch-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px}
+.arch-tools label{font-weight:700}
+.moments{list-style:none;margin:0;padding:0;display:grid;gap:18px}
+.moment{background:var(--surface);border:1px solid var(--line);padding:18px 20px;display:grid;gap:10px}
+.moment-meta{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-family:var(--f-mono);font-size:.8rem;color:var(--muted)}
+.moment-what{font-size:1.04rem;max-width:66ch;overflow-wrap:anywhere}
+.moment-felt{color:var(--muted);max-width:66ch;overflow-wrap:anywhere}
+.resp{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:10px;border-top:1px solid var(--line);padding-top:12px}
+.resp li{display:grid;gap:4px}
+.resp-head{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
+.resp-head strong{font-weight:700}
+.resp-mark{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em}
+.resp-mark svg{width:16px;height:16px}
+.resp-ans{font-size:.94rem;padding-left:20px;overflow-wrap:anywhere}
+.resp-ans q{display:block;color:var(--muted);font-size:.86rem;quotes:none}
+.confirm{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--danger)}
+.confirm p{flex:1 1 16rem}
+.empty{padding:22px;border:1px dashed var(--line);display:grid;gap:12px;justify-items:start}
+
+/* data */
+.data-grid{display:grid;gap:30px}
+@media (min-width:920px){.data-grid{grid-template-columns:1fr 1fr}}
+.data-grid section{display:grid;gap:10px;align-content:start}
+.data-grid textarea{font-family:var(--f-mono);font-size:.8rem;min-height:11rem}
+.radios{border:0;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:14px}
+.radios legend{font-weight:700;padding:0;margin-bottom:6px;width:100%}
+
+.foot{margin-top:56px;padding-top:14px;border-top:1px solid var(--line);font-size:.86rem;color:var(--muted)}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 46 30" aria-hidden="true" focusable="false">
+        <line x1="0" y1="19" x2="15" y2="16" stroke="currentColor" stroke-width="1.6"/>
+        <path d="M22 3 33 25H11Z" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        <g stroke-width="1.6">
+          <line x1="27" y1="15" x2="46" y2="7" stroke="#ff5b57"/>
+          <line x1="27.4" y1="16" x2="46" y2="11" stroke="#ffc145"/>
+          <line x1="27.8" y1="17" x2="46" y2="15" stroke="#4fd38f"/>
+          <line x1="28.2" y1="18" x2="46" y2="19" stroke="#4ab1f7"/>
+          <line x1="28.6" y1="19" x2="46" y2="23" stroke="#9a78f5"/>
+        </g>
+      </svg>
+      <div>
+        <h1 class="brand-name">Prism</h1>
+        <div class="brand-sub">one moment, many lenses</div>
+      </div>
+    </div>
+    <button type="button" class="btn quiet small" id="theme-btn" data-act="toggle-theme">Use dark theme</button>
+    <nav aria-label="Prism sections">
+      <ul class="nav" id="nav">
+        <li><button type="button" data-act="nav" data-view="map" aria-label="Resonance map"><span class="nl">Resonance </span>map</button></li>
+        <li><button type="button" data-act="nav" data-view="new">Bring a moment</button></li>
+        <li><button type="button" data-act="nav" data-view="doors" aria-label="Different doors"><span class="nl">Different </span>doors</button></li>
+        <li><button type="button" data-act="nav" data-view="moments">Moments</button></li>
+        <li><button type="button" data-act="nav" data-view="data" aria-label="Settings and data"><span class="nl">Settings and </span>data</button></li>
+      </ul>
+    </nav>
+  </header>
+  <div id="banner"></div>
+  <main id="view"></main>
+  <footer class="foot">Prism keeps everything in this browser on this device. No account, no analytics. You can export all of it as JSON from Settings and data.</footer>
+  <div id="live" class="sr-only" aria-live="polite"></div>
+</div>
+<script>
+(function(){
+'use strict';
+
+/* ------------------------------------------------------------------ */
+/* Content                                                             */
+/* ------------------------------------------------------------------ */
+
+var KEY = 'inderstanding.prism.v1';
+
+var THEMES = [
+  ['loss','Loss'],['failure','Failure'],['conflict','Conflict'],['love','Love'],
+  ['work','Work and vocation'],['change','Change'],['uncertainty','Uncertainty'],
+  ['joy','Joy'],['injustice','Injustice'],['stuck','Being stuck']
+];
+var THEME_LABEL = {}; THEMES.forEach(function(t){ THEME_LABEL[t[0]] = t[1]; });
+
+var MARKS = [['lands','Lands'],['unsure','Not sure'],['pushes','Pushes back']];
+var MARK_LABEL = {lands:'Lands', unsure:'Not sure', pushes:'Pushes back'};
+
+/* Families are listed alphabetically so the spectrum order implies no ranking. */
+var FAMILIES = {
+  buddhism:{name:'Buddhism', short:'Buddhism', hue:'#ff5b57',
+    intro:'If Buddhism reached you as temple ritual, merit-making or beliefs about rebirth, these are three distinct practices: close observation, plain attention, and deliberate compassion.',
+    more:'Not yet in Prism: Pure Land devotion, Tibetan Vajrayana practice, Nichiren Buddhism.'},
+  christianity:{name:'Christianity', short:'Christianity', hue:'#ff8c42',
+    intro:'If the Christianity you grew up with was mostly services, creeds and being told what to believe, these strands start somewhere else: silence, close attention to your own inner life, action alongside the poor, or honest doubt. All of them are old, mainstream parts of the tradition. They are just taught less often on a Sunday.',
+    more:'Not yet in Prism: Eastern Orthodox practice and the Jesus Prayer, Franciscan simplicity, Dietrich Bonhoeffer.'},
+  confucianism:{name:'Confucianism', short:'Confucianism', hue:'#ffc145',
+    intro:'If Confucian values reached you as pressure to obey and to succeed, the Analects are about becoming a good person through relationships, and Confucius is sharp about ritual done without feeling.',
+    more:'Not yet in Prism: Mencius on human goodness, Xunzi\'s opposing view, Wang Yangming on the unity of knowing and acting.'},
+  daoism:{name:'Daoism', short:'Daoism', hue:'#e9e35a',
+    intro:'If Daoism reached you through temples, incense or fortune-telling, its two classic books are short, odd and often funny philosophy you can read in an afternoon.',
+    more:'Not yet in Prism: religious Daoism\'s ritual and inner-alchemy traditions, and the Liezi.'},
+  existentialism:{name:'Existentialism', short:'Existentialism', hue:'#a6e05a',
+    intro:'If existentialism sounded bleak, most of its writers were arguing for freedom, honesty and solidarity.',
+    more:'Not yet in Prism: Nietzsche, Dostoevsky, the theologian Paul Tillich.'},
+  hellenistic:{name:'Hellenistic philosophy', short:'Hellenistic', hue:'#4fd38f',
+    intro:'If ancient philosophy sounded academic, these schools were practical ways of living, with daily exercises and communities of friends.',
+    more:'Not yet in Prism: Cynicism (Diogenes) and Pyrrhonian scepticism.'},
+  hinduism:{name:'Hinduism', short:'Hinduism', hue:'#36c9c6',
+    intro:'If Hinduism came to you mainly as festivals and family ritual, the Bhagavad Gita is a practical philosophy of action that speaks to work, duty and hard decisions.',
+    more:'Not yet in Prism: bhakti devotional poetry (Mirabai), Advaita Vedanta\'s non-dualism, the Upanishads.'},
+  humanism:{name:'Secular humanism', short:'Humanism', hue:'#4ab1f7',
+    intro:'If you grew up secular, humanism can feel like the absence of something. It has its own history, ethics and sources of awe that are worth looking at on purpose.',
+    more:'Not yet in Prism: Bertrand Russell\'s essays, religious naturalism.'},
+  islam:{name:'Islam', short:'Islam', hue:'#6787ff',
+    intro:'If Islam was presented to you as law and obligation, Sufism and the ideal of ihsan show its inner side: longing, beauty, and doing ordinary things with full attention.',
+    more:'Not yet in Prism: Islamic philosophy (Ibn Sina, Ibn Rushd), al-Ghazali\'s account of his own crisis of doubt.'},
+  judaism:{name:'Judaism', short:'Judaism', hue:'#9a78f5',
+    intro:'If Judaism reached you as rules, ritual and obligation, these strands turn the same tradition toward character work and argument, both of which it has always prized.',
+    more:'Not yet in Prism: Hasidism and Kabbalah, Abraham Joshua Heschel on radical amazement, Martin Buber\'s I and Thou.'},
+  reciprocity:{name:'Reciprocity (Kimmerer)', short:'Reciprocity', hue:'#cc6ef0',
+    intro:'Prism carries Robin Wall Kimmerer\'s account, written from her own Potawatomi heritage and her training as a botanist.',
+    more:'Not yet in Prism: other Indigenous writers speaking for their own nations, such as Vine Deloria Jr. (Standing Rock Sioux) or Tyson Yunkaporta (Apalech Clan).'},
+  ubuntu:{name:'Ubuntu', short:'Ubuntu', hue:'#f765ae',
+    intro:'Prism carries one reading of ubuntu, drawing on Desmond Tutu and the philosopher Mogobe Ramose.',
+    more:'Not yet in Prism: other African philosophies, for example Akan thought in the work of Kwame Gyekye.'}
+};
+var FAMILY_ORDER = Object.keys(FAMILIES);
+
+/* Each lens: core idea, a key term in its own vocabulary, one question it always asks,
+   and a framing plus a question for each of the ten themes ([framing, question]). */
+var LENSES = [
+{id:'desert', fam:'christianity', known:false,
+ name:'Desert Fathers and Mothers, and the contemplatives', short:'Desert and contemplative',
+ idea:'From the 3rd and 4th centuries, Christians went into the Egyptian desert to pray alone, and their sayings were passed down. The contemplatives who followed, such as Julian of Norwich and Thomas Merton, treat faith as patient attention more than argument: you sit still long enough to see what is actually going on in you.',
+ term:'hesychia', gloss:'stillness; an inner quiet in which God, and your own heart, can be noticed.',
+ ask:'If you sat alone with this for an hour without trying to fix it, what would come up first?',
+ quote:{text:'Go, sit in your cell, and your cell will teach you everything.', by:'Abba Moses, Sayings of the Desert Fathers'},
+ door:'If church felt like a lot of talking, believing the right things and keeping busy, the desert tradition is mostly silence and paying attention. Practice comes first and doctrine sits in the background.',
+ t:{
+  loss:['The desert monks expected grief and did not hurry it; tears were sometimes counted as a gift. Julian of Norwich, who lived through the plague years, held that all shall be well without pretending anything was well yet.','What would it be like to let this grief stay as long as it needs to?'],
+  failure:['One of the sayings has a monk ask what to do now that he has fallen, and the answer is simply: get up again, as many times as it takes. Merton would ask whether the hurt belongs to your true self or to the false self that needed to look good.','Which part of you is most upset: the part that cares about the thing, or the part that cares how it looks?'],
+  conflict:['The desert sayings are severe about judging others. Abba Moses, called to judge a brother, arrived carrying a leaking jug of water and said his own faults were running out behind him unseen. Look at your own part first.','What is trailing behind you in this conflict that you have not looked at?'],
+  love:['Contemplatives treat love as attention: seeing a person as they are, not as you need them to be. Julian describes God\'s love as courteous and homely, meaning close and ordinary.','Where did you see this person clearly, and where were you seeing what you needed?'],
+  work:['Desert monks wove baskets and rope as part of their prayer; John Cassian tells of one who burned a year\'s worth because he lived too far from any market to sell them. The work was a way of staying present, and its results came second.','If no one ever saw the results of this work, what would still make it worth doing?'],
+  change:['Merton\'s best-known prayer begins by admitting he has no idea where he is going and cannot see the road ahead. The contemplative stance keeps attention on the next honest step rather than the whole map.','What is the next honest step, if you set the whole map aside?'],
+  uncertainty:['The Cloud of Unknowing, a 14th-century English guide, says God is reached by love rather than by thought. Not knowing is treated as a normal condition of the spiritual life, not a problem to solve first.','What would change if not knowing was a place you were allowed to stay for a while?'],
+  joy:['Julian of Norwich describes being shown a little thing, the size of a hazelnut, in the palm of her hand: all that is made, kept in being because it is loved. Joy, in this strand, is noticing that things are held.','What small thing in this moment would you hold in your palm and look at?'],
+  injustice:['Merton was a monk who rarely left his monastery, and he wrote against racism, the Vietnam War and nuclear weapons. Silence made him see the world more clearly, and then speak.','Has stillness ever made you see an injustice more clearly rather than less?'],
+  stuck:['The desert monks named acedia, the noonday demon: a restless listlessness that makes you want to be anywhere but here. Their advice was to stay in your cell and keep going.','Is this stuckness asking you to leave, or to stay put and look closer?']
+ }},
+{id:'ignatian', fam:'christianity', known:false,
+ name:'Ignatian spirituality', short:'Ignatian',
+ idea:'Ignatius of Loyola, a 16th-century soldier who founded the Jesuits, taught that God can be found in all things, including your own moods and desires. His Spiritual Exercises train you to notice those inner movements and use them to make decisions.',
+ term:'consolation and desolation', gloss:'consolation is any inner movement toward faith, hope and love; desolation is the pull toward turmoil, discouragement and turning in on yourself.',
+ ask:'Looking back over today, where did you feel most alive, and where most drained?',
+ quote:{text:'In time of desolation never make a change.', by:'Ignatius of Loyola, Spiritual Exercises, rules for discernment (common rendering)'},
+ door:'If faith arrived as rules handed down, Ignatian practice starts from your own experience. Your moods and desires are treated as information worth reading, and big decisions get a careful method.',
+ t:{
+  loss:['Grief usually brings desolation, and Ignatius advises against making big decisions in that state. The examen, a short daily review, would also ask you to notice any moments of consolation that still turned up beside the loss.','In the middle of this loss, was there a moment that felt like a small consolation?'],
+  failure:['The examen looks back without condemning: notice what happened, notice where you moved toward love and where away from it, then ask for help with tomorrow. Failure becomes material for discernment.','Looking back on this, where did you move toward what you care about, and where away from it?'],
+  conflict:['The Exercises open by asking you to be readier to put a good interpretation on another person\'s words than to condemn them, and to ask what they meant before correcting them.','What is the most generous honest reading of what the other person said or did?'],
+  love:['Ignatius notes that love shows itself more in deeds than in words, and that it consists in sharing what each has with the other. Your own desires are taken seriously as clues to what you are being drawn toward.','What would love do here, in deeds rather than words?'],
+  work:['Vocation is found by discernment: imagine each option, live with it in prayer for a while, and notice which one brings lasting consolation rather than a quick thrill.','If you picture yourself a year into each option, which brings a quieter, steadier peace?'],
+  change:['Ignatius changed course while recovering from a cannonball wound. He noticed that daydreams of glory left him dry afterward, while daydreams of service left him content. That noticing became his method.','Which version of the future, when you daydream it, leaves you content afterward, and which leaves you flat?'],
+  uncertainty:['Discernment exists for uncertainty. Ignatius suggests weighing reasons on both sides, imagining what you would advise a stranger in your place, and imagining how you would want to have chosen at the end of your life.','What would you advise a stranger in exactly your position?'],
+  joy:['Joy is a sign of consolation, and the examen begins with gratitude. Ignatius would ask you to savour it rather than move on, and to notice which way it points.','Where is this joy pointing you?'],
+  injustice:['Since 1975 the Jesuits have described their mission as the service of faith and the promotion of justice. An Ignatian reading asks what this injustice stirs in you and what concrete response follows from that.','What does this stir in you, and what is one concrete thing it asks of you?'],
+  stuck:['Stuckness may be desolation, which Ignatius said passes. His advice: do not change course in the dark, keep to the good decisions you made before, and act a little against the pull of the low mood.','Was the decision you made before this stuckness a good one? What would keeping faith with it look like?']
+ }},
+{id:'quaker', fam:'christianity', known:false,
+ name:'Quaker (Religious Society of Friends)', short:'Quaker',
+ idea:'Quakers hold that there is "that of God in every one" and that ordinary people can be guided directly by an inner light, without clergy or creeds. Worship is often an hour of shared silence, broken only when someone feels moved to speak.',
+ term:'testimonies', gloss:'the ways belief shows up in conduct, often summarised as simplicity, peace, integrity, community, equality and stewardship.',
+ ask:'If you sat in silence with this and waited, what might rise that you did not plan to say?',
+ quote:{text:'Walk cheerfully over the world, answering that of God in every one.', by:'George Fox, letter of 1656'},
+ door:'No sermon, no creed and usually no minister. If the words and the hierarchy got in the way, a Quaker meeting is mostly silence, and trust that ordinary people can be led from within.',
+ t:{
+  loss:['Quakers hold memorial meetings in silence, where anyone may stand and say something about the person who died. Grief is shared without anyone needing to find the right words first.','If people who knew what you lost sat in silence together, what would you want said aloud?'],
+  failure:['The integrity testimony asks for the same truth in public and in private. A failure met honestly is less of a problem, in this view, than the instinct to tidy up the story.','Is there any part of this you have been tempted to tell differently from how it happened?'],
+  conflict:['The peace testimony goes beyond refusing war to looking for "that of God" even in an opponent. Quakers use slow, listening meetings to work through hard disagreements without forcing a vote.','What in the other person might be answering to something good, even if they are wrong about this?'],
+  love:['A Quaker wedding traditionally has no officiant: the couple make their promises to each other during a silent meeting, with everyone present as witnesses. Love is a commitment held within a community.','Who witnesses this love, and what might they see that you do not?'],
+  work:['"Let your life speak" is a Quaker saying: your conduct is your message. Quaker traders were known for fixed prices and plain dealing at a time when haggling was the norm.','If your work were the only thing that spoke for you, what would it be saying?'],
+  change:['Quakers speak of proceeding "as way opens": take the step you can see, then wait for the next one rather than forcing it.','What way is opening, if you stop pushing on the door that is closed?'],
+  uncertainty:['A clearness committee is a few trusted people who meet with you, ask only honest open questions, give no advice, and help you hear your own inner guidance.','If a few people asked you only honest questions about this, which question would you dread most?'],
+  joy:['Simplicity, in Quaker practice, clears space for what matters. A joy that needs nothing added to it is close to what they mean.','Would this joy survive if you took away all the extras around it?'],
+  injustice:['Quakers were among the earliest organised opponents of slavery and remain active in prison reform and peace work. "Speak truth to power" became a Quaker phrase through a 1955 pamphlet of that name.','What truth here needs saying to someone with power, and who is in a position to say it?'],
+  stuck:['Quakers treat waiting in silence as a kind of action. Being stuck might be a period of waiting before a clear leading arrives.','What would it be like to treat this as waiting rather than as failing to move?']
+ }},
+{id:'liberation', fam:'christianity', known:false,
+ name:'Liberation theology and the social gospel', short:'Liberation theology',
+ idea:'Liberation theology grew in Latin America from the late 1960s (Gustavo Gutiérrez, A Theology of Liberation, 1971). It reads the Bible from the side of the poor and judges faith by what it does. The earlier social gospel in North America, led by Walter Rauschenbusch, also saw sin in social structures as well as in individuals.',
+ term:'the preferential option for the poor', gloss:'the conviction that God sides with the poor and oppressed, so faithful people look at the world from their side first. Its partner idea is praxis: acting, reflecting on the action, and acting again.',
+ ask:'Who else is affected by this moment, and who has the least say in it?',
+ quote:{text:'When I give food to the poor, they call me a saint. When I ask why the poor have no food, they call me a communist.', by:'Dom Hélder Câmara, archbishop of Olinda and Recife'},
+ note:'Contested within the Catholic Church: the Vatican criticised parts of it in the 1980s, while the preferential option for the poor became mainstream Catholic teaching.',
+ door:'If Christianity seemed private, otherworldly or comfortable, this strand reads the gospel as being about bread, land, debt and who gets left out, here and now.',
+ t:{
+  loss:['Liberation theology asks whose losses are mourned in public and whose go unmarked. Your grief is real, and it can also connect you to the many who lose things without anyone noticing.','Who else has lost something like this, with less support than you had?'],
+  failure:['Failure is read in context: which structures made success harder or easier for you? This is an honest accounting of what was yours and what belonged to the situation, and it is not meant as an excuse.','Which part of this failure was yours, and which part belonged to the situation you were in?'],
+  conflict:['Not every conflict is between equals. This strand asks who holds the power, and warns that calls for calm can sometimes protect the stronger side.','Who holds more power in this conflict, and how does that change what fairness looks like?'],
+  love:['Love reaches past private affection into solidarity: standing with people in their actual situation. Gutiérrez saw love of God and love of neighbour as one thing.','Does this love make you more open to others, or close a circle around the two of you?'],
+  work:['Work is judged by whom it serves and what it builds. In Latin American base communities, small groups read scripture together and then acted on what it said about their own lives.','Who benefits from your work, and who pays for it?'],
+  change:['This strand expects that things can and should change, and treats hope as something practised with other people. Personal change is tied to the change of conditions around you.','What would need to change around you, and not only in you?'],
+  uncertainty:['Praxis means acting, then reflecting, then acting again. You do not need certainty to begin; you learn by doing alongside others.','What is one small action you could take and then learn from?'],
+  joy:['Base communities celebrated together even in poverty. Joy here is shared, and it does not wait until everything is fixed.','Who could share this joy with you, especially someone who does not get much of it?'],
+  injustice:['This is the strand\'s home ground. Sin is also structural, built into laws and economies, and faith asks you to name it and act with the people it affects.','Is this injustice a one-off, or the result of how something is set up?'],
+  stuck:['Stuckness may not be only personal. Liberation theology asks whether forces you could name, and resist with others, are holding your situation in place.','Is something outside you keeping you stuck, and who else is stuck in the same place?']
+ }},
+{id:'kierkegaard', fam:'christianity', known:false,
+ name:'Kierkegaard', short:'Kierkegaard',
+ idea:'Søren Kierkegaard (1813 to 1855), a Danish philosopher, attacked comfortable Christianity and argued that the truths that matter have to be lived by the single individual, not just agreed with. Faith, for him, is a passionate commitment made without proof.',
+ term:'the leap', gloss:'a decisive commitment that reasoning cannot complete for you. "Leap of faith" is a later summary of his idea rather than his own phrase.',
+ ask:'What decision here is yours alone, the kind no argument can make for you?',
+ quote:{text:'Life can only be understood backwards; but it must be lived forwards.', by:'Søren Kierkegaard, journals, 1843'},
+ door:'If belief was presented as settled and comfortable, Kierkegaard thought settled, comfortable Christianity was the problem. He takes doubt, dread and despair seriously and asks you to be honest about them.',
+ t:{
+  loss:['In Works of Love, Kierkegaard calls love for the dead the most unselfish and faithful love, because the dead cannot repay it. Grief becomes a way of keeping faith with someone.','What does faithfulness to what you lost look like from here?'],
+  failure:['He saw despair as the failure to become yourself, and thought most people are in it without knowing. A visible failure can be more honest than a quiet life of evasion.','Does this failure show you something about who you are trying to be?'],
+  conflict:['Kierkegaard distrusted "the crowd" and held that truth is reached by the single individual. In a conflict he would ask whether you are speaking for yourself or for a side.','Are you speaking for yourself here, or for a group you feel you have to defend?'],
+  love:['Works of Love separates preferential love, for partners and friends, from love of the neighbour, which is owed to everyone. He thought the second keeps the first honest.','Would you still owe this person care if they stopped giving you anything back?'],
+  work:['At 22 he wrote in his journal that he needed to find a truth that is true for him, an idea he could live and die for. He would ask whether this work is that, or a way of avoiding the question.','Is there an idea you could live for in this work, or are you doing what was expected?'],
+  change:['He described stages of life (the aesthetic, the ethical and the religious) and thought moving between them takes a leap, not a gradual slide. Change that matters asks for commitment.','What change here needs a commitment you have been putting off?'],
+  uncertainty:['Kierkegaard called anxiety "the dizziness of freedom": it appears because you really could choose. Uncertainty is the condition in which real choices happen.','If this anxiety is the feeling of having real options, which option frightens you most, and why?'],
+  joy:['He could be gloomy, but he wrote discourses on the lilies of the field and the birds of the air as teachers of joy: being wholly present today, without borrowing worry from tomorrow.','Can you be wholly in this joy today, without worrying whether it lasts?'],
+  injustice:['He spent his last years attacking the Danish state church, which he thought had turned faith into a social convenience. He would ask whether you are going along with something you know is wrong.','Where are you going along with something because everyone else is?'],
+  stuck:['Kierkegaard thought endless reflection can become a way to avoid choosing. At some point more thinking stops helping and only a decision moves you.','Have you thought about this long enough that more thinking is now a way to avoid deciding?']
+ }},
+{id:'mussar', fam:'judaism', known:false,
+ name:'Mussar', short:'Mussar',
+ idea:'Mussar is a Jewish practice of ethical self-development, revived in 19th-century Lithuania by Rabbi Israel Salanter. It treats character traits as things you can work on deliberately, one at a time, over a lifetime.',
+ term:'middot', gloss:'soul traits, such as patience (savlanut), humility (anavah), gratitude (hakarat hatov) and trust (bitachon). Each has a healthy middle you aim for, neither too much nor too little.',
+ ask:'Which trait was tested in this moment, and was it too strong or too weak?',
+ quote:{text:'If I am not for myself, who will be for me? And if I am only for myself, what am I? And if not now, when?', by:'Hillel, Pirkei Avot 1:14'},
+ door:'If Judaism felt like rules and ritual without much inner life, Mussar turns the same tradition toward your character: concrete, patient work on who you are with other people.',
+ t:{
+  loss:['Grief tests trust and patience. Mussar would not ask you to feel less, but to notice which of your traits you are leaning on and which one has worn thin.','Which of your strengths is carrying you through this, and which has gone thin?'],
+  failure:['Mussar uses cheshbon hanefesh, an accounting of the soul, to review your conduct honestly. A failure is data about a trait, written down without self-punishment so you can work on it.','If you wrote this failure in a ledger of character, which trait would it go under?'],
+  conflict:['Honour (kavod) and humility (anavah) are tested here. Humility in Mussar means taking up your rightful space, no more and no less, rather than shrinking.','In this conflict, were you taking up more space than was yours, or less?'],
+  love:['Loving-kindness (chesed) is a core middah: giving beyond what is required. Mussar teachers warn that it can tip into giving that serves your own need to be needed.','Is your care here for them, or partly for your need to be the one who gives?'],
+  work:['Order (seder), zeal (zerizut) and equanimity (menuchat hanefesh) are all middot. How you work is a direct expression of character, in this view.','Which trait does your work most need from you right now?'],
+  change:['Mussar expects change to be slow. You choose one trait, practise it for weeks, and expect relapses as part of the process.','If you chose one trait to work on for the next month, which would this moment suggest?'],
+  uncertainty:['Bitachon, trust, is the trait in play: doing your part fully, then trusting God with what is not yours to control.','What is your part here, and what is not yours to carry?'],
+  joy:['Gratitude, hakarat hatov, literally means "recognising the good". It is a trait to practise rather than wait for: seeing good you would otherwise take for granted.','What good is in this moment that you would normally take for granted?'],
+  injustice:['Salanter is remembered for telling his community to eat on Yom Kippur during an 1848 cholera epidemic, putting lives ahead of strict observance. The inner work is meant to make you more just toward others.','Which of your traits would need strengthening for you to act on this?'],
+  stuck:['Mussar holds that the gap between knowing and doing is where the work is. Small actions, repeated, shift a trait more than insight does.','What small action, repeated daily, would loosen this?']
+ }},
+{id:'wrestling', fam:'judaism', known:false,
+ name:'Wrestling and questioning', short:'Wrestling and questioning',
+ idea:'Jacob wrestles all night with a mysterious figure and is renamed Israel, often read as "one who struggles with God" (Genesis 32). Abraham argues with God over Sodom, and the Talmud preserves the losing opinions alongside the winning ones. In this strand, questioning and arguing are forms of devotion, and the work they point to is tikkun olam, repairing the world.',
+ term:'machloket l\'shem shamayim', gloss:'argument for the sake of heaven: disagreement aimed at truth rather than at winning (Pirkei Avot 5:17).',
+ ask:'If you argued with this moment out loud, as an equal, what would you say?',
+ quote:{text:'It is not your duty to finish the work, but neither are you free to desist from it.', by:'Rabbi Tarfon, Pirkei Avot 2:16'},
+ door:'If religion meant accepting answers, this strand prizes the question. Arguing with God and with the text is a sign of taking both seriously.',
+ t:{
+  loss:['Job demands an explanation for his losses, and at the end God says Job spoke rightly, unlike the friends who defended God with neat answers (Job 42:7). Grief is allowed to be angry and to demand an answer.','If you could demand an answer about this loss, what exactly would you ask?'],
+  failure:['Jacob leaves the wrestling match limping and blessed. The tradition expects you to come out of a struggle changed, and possibly marked.','What did this struggle leave you with, besides the injury?'],
+  conflict:['The schools of Hillel and Shammai argued for generations, and the Talmud says both spoke "the words of the living God". Hillel\'s school prevailed partly because they taught their opponents\' views before their own (Eruvin 13b).','Could you state the other side\'s view so well that they would agree you had it right?'],
+  love:['In this strand, love includes argument. Abraham pleads with God on behalf of strangers in Sodom, and the relationship survives the disagreement.','Is there an argument this love could hold that you have been avoiding?'],
+  work:['Tikkun olam gives work a wider frame: each task can be a small repair. Rabbi Tarfon\'s line says you do not have to finish the work, but you cannot walk away from it.','What part of repairing the world does your work touch, even slightly?'],
+  change:['Jacob gets a new name after the struggle. Change in this tradition often comes through a contest rather than around it.','If this moment gave you a new name, what would it be?'],
+  uncertainty:['The Talmud sometimes ends a debate with "teiku": let it stand, unresolved. Leaving a question open is a legitimate outcome.','Which question here could you let stand unresolved for now?'],
+  joy:['Joy (simcha) is commanded at festivals, and arguing over a text with a study partner (chavruta) is one of the tradition\'s pleasures.','Who would you want to argue with about this joy, for the pleasure of it?'],
+  injustice:['Abraham\'s question at Sodom, "Shall not the Judge of all the earth do justly?" (Genesis 18:25), sets the pattern: you may hold even the highest authority to its own standard.','Who here needs to be held to their own standard?'],
+  stuck:['Jacob refused to let go until he was blessed. Sometimes staying in the struggle is the work, rather than escaping it.','What blessing would you hold out for before letting go of this?']
+ }},
+{id:'sufi', fam:'islam', known:true,
+ name:'Sufism', short:'Sufism',
+ idea:'Sufism is the mystical strand of Islam, focused on knowing God directly through love, remembrance and the taming of the ego. Its poets, especially Jalal al-Din Rumi in the 13th century, describe the soul as a lover longing to return to its source.',
+ term:'dhikr', gloss:'remembrance: repeating names of God or short phrases, alone or in a gathering, to keep the heart turned toward God. Its opposite pull is the nafs, the grasping self.',
+ ask:'What would it mean to welcome this feeling as a guest rather than an intruder?',
+ quote:{text:'This being human is a guest house. Every morning a new arrival.', by:'Rumi, "The Guest House", in Coleman Barks\'s English version'},
+ note:'Barks\'s popular Rumi versions are loose English renderings and often soften the Islamic references in the Persian originals.',
+ door:'If Islam reached you as law and obligation, Sufism shows the same faith from the inside: longing, music, poetry and love.',
+ t:{
+  loss:['Rumi\'s Masnavi opens with a reed flute crying because it was cut from the reed bed. Sufis hear longing and grief as signs of a deeper separation, and so as a kind of homing signal.','What does the longing in this loss tell you about what you love?'],
+  failure:['Sufis speak of the nafs, the grasping ego, which failure bruises. A bruised nafs can be an opening, because the ego is what stands between you and the Beloved.','Which part of you was hurt by this: you, or your pride?'],
+  conflict:['A Rumi poem, in Barks\'s version, speaks of a field out beyond ideas of wrongdoing and rightdoing where he will meet you. Sufis try to see something of God in the person across from them, even in the middle of an argument.','What would meeting this person out beyond right and wrong look like?'],
+  love:['Love is the centre of Sufi practice. Human love is real and also a doorway: it teaches the heart how to love God.','What is this love teaching your heart to do?'],
+  work:['Many Sufi orders combined ordinary trades with practice, keeping up remembrance while they worked. The question is less what work you do than whether your heart stays awake in it.','Can you stay present to what matters in this work, or does it put you to sleep?'],
+  change:['The guest house poem asks you to welcome each arrival, even a crowd of sorrows, because each may be clearing you out for some new delight.','If this change is a guest, what might it be clearing room for?'],
+  uncertainty:['Sufis speak of hayra, a holy bewilderment, where the mind\'s maps run out. Not knowing can be closer to God than certainty.','What if not knowing here is closer to the truth than any answer you could give?'],
+  joy:['Sufi gatherings use music, poetry and, in the Mevlevi order, turning (sama) to express joy. Joy is itself a form of remembrance.','What does this joy remember?'],
+  injustice:['Sufi teachers tie inner purification to outward conduct: the ego that grasps for itself is also the root of cruelty to others.','Where is grasping, yours or someone else\'s, behind this injustice?'],
+  stuck:['Rumi\'s poems often say that what you are looking for is closer than you think. Being stuck may mean looking too far away.','What is closer than you have been looking?']
+ }},
+{id:'ihsan', fam:'islam', known:false,
+ name:'Ihsan: everyday excellence, patience and gratitude', short:'Ihsan',
+ idea:'In a famous hadith, the angel Gabriel asks the Prophet Muhammad about faith, and ihsan is defined as worshipping God as though you see Him, knowing that even if you do not see Him, He sees you. Everyday Muslim ethics builds on this with patience, gratitude and trust.',
+ term:'ihsan', gloss:'excellence, or doing what is beautiful: acting with full care because you are seen. Alongside it: sabr (patient endurance), shukr (gratitude) and tawakkul (trust in God after doing your part).',
+ ask:'If you acted as though you were fully seen, what would you do differently here?',
+ quote:{text:'Tie it, and trust in God.', by:'The Prophet Muhammad, asked whether to tie his camel or simply trust God (hadith in al-Tirmidhi, common rendering)'},
+ door:'If Islam was presented as a list of dos and don\'ts, ihsan is about the spirit behind them: doing ordinary things beautifully and with attention.',
+ t:{
+  loss:['On hearing of a death, Muslims say "inna lillahi wa inna ilayhi raji\'un": we belong to God and to Him we return (Quran 2:156). Sabr includes tears; the Prophet wept at the death of his infant son.','What would patient endurance look like here, with the tears included?'],
+  failure:['Tawakkul means doing your part fully and leaving the outcome with God. If you did your part, the result is not a verdict on you; if you did not, repentance (tawba) is always open.','Did you tie the camel? If you did, what is still yours to carry?'],
+  conflict:['The Quran asks believers to repel evil with what is better, so that an enemy may become like a close friend (41:34). Ihsan in conflict means responding better than you were treated.','What would responding better than you were treated look like, concretely?'],
+  love:['The Quran describes spouses as placed together with affection and mercy between them (30:21). Love shows in ordinary kindness and kept promises.','Where is mercy, and not only affection, needed in this love?'],
+  work:['A hadith says God has prescribed ihsan in all things. Doing work well, even when no one sees, is a form of worship.','What would doing this work beautifully, even unseen, involve?'],
+  change:['The Quran says God does not change a people\'s condition until they change what is in themselves (13:11). Change is partly a gift and partly your responsibility.','What in yourself would this change need?'],
+  uncertainty:['Istikhara is a prayer for guidance when deciding: you pray, you act, and you trust that what follows is good for you. Uncertainty is met with both effort and surrender.','Having done your part, what would trusting the outcome free you to do?'],
+  joy:['Shukr is both a feeling and a practice, said as "alhamdulillah", praise be to God, over small things and large. The Quran says that if you are grateful, more will be given (14:7).','How would you give thanks for this joy, and to whom?'],
+  injustice:['The Quran tells believers to stand firm for justice even against themselves or their own families (4:135). A well-known hadith says to change a wrong with your hand, or your tongue, or at the least your heart.','Can you change this with your hands, your words, or only your heart for now?'],
+  stuck:['Sabr is active perseverance rather than passive waiting. The Quran pairs hardship with ease: "with hardship comes ease" (94:5-6).','What would persevering look like here, as opposed to only waiting?']
+ }},
+{id:'gita', fam:'hinduism', known:true,
+ name:'Bhagavad Gita: karma yoga', short:'Karma yoga',
+ idea:'In the Bhagavad Gita, the warrior Arjuna freezes before a battle and the god Krishna talks him through it. One of the paths Krishna teaches is karma yoga: do the work that is yours, fully, without clinging to its results.',
+ term:'svadharma', gloss:'your own duty or path, fitted to your nature and situation. The Gita says it is better to do your own imperfectly than someone else\'s well (3.35).',
+ ask:'What is the action here that is yours to do, however it turns out?',
+ quote:{text:'You have a right to your actions, but never to their fruits.', by:'Bhagavad Gita 2.47 (common rendering)'},
+ note:'Karma here means action. The popular sense of karma as cosmic payback is a related but different idea.',
+ door:'If Hinduism came to you as festivals and family ritual, the Gita is a practical philosophy of action that speaks to work and hard decisions.',
+ t:{
+  loss:['Krishna tells Arjuna that the self is not born and does not die, so the wise grieve neither for the living nor the dead (2.11, 2.20). Many readers find this hard. The Gita still asks you to keep acting in the face of loss.','Is there an action that would honour this loss, rather than only feeling it?'],
+  failure:['If you acted rightly, the outcome was never yours to own. Karma yoga separates the quality of your effort from the result.','Setting the result aside, how well did you act?'],
+  conflict:['The whole Gita is set on a battlefield between cousins. It asks what your duty is in the conflict, not how to avoid discomfort. It has been read as a call to literal battle and, by Gandhi among others, as an allegory of inner struggle.','Setting aside what you want to happen, what is your duty in this conflict?'],
+  love:['Bhakti, loving devotion, is another of the Gita\'s paths, and Krishna says such devotees are dear to him (chapter 12). Love offered without bargaining is close to what the Gita means by action without attachment.','Is there a bargain hidden in this love?'],
+  work:['This is the Gita\'s home ground. Do your work as an offering, fitted to your own nature, and let go of the anxiety about how it will be received.','Is this work fitted to your nature, or to someone else\'s?'],
+  change:['The Gita compares the self moving through bodies to a person changing worn-out clothes (2.22). Forms change; the one who acts through them goes on.','What in you stays steady while this changes?'],
+  uncertainty:['Arjuna\'s paralysis is where the Gita starts. Krishna does not remove the uncertainty; he gives Arjuna a way to act within it.','What would acting rightly look like, even without knowing how this ends?'],
+  joy:['The Gita warns against clinging to pleasant results as much as fearing unpleasant ones. It asks for equanimity (samatva): enjoy what comes without making your action depend on it (2.48).','Can you enjoy this without needing it to happen again?'],
+  injustice:['Krishna\'s argument is that refusing to act is also an action. When your role calls for standing up, withdrawing for the sake of your own peace is not neutral.','Is staying out of this a real choice, or a way of keeping your hands clean?'],
+  stuck:['Krishna tells Arjuna that no one can remain without acting, even for a moment (3.5). Being stuck may be a refusal to do your own work because the results feel uncertain.','What is the smallest piece of your own work you could do today without needing it to succeed?']
+ }},
+{id:'theravada', fam:'buddhism', known:true,
+ name:'Theravada: insight practice', short:'Theravada insight',
+ idea:'The Theravada tradition of Sri Lanka and Southeast Asia keeps the oldest complete collection of the Buddha\'s teachings, in Pali. Insight practice (vipassana) trains you to see three marks in all experience: impermanence (anicca), unsatisfactoriness (dukkha) and non-self (anatta).',
+ term:'dukkha', gloss:'often translated "suffering"; closer to unsatisfactoriness or stress, the friction of wanting things to be other than they are.',
+ ask:'Where exactly does this moment sit in your body, and does that sensation change as you watch it?',
+ quote:{text:'All conditioned things are subject to decay. Strive on with diligence.', by:'The Buddha\'s last words, Mahaparinibbana Sutta (common rendering)'},
+ note:'Mindfulness apps often borrow from this tradition while leaving out its ethics and its aim of liberation.',
+ door:'If Buddhism reached you as statues, chanting or beliefs about rebirth, insight practice is a method of close observation you can test on your own experience.',
+ t:{
+  loss:['Everything that arises passes away, and the pain of loss is partly the pain of having wanted permanence. This does not say you should not grieve. It suggests looking closely at what grief is made of.','If you look closely at this grief, what is it made of, moment by moment?'],
+  failure:['"My failure" assumes a solid self that failed. Non-self (anatta) invites you to see a process of causes and conditions rather than a verdict on a person.','If you leave out the word "I" for a moment, which causes and conditions led to this?'],
+  conflict:['In the Sallatha Sutta the Buddha speaks of two arrows: the first is what happens to you, the second is the reaction you add yourself, which you can sometimes decline.','What is the first arrow here, and what is the second one you added?'],
+  love:['Metta, loving-kindness, is cultivated deliberately and extended to everyone. The tradition distinguishes it from attachment, which wants to hold on.','Which part of this love wants the other person to be well, and which part wants to keep them?'],
+  work:['Right livelihood is part of the Eightfold Path: earning a living without harming others. Work is also a place to practise attention.','Does this work cause harm anywhere along the line?'],
+  change:['Change is not an interruption of normal life; in this view it is all there is. Practice means seeing that clearly, again and again.','What were you assuming would stay the same?'],
+  uncertainty:['Craving for certainty is still craving. Insight practice treats the restless need to know as something to watch rather than feed.','Can you watch the wanting-to-know itself, without feeding it?'],
+  joy:['Rapture (piti) is listed among the factors of awakening, so joy is part of the path. It is also impermanent, and seeing that can make it gentler without making it smaller.','Can you enjoy this fully while knowing it will pass?'],
+  injustice:['In the Vasala Sutta the Buddha rejects the idea that birth decides a person\'s worth: one becomes noble or base by one\'s deeds. Harm comes from greed, hatred and delusion, in individuals and in groups.','Which of greed, hatred or delusion is driving this injustice?'],
+  stuck:['Stuckness is impermanent too, even when it does not feel like it. The practice is to look at it closely enough to see it moving.','Is this stuckness really the same from hour to hour, or does it shift when you look?']
+ }},
+{id:'zen', fam:'buddhism', known:true,
+ name:'Zen', short:'Zen',
+ idea:'Zen grew in China (as Chan) and spread to Japan, Korea and Vietnam. It puts sitting meditation (zazen) and direct experience ahead of doctrine: seeing this moment as it is, without commentary.',
+ term:'shoshin', gloss:'beginner\'s mind: meeting something openly, as if for the first time, even if you know it well.',
+ ask:'What is actually here, right now, if you drop the story about it?',
+ quote:{text:'In the beginner\'s mind there are many possibilities, but in the expert\'s there are few.', by:'Shunryu Suzuki, Zen Mind, Beginner\'s Mind (1970)'},
+ door:'Zen cares little for doctrine and a great deal for direct experience: sit down, pay attention, see for yourself.',
+ t:{
+  loss:['Dogen wrote that firewood becomes ash and does not turn back into firewood, yet each has its own complete moment. Zen meets loss by being fully in this moment, the grief included.','What does this loss feel like right now, before you think about the next moment?'],
+  failure:['A saying often attributed to Shunryu Suzuki: you are perfect as you are, and you could use a little improvement. Failure is something to sit with plainly, without stacking self-judgement on top.','What happened, plainly, without the commentary?'],
+  conflict:['Zen stories often show a teacher refusing the terms of an argument altogether. A Zen reading asks what the situation looked like before either of you decided who was right.','What would you see if you met this person with beginner\'s mind?'],
+  love:['Love in Zen is close to full attention: being with a person without your ideas about them getting in the way.','When were you last fully with this person, without planning or judging?'],
+  work:['Samu, work practice, treats sweeping or cooking as meditation. Layman Pang\'s verse says his supernatural power and marvellous activity is drawing water and carrying firewood.','What would this work be like if it were the practice itself rather than a step toward something else?'],
+  change:['There is only this moment, and it is always new. Change does not threaten a fixed self, because Zen holds there was none to begin with.','What would you notice if you met this change as a beginner?'],
+  uncertainty:['In a well-known koan a teacher asks a student where he is going. The student says he does not know, and the teacher replies, "Not knowing is most intimate."','What is it like to stay with not knowing, without rushing past it?'],
+  joy:['Zen tends to find joy in plain things: tea, a cold morning, a bird on a wire. It warns against holding on, not against delight.','What plain detail in this moment is worth delight on its own?'],
+  injustice:['Thich Nhat Hanh, a Vietnamese Zen monk, spoke of engaged Buddhism during the war: practise mindfulness in the middle of suffering and act from that clarity. Zen has its own record of complicity too, such as wartime support for Japanese militarism.','What would acting on this from clarity, rather than anger, look like?'],
+  stuck:['Many koans are designed to get you stuck, so that the thinking mind wears itself out. Being stuck can be the moment just before seeing differently.','What if this stuckness is the koan, rather than an obstacle to it?']
+ }},
+{id:'mahayana', fam:'buddhism', known:false,
+ name:'Mahayana: the bodhisattva and compassion', short:'Mahayana compassion',
+ idea:'Mahayana Buddhism, dominant in East Asia and Tibet, centres on the bodhisattva: someone who seeks awakening for the sake of all beings, not only for themselves. Compassion and wisdom are treated as the two wings of one bird.',
+ term:'tonglen', gloss:'Tibetan "sending and taking": breathing in another\'s pain and breathing out relief, to reverse the habit of self-protection.',
+ ask:'Who else is feeling something like this right now, and what would you wish for them?',
+ quote:{text:'For as long as space endures, and for as long as living beings remain, until then may I too abide to dispel the misery of the world.', by:'Shantideva, Bodhicaryavatara 10.55'},
+ door:'If Buddhism seemed cool and detached, the bodhisattva ideal starts and ends with care for other people.',
+ t:{
+  loss:['Tonglen would ask you to breathe in your own grief and that of everyone grieving a similar loss, and breathe out comfort to all of them. Your pain becomes a way of understanding others.','Could this grief connect you to others who have lost something similar?'],
+  failure:['A bodhisattva vows to keep returning until all beings are free, so one failure is a step in a very long commitment. Compassion for yourself is part of compassion.','What would you say to a friend who failed in exactly this way?'],
+  conflict:['Shantideva wrote that an enemy is a rare gift, because without one you cannot practise patience. The difficult person here gives you a chance to practise what a friend cannot teach.','What is this person teaching you that a friend could not?'],
+  love:['The four boundless qualities (loving-kindness, compassion, sympathetic joy and equanimity) take ordinary love and widen it. You start with someone easy to love and extend outward.','Could the love you feel here extend to someone you find difficult?'],
+  work:['The bodhisattva path frames everything, work included, as a way to benefit beings. The six perfections include generosity, patience and diligence.','Who does this work benefit, and could it benefit more people?'],
+  change:['Emptiness (sunyata) means nothing has a fixed nature, which is exactly why change, including your own transformation, is possible.','If nothing here has a fixed nature, what could it become?'],
+  uncertainty:['The bodhisattva acts without knowing how things will turn out, from bodhicitta, the wish to awaken for others. You cannot control the outcome, but you can tend your intention.','What is your intention here, whatever the outcome?'],
+  joy:['Mudita is sympathetic joy: delight in other people\'s happiness. It is one of the four boundless qualities and an antidote to envy.','Whose joy could you celebrate alongside your own?'],
+  injustice:['Compassion extends to everyone involved, including those who cause harm. That does not mean accepting the harm; it means opposing it without hatred.','Can you oppose this without hating the people behind it?'],
+  stuck:['Pema Chödrön, an American nun in the Tibetan tradition, writes about staying with discomfort rather than escaping it. Stuckness can soften you toward everyone else who feels stuck.','If you breathed in this stuckness for everyone who feels it, what would change?']
+ }},
+{id:'laozi', fam:'daoism', known:true,
+ name:'Laozi and the Daodejing', short:'Laozi',
+ idea:'The Daodejing, traditionally credited to Laozi and probably compiled around the 4th century BCE, describes the Dao, the way things naturally unfold, which cannot be fully named. Its advice is to stop forcing, be soft like water, and return to simplicity.',
+ term:'wu wei', gloss:'non-forcing action: moving with how things are already moving rather than against them. It does not mean doing nothing. Its companion image is pu, the uncarved block: simplicity before ambition shapes it.',
+ ask:'Where in this are you pushing against the grain of things?',
+ quote:{text:'The highest good is like water. Water benefits all things and does not compete.', by:'Daodejing, chapter 8 (common rendering)'},
+ note:'English translations of the Daodejing differ a great deal. Treat any single line as one reading among several.',
+ door:'The Daodejing is about 5,000 characters long and reads more like advice on not forcing things than like a religion.',
+ t:{
+  loss:['Chapter 16 describes all things flourishing and then returning to their root. Loss is part of that return rather than a malfunction, though the book never asks you to feel nothing.','What would it mean to see this loss as something returning to its root?'],
+  failure:['Chapter 22 says the bent becomes straight and the hollow becomes full. Laozi often turns failure and success upside down: the low place is where water gathers.','What might be gathering in this low place?'],
+  conflict:['Water does not fight rocks; it goes around them and, over time, wears them down. Laozi distrusts force, and chapter 68 says a good warrior is not violent and a good fighter is not angry.','What would going around this conflict, like water, look like?'],
+  love:['Laozi names three treasures: compassion, frugality, and not putting yourself first (chapter 67). Love here is soft and unforced.','Where are you forcing this love, and what happens if you stop?'],
+  work:['Chapter 17 says that when the best leader\'s work is done, the people say "we did it ourselves". Good work, for Laozi, is often invisible.','Could this work go well without anyone knowing it was you?'],
+  change:['The Dao is always moving. Chapter 76 says the soft and supple are companions of life, and the hard and stiff are companions of death.','Where are you stiff here, and where could you be supple?'],
+  uncertainty:['The Daodejing opens by saying the Dao that can be spoken is not the constant Dao. Laozi is at ease with mystery and suspicious of anyone who claims to have it all worked out.','What if this cannot be fully named yet, and that is all right?'],
+  joy:['Laozi ties contentment to knowing when you have enough: there is no greater misfortune than not knowing what is enough (chapter 46).','Is this joy about having enough, or about wanting more?'],
+  injustice:['Laozi condemns rulers who dress in finery and hoard wealth while the fields go to weeds and the granaries stand empty (chapter 53), and says that the more laws there are, the more thieves (chapter 57).','Is this injustice the result of too much control, or of someone grasping for too much?'],
+  stuck:['Chapter 15 asks who can make muddy water clear, and answers: let it be still, and it clears by itself. Some stuckness comes from stirring the water.','What would happen if you stopped stirring this for a while?']
+ }},
+{id:'zhuangzi', fam:'daoism', known:false,
+ name:'Zhuangzi', short:'Zhuangzi',
+ idea:'The Zhuangzi (4th century BCE onward) is a book of stories, jokes and arguments that loosen fixed points of view. Its cast includes a cook whose knife never dulls, a gnarled tree too useless to cut down, and a frog who thinks his well is the whole world.',
+ term:'xiaoyao you', gloss:'free and easy wandering: moving through life without being trapped by one perspective or one idea of what is useful.',
+ ask:'How would this look to someone, or something, living on a completely different scale?',
+ quote:{text:'All men know the use of the useful, but nobody knows the use of the useless!', by:'Zhuangzi, chapter 4, Burton Watson\'s translation'},
+ door:'Zhuangzi is funny. If religion felt solemn, this is a book of jokes, odd characters and arguments that pull the rug out from under fixed views.',
+ t:{
+  loss:['When Zhuangzi\'s wife died, a friend found him drumming on a pot and singing. He said he had grieved at first, then came to see her death as part of a change like the passing of the seasons.','If you saw this loss as part of a larger change, like a season, what would still hurt and what might ease?'],
+  failure:['Zhuangzi\'s useless tree lives to a great age because no carpenter wants it. What counts as failure depends on whose idea of usefulness you are using.','Whose idea of success are you failing by?'],
+  conflict:['Zhuangzi points out that each side calls itself "this" and the other "that" (chapter 2). From the pivot of the Way, both positions look partial.','What would this conflict look like from a point between the two of you?'],
+  love:['Zhuangzi tells of a marquis who welcomed a seabird with wine and court music until it died of fright (chapter 18). He fed it what he liked rather than what a bird needs.','Are you giving this person what they need, or what you would want?'],
+  work:['Cook Ding carves oxen for nineteen years without sharpening his knife, because he follows the natural gaps in the joints (chapter 3). Skill comes from attention to the grain of the work.','Where is the natural gap in this work, the place where it goes easily?'],
+  change:['Zhuangzi dreams he is a butterfly and wakes unsure whether he is a man who dreamed he was a butterfly or a butterfly now dreaming he is a man. He calls this the transformation of things.','What if the person you are becoming is as real as the one you were?'],
+  uncertainty:['You cannot talk to a frog in a well about the ocean, because he is limited by his space (chapter 17). Uncertainty can be a sign that your well is getting bigger.','Where is the edge of your well in this situation?'],
+  joy:['Zhuangzi and his friend Huizi argue on a bridge over whether Zhuangzi can know the joy of fish. Zhuangzi finally says he knew it from right there, standing above the river.','What do you know about this joy from exactly where you stand?'],
+  injustice:['Zhuangzi notes that a man who steals a belt buckle is executed, while a man who steals a whole state becomes a lord (chapter 10).','Who gets to decide what counts as wrong here?'],
+  stuck:['The useless tree and the free and easy wanderer suggest stepping outside the frame that says you must be getting somewhere.','What if being "stuck" just means not being useful in the way you expected?']
+ }},
+{id:'confucian', fam:'confucianism', known:false,
+ name:'The Analects and Confucian self-cultivation', short:'Confucianism',
+ idea:'Confucius (551 to 479 BCE) taught that a good life is built through relationships and roles: child, parent, friend, colleague, citizen. You become fully human by practising care and respect within them, every day.',
+ term:'ren', gloss:'humaneness: the quality of a person who treats others well. It is expressed through li, the forms of courtesy and ritual that let relationships work.',
+ ask:'Which relationship is at the heart of this, and what does it ask of you?',
+ quote:{text:'What you do not wish for yourself, do not impose on others.', by:'Confucius, Analects 15.24 (common rendering)'},
+ note:'Popular distortion: Confucianism is often reduced to obedience. The Analects also say that a good minister should openly oppose a ruler who is wrong (14.22).',
+ door:'If Confucian values reached you as pressure to obey and succeed, the Analects are about becoming a good person through relationships, and Confucius is sharp about empty ritual.',
+ t:{
+  loss:['Mourning rites are central to the tradition because they give grief a shape and a length of time. Confucius said that in mourning, real grief matters more than correct form (Analects 3.4).','What form could you give this grief, so it has somewhere to go?'],
+  failure:['Confucius said that to have a fault and not correct it is the real fault (15.30). Self-cultivation never ends, and failure is part of learning.','What would correcting this, rather than only regretting it, involve?'],
+  conflict:['The exemplary person seeks harmony without conformity (13.23). Harmony is not sameness; it is people in different roles treating each other with respect.','How could you keep this relationship in harmony without simply giving in?'],
+  love:['Love grows outward from the family to others in widening circles. Caring well for those close to you is the practice ground for caring for strangers.','How does this love train you to care for people beyond it?'],
+  work:['The junzi, the exemplary person, attends to what is right; the petty person attends to profit (4.16). Work is part of self-cultivation and of service.','In this work, are you thinking about what is right, or only about what pays?'],
+  change:['Confucius described his own life in stages: at fifteen he set his heart on learning, at thirty he took his stand, at forty he was free of doubts (2.4). Change is expected, slow and cumulative.','What stage of your life is this change part of?'],
+  uncertainty:['Confucius said that knowing what you know, and knowing what you do not know, is knowledge (2.17). Honesty about your limits is part of good character.','What do you actually know here, and what do you not?'],
+  joy:['The Analects open with joy: learning something and practising it, and friends arriving from far away (1.1). Joy comes from shared learning and friendship.','Who would you want to share this with, as with a friend arriving from far away?'],
+  injustice:['Mencius, Confucius\'s great successor, argued that every person has a heart that cannot bear the suffering of others, and that rulers who abuse the people lose their right to rule.','What does your heart that cannot bear others\' suffering want to do here?'],
+  stuck:['Confucius loved learning above almost anything and said that in any group of three people there is a teacher for him (7.22).','Who around you could teach you something about this?']
+ }},
+{id:'stoic', fam:'hellenistic', known:true,
+ name:'Stoicism', short:'Stoicism',
+ idea:'Stoicism began in Athens around 300 BCE and is best known through Epictetus, Seneca and Marcus Aurelius. It holds that your judgements and choices are fully yours and outside events are not, and that a good life comes from acting well within that line.',
+ term:'the dichotomy of control', gloss:'separating what is up to you (your judgements, intentions and actions) from what is not (other people, outcomes, reputation, your body).',
+ ask:'Which part of this is up to you, and which part is not?',
+ quote:{text:'It is not things themselves that disturb people, but their judgements about those things.', by:'Epictetus, Enchiridion 5 (common rendering)'},
+ note:'Popular distortion: lower-case "stoic" means keeping a stiff upper lip. The Stoics aimed at sound judgement rather than numbness, and they valued good feelings such as joy.',
+ door:'Stoicism is a set of daily exercises for judgement rather than a mood of grim endurance.',
+ t:{
+  loss:['Epictetus advised never saying "I have lost it", only "I have given it back" (Enchiridion 11). Seneca allowed tears for a friend but warned against grief becoming a performance or a permanent home.','Is your grief still about them, or has part of it become about something else?'],
+  failure:['Cicero gives the Stoic image of an archer: doing everything to aim well is up to them, but whether the arrow hits is not entirely theirs. A miss in results is not a failure in character.','Did you aim well, even if you missed?'],
+  conflict:['Marcus Aurelius began his days expecting to meet people who are meddling, ungrateful and arrogant, and reminding himself that they are kin who act from ignorance (Meditations 2.1).','What might this person not understand that would explain how they acted?'],
+  love:['The Stoics saw people as limbs of one body, made to work together. They warned against any love that depends on controlling the other person.','What part of this love depends on things outside your control?'],
+  work:['Marcus told himself, on mornings he did not want to get up, that he was rising to do the work of a human being (5.1). Work is a duty to the common good, done well whether or not anyone praises it.','Would you do this work the same way if no one praised it?'],
+  change:['Marcus reminds himself again and again that the universe is change (4.3) and that nature loves to change things and make new ones like them.','What were you treating as permanent that was always changing?'],
+  uncertainty:['Seneca recommends rehearsing the worst case in advance (premeditatio malorum) so it loses its grip, leaving you free to act on what is up to you.','If the worst plausible outcome happened, what would still be up to you?'],
+  joy:['The Stoics separated shallow pleasure from joy (chara) rooted in acting well. They recommended enjoying what you have while remembering you will not always have it (memento mori).','Can you enjoy this more fully by remembering you will not always have it?'],
+  injustice:['The Stoics treated every person as a fellow citizen of one world, and justice is one of their four cardinal virtues. Marcus kept asking what serves the common good.','What does justice ask of you here, as a citizen of the world rather than a bystander?'],
+  stuck:['Marcus used the view from above: picture the scene from a great height, among all the cities, crowds and lives (7.48). Your stuckness shrinks to its real size.','From high above, among all the lives being lived, what does this look like?']
+ }},
+{id:'epicurean', fam:'hellenistic', known:false,
+ name:'Epicureanism', short:'Epicureanism',
+ idea:'Epicurus (341 to 270 BCE) taught that a good life is a pleasant one, but he meant quiet pleasures: friendship, simple food, conversation and freedom from fear. His school lived and studied together in a garden outside Athens.',
+ term:'ataraxia', gloss:'untroubled calm: freedom from mental disturbance, the main goal of the Epicurean life.',
+ ask:'What would make this moment simpler, rather than better?',
+ quote:{text:'Of everything wisdom provides for a happy life, by far the greatest is friendship.', by:'Epicurus, Principal Doctrines 27 (paraphrase)'},
+ note:'Popular distortion: an "epicure" loves luxury food. Epicurus ate simply and thought luxury mostly brought worry.',
+ door:'Epicurus is a philosopher of pleasure who mostly recommends friends, simple food and not being afraid.',
+ t:{
+  loss:['Epicurus argued that death is nothing to the one who dies, since where death is, we are not. For those left behind, he recommended remembering a friend with gratitude rather than lament.','What pleasure you shared with what you lost could you remember with gratitude?'],
+  failure:['Much failure hurts because of empty desires, for status or wealth, that have no natural limit. Epicurus would ask whether you failed at a natural need or at one of those.','Was what you failed at a natural need, or a desire with no limit?'],
+  conflict:['Epicureans withdrew from public life to their garden because public conflict disturbs the mind. They would ask whether this fight is worth your peace.','Is this conflict worth the calm it is costing you?'],
+  love:['Friendship is the centre of Epicurean life. Epicurus was wary of romantic passion, which he thought brought more disturbance than good, and preferred steady friendship.','Does this love bring you calm and friendship, or mostly disturbance?'],
+  work:['Epicurus advised living unnoticed (lathe biosas) and needing little, which frees you from work driven by status. Work is good when it supports a simple, secure life among friends.','How much of this work is for status, and how much for a simple good life?'],
+  change:['Epicureans thought everything is atoms moving in the void, always recombining. No god is punishing you; change is just nature.','What fear about this change could you set aside?'],
+  uncertainty:['The Epicurean four-part cure (tetrapharmakos): do not fear the gods, do not worry about death, what is good is easy to get, and what is terrible is easy to endure.','Is the thing you fear here really as hard to endure as it feels?'],
+  joy:['This is Epicurean home ground. Epicurus once asked a friend to send him a little pot of cheese so that he could have a feast whenever he liked. Simple pleasures, shared with friends, are the point.','How simple could this pleasure be and still be complete?'],
+  injustice:['Epicurus described justice as an agreement neither to harm nor be harmed (Principal Doctrines 31 to 33). Injustice breaks that agreement and also breeds fear in the one who commits it.','What agreement not to harm has been broken here?'],
+  stuck:['Epicureans practised dropping unnecessary desires. Being stuck can mean wanting something you do not actually need.','Which of your wants here could you drop without losing anything real?']
+ }},
+{id:'camus', fam:'existentialism', known:true,
+ name:'Camus and the absurd', short:'Camus',
+ idea:'Albert Camus (1913 to 1960) described the absurd: the clash between our hunger for meaning and a universe that does not answer. He rejected both despair and leaps of faith, and argued for living fully and honestly with the absurd, in a stance he called revolt.',
+ term:'the absurd', gloss:'neither the world nor us on our own, but the mismatch between our demand for meaning and the world\'s silence.',
+ ask:'If there were no hidden meaning in this, how would you still choose to live it?',
+ quote:{text:'One must imagine Sisyphus happy.', by:'Albert Camus, The Myth of Sisyphus (1942)'},
+ door:'Camus writes about living without final answers while still loving the sun and the sea.',
+ t:{
+  loss:['Camus offers no consolation that the loss was meant to be. The pain is real, the universe is silent, and you can still love life in the face of both.','Can you hold this loss without needing it to mean something?'],
+  failure:['Sisyphus pushes his rock up the hill forever, and Camus imagines him happy, because the struggle toward the heights is enough to fill a heart. Failure can be lived with defiance, and even some humour.','What would it look like to push this rock again, on your own terms?'],
+  conflict:['In The Rebel, Camus argues that every act of revolt says "no" to something and so says "yes" to a value worth defending. He opposed any violence that sacrifices people for ideas.','What value is your "no" in this conflict defending?'],
+  love:['Camus saw love, friendship and physical life (the sea, the sun, bodies) as reasons to live that need no higher purpose behind them.','Is this love enough of a reason on its own?'],
+  work:['Camus wrote that today\'s worker, doing the same tasks every day of his life, has a fate no less absurd than Sisyphus. The question is whether you are conscious of it and how you meet it.','If your work is a rock you will push for a long time, what would let you push it with your eyes open?'],
+  change:['Camus did not believe history or fate guarantees improvement. Change is something you make, in revolt and with others, without guarantees.','What change could you make here without any guarantee it will last?'],
+  uncertainty:['For Camus, honesty means not pretending to answers you do not have. Living without appeal to final answers is what he calls the absurd life.','What answer have you been pretending to have?'],
+  joy:['Camus wrote with real joy about the sea and sun of Algeria. In "Return to Tipasa" he describes finding, in the depths of winter, an invincible summer within himself.','What would it mean to enjoy this without asking what it is for?'],
+  injustice:['Camus edited the Resistance newspaper Combat and argued against the death penalty. In The Rebel he wrote "I rebel, therefore we exist": revolt reveals a dignity people share.','Who is in this with you, standing against it?'],
+  stuck:['Sisyphus is the patron of being stuck. Camus offers lucidity rather than escape, and writes that there is no fate that cannot be surmounted by scorn.','If you cannot get out of this yet, how could you be in it more clearly?']
+ }},
+{id:'sartre', fam:'existentialism', known:true,
+ name:'Sartre and de Beauvoir: freedom and responsibility', short:'Sartre and de Beauvoir',
+ idea:'Jean-Paul Sartre and Simone de Beauvoir held that there is no fixed human nature: existence precedes essence. You become what you make of yourself through your choices, and de Beauvoir stressed that this freedom is always lived in a real situation, alongside other people\'s.',
+ term:'bad faith', gloss:'mauvaise foi: deceiving yourself that you are not free, by hiding behind a role, a rule or your circumstances.',
+ ask:'Where in this are you telling yourself you had no choice?',
+ quote:{text:'Man is condemned to be free.', by:'Jean-Paul Sartre, Existentialism Is a Humanism (1946)'},
+ door:'If freedom sounded like a slogan, Sartre and de Beauvoir make it uncomfortable: you are responsible for what you make of your situation.',
+ t:{
+  loss:['De Beauvoir wrote A Very Easy Death about her mother\'s dying: unsparing and tender. She found no consolation in metaphysics, only in honesty and in being there.','What would it mean to face this loss without any comforting story?'],
+  failure:['Sartre held that you are the sum of your actions, not your intentions or hopes. A failure is a fact about what you did, and you remain free to act differently now.','Given what you did, what will you do next?'],
+  conflict:['De Beauvoir argued that to want your own freedom you must also want other people\'s (The Ethics of Ambiguity). A conflict can be tested by whether your side respects the other person\'s freedom.','Does your position here respect the other person\'s freedom too?'],
+  love:['Sartre and de Beauvoir questioned conventional relationships and wrote about love as two freedoms meeting, which is difficult and unstable. Love that tries to possess the other turns them into an object.','Is this love trying to possess, or to meet another freedom?'],
+  work:['Sartre describes a waiter who plays at being a waiter so completely that he hides from his own freedom. Work can become a costume.','Are you playing a role at work so completely that you forget you chose it?'],
+  change:['If there is no fixed self, change is always possible. You are not your past; you are what you do with it.','What part of your past are you using as a reason not to change?'],
+  uncertainty:['A student asked Sartre whether to join the Resistance or stay to care for his mother. Sartre said no theory could decide it for him: you choose, and in choosing you make your values.','If no theory can decide this, what do you choose?'],
+  joy:['Joy, for them, was often found in free creative action: writing, conversation, travel, love. It is made rather than given.','What did you choose that made this joy possible?'],
+  injustice:['De Beauvoir\'s The Second Sex showed how women are made "other" by society rather than by nature. When some people\'s choices are constrained by others, that is a moral problem.','Whose freedom is being limited here, and by whom?'],
+  stuck:['Being stuck may be bad faith: telling yourself your circumstances decide everything, when some choices remain.','What choice remains open here that you have been treating as closed?']
+ }},
+{id:'frankl', fam:'existentialism', known:true,
+ name:'Frankl and logotherapy', short:'Frankl',
+ idea:'Viktor Frankl, a Viennese psychiatrist who survived Auschwitz and other camps, argued that the deepest human drive is a will to meaning. He named three sources of it: creating a work or doing a deed, experiencing something or loving someone, and the attitude you take toward suffering you cannot avoid.',
+ term:'logotherapy', gloss:'Frankl\'s therapy built around meaning (logos). It asks what life expects of you, rather than what you expect from life.',
+ ask:'What is life asking of you in this moment?',
+ quote:{text:'Everything can be taken from a man but one thing: the last of the human freedoms, to choose one\'s attitude in any given set of circumstances, to choose one\'s own way.', by:'Viktor Frankl, Man\'s Search for Meaning'},
+ note:'Often misattributed: "Between stimulus and response there is a space" is widely credited to Frankl, but it has not been found in his writing.',
+ door:'Frankl tested his ideas in the worst conditions imaginable. His is the least abstract of the existentialist strands.',
+ t:{
+  loss:['Frankl\'s wife, parents and brother died in the camps. He held that suffering can be given meaning by how it is borne, and that love reaches the beloved even when they are absent or dead.','How do you want to bear this, in a way you could respect later?'],
+  failure:['Frankl would point to the meaning you can still create. A failed project does not erase the possibilities that remain open.','What can you still create or do, after this?'],
+  conflict:['Frankl insisted that there are decent and indecent people in every group, guards and prisoners included. A conflict does not settle who someone is.','Is there decency on the other side you have overlooked, or indecency on yours?'],
+  love:['Frankl called love the ultimate and highest goal a person can aspire to, and said love lets you see another person\'s potential, which they may not yet see themselves.','What potential do you see in this person that they may not see?'],
+  work:['Creating a work or doing a deed is the first of Frankl\'s sources of meaning. He thought each person has a task that only they can fulfil.','What in this work could only you do?'],
+  change:['Frankl held that people can change themselves at any moment and decide, within the limits of their circumstances, what they become.','Within the limits you have, what do you decide to become?'],
+  uncertainty:['In the camps, Frankl saw that those who had a "why", something or someone waiting for them, could bear almost any "how". He was quoting Nietzsche.','What "why" could carry you through this uncertain "how"?'],
+  joy:['Frankl describes moments of beauty even in the camps: a sunset, a bird. He took them as evidence that experience itself can give life meaning.','What does this joy tell you is worth living for?'],
+  injustice:['Frankl rejected collective guilt and proposed a Statue of Responsibility on America\'s West Coast to balance the Statue of Liberty on the East.','What responsibility comes with the freedom you have here?'],
+  stuck:['Logotherapy uses paradoxical intention for some fears: deliberately wishing for the thing you dread, often with humour, to loosen its grip.','What would happen if you leaned into this, with a bit of humour?']
+ }},
+{id:'humanist', fam:'humanism', known:true,
+ name:'Secular humanism and scientific awe', short:'Humanism and awe',
+ idea:'Secular humanism holds that people can lead ethical, meaningful lives without the supernatural, using reason, evidence and compassion. Scientific awe adds wonder at the actual universe: its size, its age, and the unlikeliness of us being here to notice.',
+ term:'the pale blue dot', gloss:'Voyager 1\'s 1990 photograph of Earth from about 6 billion kilometres away, a single pixel, which Carl Sagan used to talk about humility and care for each other.',
+ ask:'What does the evidence actually say about this, apart from how it feels?',
+ quote:{text:'Look again at that dot. That\'s here. That\'s home. That\'s us.', by:'Carl Sagan, Pale Blue Dot (1994)'},
+ door:'If you grew up secular, humanism can feel like an absence. It has its own history, ethics and sources of awe worth looking at on purpose.',
+ t:{
+  loss:['With no afterlife on offer, humanism honours a person through memory, through the effects they had, and through love that continues in others. Grief is the cost of a love that was real.','Which effects of this person or thing will carry on in the world?'],
+  failure:['Science advances through failed experiments. A humanist reading treats failure as information and asks what you would test next.','If this were an experiment, what did it tell you, and what would you test next?'],
+  conflict:['Humanism values reason and evidence in disagreement, and the dignity of every person whatever they believe.','What evidence would change your mind about this conflict?'],
+  love:['Love needs no external justification. Sagan wrote that for small creatures such as we, the vastness is bearable only through love.','What makes this love precious, given how brief and small we are?'],
+  work:['Humanists see work as one way to add to human flourishing and knowledge, now, in the only life we know we have.','How does this work add to human flourishing, even a little?'],
+  change:['Everything in the universe changes, from stars to species. Change is how anything new, including us, came to exist.','What might this change make possible that could not exist before?'],
+  uncertainty:['Science treats uncertainty as honest. Holding beliefs in proportion to the evidence, and saying "I don\'t know yet", is a strength.','How confident should you really be here, given the evidence?'],
+  joy:['Wonder at the natural world is a deep source of joy for many humanists. The atoms in your body were forged in stars, and that is literally true.','What in this joy would still be wonderful at the scale of the universe?'],
+  injustice:['Humanism rests on human rights and dignity. With no divine plan to set things right later, justice is up to us.','If no one else is going to fix this, what is your part?'],
+  stuck:['The pale blue dot puts your stuckness in context: brief and small, and also part of the only life we know of anywhere.','Seen from very far away, what would matter most about this?']
+ }},
+{id:'ubuntu', fam:'ubuntu', known:false,
+ name:'Ubuntu', short:'Ubuntu',
+ idea:'Ubuntu is a Southern African ethic, summed up in the Nguni saying "umuntu ngumuntu ngabantu": a person is a person through other persons. You become fully human through how you treat others and how they treat you. Desmond Tutu and philosophers such as Mogobe Ramose have written about it at length.',
+ term:'ubuntu', gloss:'humanness: being open, generous and bound up with other people, so that what diminishes them diminishes you.',
+ ask:'Whose humanity is bound up with yours in this moment?',
+ quote:{text:'Umuntu ngumuntu ngabantu. (A person is a person through other persons.)', by:'Nguni saying, isiZulu'},
+ note:'Often shortened to "I am because we are", which is closer to a line from John Mbiti\'s African Religions and Philosophy (1969) than to the saying itself.',
+ door:'Ubuntu is less a belief system than an ethic of how people make each other.',
+ t:{
+  loss:['A death is a loss to a whole community, and mourning is done together. Your grief is bound up with other people\'s grief.','Who else is grieving this, and could you grieve together?'],
+  failure:['A failure touches the community you belong to, but you are not alone in it either. Ubuntu looks for restoration rather than shame.','Who has been affected by this, and who could help you put it right?'],
+  conflict:['Tutu drew on ubuntu in South Africa\'s Truth and Reconciliation Commission, which favoured truth-telling and repair over revenge. Harming another person diminishes you too.','What would restoring the relationship, rather than winning, need?'],
+  love:['Love is how personhood is made: care given and received across a whole community. It is less private than the Western romantic ideal.','Who around you is part of this love, beyond the two of you?'],
+  work:['Work matters by how it supports others and the community, not only by personal achievement. A person with ubuntu is generous with what they have.','Who does your work make more fully human, including you?'],
+  change:['You change as your relationships change. Moving, losing people or gaining them changes who you are.','Which relationships are shifting with this change?'],
+  uncertainty:['You do not have to face uncertainty alone. Ubuntu suggests seeking counsel and relying on each other.','Who could you think this through with?'],
+  joy:['Joy is shared and grows in company. Joy kept to yourself is smaller.','Who could share this joy with you?'],
+  injustice:['Dehumanising others diminishes everyone, including the one who does it. Ubuntu asks for justice that restores dignity on all sides.','How is this injustice diminishing everyone involved, including those causing it?'],
+  stuck:['Being stuck can come from isolation. Ubuntu would ask who you have withdrawn from.','Who have you pulled away from while you have been stuck?']
+ }},
+{id:'kimmerer', fam:'reciprocity', known:false,
+ name:'Robin Wall Kimmerer: reciprocity', short:'Kimmerer',
+ idea:'Robin Wall Kimmerer is a botanist and an enrolled member of the Citizen Potawatomi Nation. In Braiding Sweetgrass (2013) she brings Indigenous teachings and plant science together around reciprocity: the land gives to us, and we owe care and gifts in return.',
+ term:'the Honorable Harvest', gloss:'guidelines she describes for taking from the land: ask permission, never take the first, take only what you need, use it respectfully, share it, and give something back.',
+ ask:'What have you been given in this, and what do you owe in return?',
+ quote:{text:'All flourishing is mutual.', by:'Robin Wall Kimmerer, Braiding Sweetgrass (2013)'},
+ note:'Kimmerer writes from her own Potawatomi heritage and her training as a scientist. She is one voice, not a spokesperson for all Indigenous traditions.',
+ door:'Kimmerer writes as a scientist and a Potawatomi woman at once, so the plants are both data and teachers.',
+ t:{
+  loss:['Kimmerer writes about grief for land and species alongside personal grief. Loss can be met with gratitude for what was given and a wish to give something back.','What were you given by what you lost, and how could you pass that gift on?'],
+  failure:['In gardens and forests, things fail and become compost for what comes next. In a reciprocal world, failure feeds new growth.','What could this failure feed?'],
+  conflict:['She describes the Three Sisters (corn, beans and squash) growing together, each different and each helping the others. Difference can be a strength in a relationship.','What does each side bring that the other needs?'],
+  love:['She asks whether the land loves us back, and finds the answer in her garden, where care and food pass in both directions. Love is shown through gifts given and received.','How is love being given and received here, in both directions?'],
+  work:['Kimmerer contrasts a gift economy with a market economy. Work given as a gift builds relationship; work done only for exchange can feel empty.','Which parts of your work feel like gifts, and which only like transactions?'],
+  change:['Plants respond to the seasons while staying in relationship with everything around them. Change is natural and happens together.','Which relationships could help you through this change?'],
+  uncertainty:['Kimmerer stresses humility about what we do not know, and learning from plants and other beings as teachers.','What could you learn by paying close attention to something other than yourself?'],
+  joy:['For Kimmerer, wild strawberries are a gift that shaped her sense of the world as generous. Gratitude is the natural response to joy, and it leads to giving back.','Who or what would you thank for this joy?'],
+  injustice:['She writes about the taking of land and the loss of language, and about restoration as both ecological and cultural work.','What would restoration, and not only stopping the harm, look like here?'],
+  stuck:['Reciprocity suggests you may be stuck because something has stopped flowing in both directions.','Where has giving or receiving stopped flowing in your life?']
+ }}
+];
+var LENS = {}; LENSES.forEach(function(l){ LENS[l.id] = l; });
+
+/* ------------------------------------------------------------------ */
+/* State and storage                                                   */
+/* ------------------------------------------------------------------ */
+
+var storageOk = true;
+
+function todayISO(){
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function uid(){ return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function exampleMoments(){
+  var L1 = LENS.gita, L2 = LENS.stoic, L3 = LENS.zhuangzi, L4 = LENS.ignatian;
+  var M1 = LENS.theravada, M2 = LENS.ubuntu, M3 = LENS.desert, M4 = LENS.frankl;
+  return [
+    {id:'ex-work', example:true, created:'2026-09-18T19:40:00.000Z', date:'2026-09-18', theme:'work',
+     what:'I was passed over for team lead. It went to someone who joined a year after me, and I had been doing half the job already. I said congratulations in the meeting, then sat in my car for twenty minutes before I could drive home.',
+     felt:'Hollow first, then angry, then embarrassed about how much I cared.',
+     lenses:[
+      {id:'gita', mark:'lands', q:0, question:L1.t.work[1], answer:'Honestly, I am not sure I even want to manage people. I wanted the title because it would prove something.'},
+      {id:'stoic', mark:'pushes', q:1, question:L2.ask, answer:'I know the promotion was not up to me. Being told that does not help yet. It feels like being asked to skip the part where it hurts.'},
+      {id:'zhuangzi', mark:'lands', q:0, question:L3.t.work[1], answer:'The parts I am good at are the ones nobody counts: untangling messes, helping new people find their feet. Maybe that is the gap.'},
+      {id:'ignatian', mark:'unsure', q:0, question:L4.t.work[1], answer:''}
+     ]},
+    {id:'ex-loss', example:true, created:'2026-08-02T10:15:00.000Z', date:'2026-08-02', theme:'loss',
+     what:'My grandmother died in the spring and I was the one who cleared out her flat. I was fine with the furniture and the paperwork. Then I found a drawer with every birthday card I had ever sent her, in order.',
+     felt:'Calm and practical for two days, then completely undone by a drawer.',
+     lenses:[
+      {id:'theravada', mark:'pushes', q:0, question:M1.t.loss[1], answer:'I do not want to watch my grief like a lab sample. It felt like being asked to step back from her.'},
+      {id:'ubuntu', mark:'lands', q:0, question:M2.t.loss[1], answer:'My uncle. We have barely spoken since the funeral. I should call him.'},
+      {id:'desert', mark:'unsure', q:0, question:M3.t.loss[1], answer:''},
+      {id:'frankl', mark:'lands', q:0, question:M4.t.loss[1], answer:'Keep the cards. Write to my cousins\' kids the way she wrote to me.'}
+     ]}
+  ];
+}
+
+function defaultState(){
+  return {v:1, seeded:true, settings:{grewUp:[], theme:'system'}, moments:[], draft:null, queued:[], ui:{view:'map', mapTheme:'all', archTheme:'all'}};
+}
+
+function str(v, max){ return (typeof v === 'string' ? v : '').slice(0, max || 4000); }
+
+function normalize(s){
+  var out = defaultState();
+  if (!s || typeof s !== 'object') return out;
+  out.seeded = true;
+  var st = s.settings || {};
+  out.settings.grewUp = Array.isArray(st.grewUp) ? st.grewUp.filter(function(f){ return FAMILIES[f]; }) : [];
+  out.settings.theme = ['system','light','dark'].indexOf(st.theme) >= 0 ? st.theme : 'system';
+  var ms = Array.isArray(s.moments) ? s.moments : [];
+  out.moments = ms.filter(function(m){ return m && typeof m === 'object'; }).map(function(m){
+    var lenses = (Array.isArray(m.lenses) ? m.lenses : []).filter(function(r){ return r && LENS[r.id]; }).map(function(r){
+      return {id:r.id, mark: MARK_LABEL[r.mark] ? r.mark : null, q: r.q === 1 ? 1 : 0, question: str(r.question, 600), answer: str(r.answer, 4000)};
+    });
+    return {
+      id: str(m.id, 60) || uid(), example: !!m.example,
+      created: str(m.created, 40) || new Date().toISOString(),
+      date: /^\d{4}-\d{2}-\d{2}$/.test(m.date) ? m.date : todayISO(),
+      theme: THEME_LABEL[m.theme] ? m.theme : 'change',
+      what: str(m.what, 4000), felt: str(m.felt, 2000), lenses: lenses
+    };
+  });
+  var d = s.draft;
+  if (d && typeof d === 'object') {
+    out.draft = {
+      stage: d.stage === 'lenses' ? 'lenses' : 'form',
+      what: str(d.what), felt: str(d.felt, 2000),
+      theme: THEME_LABEL[d.theme] ? d.theme : '',
+      date: /^\d{4}-\d{2}-\d{2}$/.test(d.date) ? d.date : todayISO(),
+      lenses: (Array.isArray(d.lenses) ? d.lenses : []).filter(function(r){ return r && LENS[r.id]; }).map(function(r){
+        return {id:r.id, mark: MARK_LABEL[r.mark] ? r.mark : null, q: r.q === 1 ? 1 : 0, answer: str(r.answer)};
+      })
+    };
+    if (out.draft.stage === 'lenses' && (!out.draft.theme || !out.draft.lenses.length)) out.draft.stage = 'form';
+  }
+  out.queued = Array.isArray(s.queued) ? s.queued.filter(function(id){ return LENS[id]; }) : [];
+  var ui = s.ui || {};
+  out.ui.view = ['map','new','doors','moments','data'].indexOf(ui.view) >= 0 ? ui.view : 'map';
+  out.ui.mapTheme = (ui.mapTheme === 'all' || THEME_LABEL[ui.mapTheme]) ? ui.mapTheme : 'all';
+  out.ui.archTheme = (ui.archTheme === 'all' || THEME_LABEL[ui.archTheme]) ? ui.archTheme : 'all';
+  return out;
+}
+
+function load(){
+  var raw = null;
+  try { raw = localStorage.getItem(KEY); } catch (e) { storageOk = false; }
+  if (raw) {
+    try { return normalize(JSON.parse(raw)); } catch (e) { /* fall through to a fresh state */ }
+  }
+  var s = defaultState();
+  s.moments = exampleMoments();
+  return s;
+}
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(state)); storageOk = true; }
+  catch (e) { storageOk = false; }
+}
+
+var state = load();
+
+/* ------------------------------------------------------------------ */
+/* Helpers                                                             */
+/* ------------------------------------------------------------------ */
+
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function $(id){ return document.getElementById(id); }
+function announce(msg){
+  var el = $('live'); if (!el) return;
+  el.textContent = '';
+  setTimeout(function(){ el.textContent = msg; }, 30);
+}
+function fmtDate(iso){
+  var p = String(iso || '').split('-');
+  if (p.length !== 3) return iso;
+  var d = new Date(+p[0], +p[1]-1, +p[2]);
+  try { return d.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}); }
+  catch (e) { return iso; }
+}
+function swatch(hue){
+  return '<svg class="sw" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M6 1 11.2 11H.8Z" fill="' + hue + '" stroke="var(--sw-stroke)" stroke-width=".8"/></svg>';
+}
+function markIcon(m){
+  if (m === 'lands') return '<svg viewBox="0 0 18 18" aria-hidden="true" focusable="false"><rect x="8" y="2" width="2" height="14" fill="currentColor" opacity=".45"/><path d="M1 9h16M13 6l4 3-4 3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
+  if (m === 'unsure') return '<svg viewBox="0 0 18 18" aria-hidden="true" focusable="false"><rect x="8" y="2" width="2" height="14" fill="currentColor" opacity=".45"/><path d="M1 9h6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 9h1.6M14.4 9H16" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11.5 5.5l1.4-.9M11.5 12.5l1.4.9" stroke="currentColor" stroke-width="1.2"/></svg>';
+  return '<svg viewBox="0 0 18 18" aria-hidden="true" focusable="false"><rect x="10" y="2" width="2" height="14" fill="currentColor" opacity=".45"/><path d="M1 14l8.4-5L1 4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M1 4l3.6.2M1 4l2 3" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>';
+}
+function plural(n, one, many){ return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+function themeLower(t){ return (THEME_LABEL[t] || '').toLowerCase(); }
+
+/* ------------------------------------------------------------------ */
+/* Statistics                                                          */
+/* ------------------------------------------------------------------ */
+
+function stats(filter){
+  var fam = {}, lens = {}, moments = 0, own = 0, examples = 0;
+  FAMILY_ORDER.forEach(function(f){ fam[f] = {lands:0, unsure:0, pushes:0, tried:{}}; });
+  state.moments.forEach(function(m){
+    if (filter && filter !== 'all' && m.theme !== filter) return;
+    moments++; if (m.example) examples++; else own++;
+    m.lenses.forEach(function(r){
+      if (!r.mark || !LENS[r.id]) return;
+      var L = LENS[r.id];
+      fam[L.fam][r.mark]++;
+      fam[L.fam].tried[r.id] = true;
+      var s = lens[r.id] || (lens[r.id] = {lands:0, unsure:0, pushes:0, th:{lands:{}, unsure:{}, pushes:{}}});
+      s[r.mark]++;
+      s.th[r.mark][m.theme] = (s.th[r.mark][m.theme] || 0) + 1;
+    });
+  });
+  return {fam:fam, lens:lens, moments:moments, own:own, examples:examples};
+}
+function lensCounts(){
+  var c = {};
+  state.moments.forEach(function(m){ m.lenses.forEach(function(r){ if (r.mark) c[r.id] = (c[r.id] || 0) + 1; }); });
+  return c;
+}
+
+/* ------------------------------------------------------------------ */
+/* Lens selection                                                      */
+/* ------------------------------------------------------------------ */
+
+function wpick(arr, wfn){
+  var ws = arr.map(wfn), tot = ws.reduce(function(a,b){ return a + b; }, 0), r = Math.random() * tot;
+  for (var i = 0; i < arr.length; i++) { r -= ws[i]; if (r <= 0) return arr[i]; }
+  return arr[arr.length - 1];
+}
+/* Picks n lenses: alternating familiar and less familiar, at most one per tradition,
+   favouring lenses you have not tried yet, and offering one "different door" from a
+   tradition you grew up with when there is an untried strand. */
+function pickLenses(n, keepIds, avoidIds){
+  var counts = lensCounts();
+  var taken = {}, fams = {};
+  keepIds.forEach(function(id){ taken[id] = true; fams[LENS[id].fam] = true; });
+  (avoidIds || []).forEach(function(id){ taken[id] = true; });
+  var picks = [];
+  var weight = function(l){ return 1 / (1 + 1.6 * (counts[l.id] || 0)); };
+  var grew = state.settings.grewUp;
+  if (grew.length) {
+    var doors = LENSES.filter(function(l){ return grew.indexOf(l.fam) >= 0 && !taken[l.id] && !counts[l.id] && !fams[l.fam]; });
+    var already = keepIds.some(function(id){ return grew.indexOf(LENS[id].fam) >= 0; });
+    if (doors.length && !already && picks.length < n) {
+      var d = wpick(doors, weight); picks.push(d.id); taken[d.id] = true; fams[d.fam] = true;
+    }
+  }
+  var guard = 0;
+  while (picks.length < n && guard++ < 50) {
+    var all = keepIds.concat(picks);
+    var fam = all.filter(function(id){ return LENS[id].known; }).length;
+    var wantKnown = fam < Math.ceil((all.length + 1) / 2);
+    var pool = LENSES.filter(function(l){ return !taken[l.id] && !fams[l.fam] && l.known === wantKnown; });
+    if (!pool.length) pool = LENSES.filter(function(l){ return !taken[l.id] && !fams[l.fam]; });
+    if (!pool.length) pool = LENSES.filter(function(l){ return !taken[l.id]; });
+    if (!pool.length) break;
+    var p = wpick(pool, weight); picks.push(p.id); taken[p.id] = true; fams[p.fam] = true;
+  }
+  return picks;
+}
+
+/* ------------------------------------------------------------------ */
+/* Theme (light / dark)                                                */
+/* ------------------------------------------------------------------ */
+
+var weSetTheme = false;
+function applyTheme(){
+  var root = document.documentElement, t = state.settings.theme;
+  if (t === 'light' || t === 'dark') { root.setAttribute('data-theme', t); weSetTheme = true; }
+  else if (weSetTheme) { root.removeAttribute('data-theme'); weSetTheme = false; }
+  var btn = $('theme-btn');
+  if (btn) btn.textContent = effectiveTheme() === 'dark' ? 'Use light theme' : 'Use dark theme';
+}
+function effectiveTheme(){
+  var a = document.documentElement.getAttribute('data-theme');
+  if (a === 'dark' || a === 'light') return a;
+  try { return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; } catch (e) { return 'light'; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Rendering: shell                                                    */
+/* ------------------------------------------------------------------ */
+
+var view = $('view');
+var browseOpen = false;
+var lastSaved = null;
+var pendingDelete = null;
+var eraseArmed = false;
+var animateNext = true;
+
+function setView(v, opts){
+  state.ui.view = v; save();
+  if (v === 'map') animateNext = true;
+  render();
+  if (!opts || opts.focus !== false) {
+    var h = view.querySelector('h2'); if (h) h.focus({preventScroll:true});
+    try { window.scrollTo({top:0}); } catch (e) { window.scrollTo(0,0); }
+  }
+}
+
+function renderNav(){
+  var btns = document.querySelectorAll('#nav button');
+  for (var i = 0; i < btns.length; i++) {
+    if (btns[i].getAttribute('data-view') === state.ui.view) btns[i].setAttribute('aria-current', 'page');
+    else btns[i].removeAttribute('aria-current');
+  }
+}
+function renderBanner(){
+  var n = state.moments.filter(function(m){ return m.example; }).length;
+  $('banner').innerHTML = n ? (
+    '<div class="examples" role="region" aria-label="Example data"><span class="tag">Example</span>' +
+    '<p>You are looking at ' + plural(n, 'made-up example moment') + ', already marked so the map has something to show. Your own moments will sit alongside them until you clear them.</p>' +
+    '<button type="button" class="btn small" data-act="clear-examples">Clear examples and start my own</button></div>'
+  ) : '';
+}
+
+function render(){
+  renderNav(); renderBanner(); applyTheme();
+  var v = state.ui.view;
+  if (v === 'map') renderMap();
+  else if (v === 'new') renderNew();
+  else if (v === 'doors') renderDoors();
+  else if (v === 'moments') renderMoments();
+  else renderData();
+}
+
+/* ------------------------------------------------------------------ */
+/* View: resonance map                                                 */
+/* ------------------------------------------------------------------ */
+
+var currentStats = null;
+
+function renderMap(){
+  var f = state.ui.mapTheme;
+  var st = stats(f), all = stats('all');
+  currentStats = st;
+  var themeCounts = {};
+  state.moments.forEach(function(m){ themeCounts[m.theme] = (themeCounts[m.theme] || 0) + 1; });
+
+  var how = state.moments.filter(function(m){ return !m.example; }).length < 3 ? (
+    '<ol class="how" aria-label="How Prism works">' +
+    '<li><span class="n" aria-hidden="true">1</span><strong>Bring a moment</strong><span class="d">A few sentences about something that happened, and what it felt like.</span></li>' +
+    '<li><span class="n" aria-hidden="true">2</span><strong>See it through four lenses</strong><span class="d">Each tradition frames that kind of moment differently and asks its own questions.</span></li>' +
+    '<li><span class="n" aria-hidden="true">3</span><strong>Mark what lands and what you push back on</strong><span class="d">Over many moments the map fills with your own evidence.</span></li>' +
+    '</ol>') : '';
+
+  var chips = '<fieldset class="chips"><legend class="label">Show moments about</legend>' +
+    '<span class="chip"><input type="radio" name="mapf" id="mf-all" value="all"' + (f === 'all' ? ' checked' : '') + '><label for="mf-all">All themes<span class="ct">' + state.moments.length + '</span></label></span>' +
+    THEMES.map(function(t){
+      return '<span class="chip"><input type="radio" name="mapf" id="mf-' + t[0] + '" value="' + t[0] + '"' + (f === t[0] ? ' checked' : '') + '><label for="mf-' + t[0] + '">' + esc(t[1]) + '<span class="ct">' + (themeCounts[t[0]] || 0) + '</span></label></span>';
+    }).join('') + '</fieldset>';
+
+  var exNote = st.examples ? ' This view includes ' + plural(st.examples, 'example moment') + '.' : '';
+
+  view.innerHTML =
+    '<section class="view" aria-labelledby="h-map">' +
+    '<div class="view-head split"><h2 id="h-map" tabindex="-1">Resonance map</h2>' +
+    '<p class="lede">Each moment you bring is white light, and each lens splits it a different way. Over time the bands show which traditions keep landing for you and which you push back on, theme by theme. Nothing here is ranked. The map only shows your own marks back to you.' + exNote + '</p></div>' +
+    (state.moments.length ? '' : '<div class="empty" style="margin-bottom:22px"><p>No moments yet. Bring one, and the light starts to split. The map fills in as you mark lenses.</p><button type="button" class="btn primary" data-act="nav" data-view="new">Bring a moment</button></div>') +
+    chips +
+    '<figure class="bench" id="bench" aria-describedby="map-legend">' +
+      '<div class="bench-svg" id="bench-svg"></div>' +
+      (st.moments === 0 && state.moments.length ? '<p class="bench-empty">No moments about ' + esc(themeLower(f)) + ' yet.</p>' : '') +
+      '<figcaption class="legend" id="map-legend">' +
+        '<span><i style="background:linear-gradient(90deg,rgba(255,255,255,.15),#fff)"></i>Band width: how often a tradition landed</span>' +
+        '<span><i style="background:linear-gradient(90deg,rgba(103,135,255,.3),rgba(103,135,255,1))"></i>Brightness: how consistently it landed when tried</span>' +
+        '<span><i style="height:3px;background:#ff8c42;transform:rotate(-20deg)"></i>Reflected rays: pushback, which is evidence too</span>' +
+        '<span><i style="height:0;border-top:1px dashed rgba(255,255,255,.6)"></i>Dashed: not tried yet</span>' +
+        '<span>Full figures are in the table below.</span>' +
+      '</figcaption>' +
+    '</figure>' +
+    how +
+    '<div class="map-cols">' +
+      '<div>' + mapTable(st, f) + lensTable(st) + '</div>' +
+      '<div>' + patternBlock(st, f) + byThemeBlock(f) + '</div>' +
+    '</div>' +
+    '</section>';
+  drawPrism();
+}
+
+function mapTable(st, f){
+  var rows = FAMILY_ORDER.map(function(k){
+    var d = st.fam[k], F = FAMILIES[k], tot = d.lands + d.unsure + d.pushes;
+    var tried = Object.keys(d.tried).map(function(id){ return LENS[id].short; }).join(', ');
+    return '<tr' + (tot ? '' : ' class="untried"') + '><th scope="row">' + swatch(F.hue) + esc(F.name) + '</th>' +
+      '<td class="n">' + d.lands + '</td><td class="n">' + d.unsure + '</td><td class="n">' + d.pushes + '</td>' +
+      '<td>' + (tried ? esc(tried) : 'Not tried yet') + '</td></tr>';
+  }).join('');
+  return '<h3 style="margin-bottom:10px">In words</h3><div class="table-wrap"><table>' +
+    '<caption>Marks by tradition' + (f !== 'all' ? ', ' + esc(themeLower(f)) + ' only' : '') + '</caption>' +
+    '<thead><tr><th scope="col">Tradition</th><th scope="col" class="n">Landed</th><th scope="col" class="n">Not sure</th><th scope="col" class="n">Pushed back</th><th scope="col">Strands tried</th></tr></thead>' +
+    '<tbody>' + rows + '</tbody></table></div>';
+}
+function lensTable(st){
+  var ids = Object.keys(st.lens);
+  if (!ids.length) return '';
+  ids.sort(function(a,b){
+    var fa = FAMILY_ORDER.indexOf(LENS[a].fam), fb = FAMILY_ORDER.indexOf(LENS[b].fam);
+    return fa - fb || LENS[a].short.localeCompare(LENS[b].short);
+  });
+  var rows = ids.map(function(id){
+    var s = st.lens[id], L = LENS[id];
+    return '<tr><th scope="row">' + swatch(FAMILIES[L.fam].hue) + esc(L.short) + '</th><td class="n">' + s.lands + '</td><td class="n">' + s.unsure + '</td><td class="n">' + s.pushes + '</td></tr>';
+  }).join('');
+  return '<div class="table-wrap" style="margin-top:16px"><table><caption>Marks by lens</caption>' +
+    '<thead><tr><th scope="col">Lens</th><th scope="col" class="n">Landed</th><th scope="col" class="n">Not sure</th><th scope="col" class="n">Pushed back</th></tr></thead>' +
+    '<tbody>' + rows + '</tbody></table></div>';
+}
+
+function themeList(obj){
+  return Object.keys(obj).map(themeLower).join(' and ');
+}
+function patternBlock(st, f){
+  var qs = [];
+  var ids = Object.keys(st.lens);
+  ids.forEach(function(id){
+    var s = st.lens[id], n = LENS[id].short;
+    if (s.lands >= 2 && !s.pushes) qs.push(n + ' has landed ' + s.lands + ' times. What do those moments have in common?');
+    if (s.pushes >= 2) qs.push('You have pushed back on ' + n + ' ' + s.pushes + ' times. What, specifically, does it get wrong about your life?');
+    if (s.lands && s.pushes) qs.push(n + ' landed on ' + themeList(s.th.lands) + ' but you pushed back on ' + themeList(s.th.pushes) + '. What is different about those moments?');
+  });
+  FAMILY_ORDER.forEach(function(k){
+    var tried = Object.keys(st.fam[k].tried);
+    if (tried.length < 2) return;
+    var landed = tried.filter(function(id){ return st.lens[id].lands; });
+    var pushed = tried.filter(function(id){ return st.lens[id].pushes && !st.lens[id].lands; });
+    if (landed.length && pushed.length) qs.push('Within ' + FAMILIES[k].name + ', ' + LENS[landed[0]].short + ' landed and you pushed back on ' + LENS[pushed[0]].short + '. What separates them for you?');
+  });
+  if (qs.length < 3) {
+    ids.forEach(function(id){
+      var s = st.lens[id], n = LENS[id].short;
+      if (qs.length >= 4) return;
+      if (s.lands === 1 && !s.pushes) qs.push(n + ' landed on a moment about ' + themeList(s.th.lands) + '. Would it hold up on a different kind of moment?');
+      else if (s.pushes === 1 && !s.lands) qs.push('You pushed back on ' + n + ' on a moment about ' + themeList(s.th.pushes) + '. Would it read differently on another theme, or is the disagreement deeper?');
+    });
+  }
+  var grew = state.settings.grewUp;
+  grew.forEach(function(k){
+    var untried = LENSES.filter(function(l){ return l.fam === k && !st.fam[k].tried[l.id]; });
+    if (untried.length && qs.length < 6) qs.push('You grew up around ' + FAMILIES[k].name + '. You have not yet tried ' + untried.map(function(l){ return l.short; }).slice(0,3).join(', ') + '. Which of those sounds least like the version you knew?');
+  });
+  qs = qs.slice(0, 6);
+  var caveat = st.own < 5
+    ? 'Based on ' + plural(st.moments, 'moment') + (st.examples ? ', ' + st.examples + ' of them examples' : '') + '. Patterns need more lived material than that, so treat these as questions to sit with rather than findings.'
+    : 'Based on ' + plural(st.moments, 'moment') + '. Prism asks rather than concludes: the answers are yours to work out.';
+  return '<h3 style="margin-bottom:10px">Questions the pattern raises</h3><p class="caveat">' + esc(caveat) + '</p>' +
+    (qs.length ? '<ul class="qlist">' + qs.map(function(q){ return '<li>' + esc(q) + '</li>'; }).join('') + '</ul>'
+               : '<p class="muted">No patterns yet. They appear once a few moments have been marked.</p>');
+}
+function byThemeBlock(f){
+  var groups = {};
+  state.moments.forEach(function(m){
+    if (f !== 'all' && m.theme !== f) return;
+    var g = groups[m.theme] || (groups[m.theme] = {n:0, lands:{}, unsure:{}, pushes:{}});
+    g.n++;
+    m.lenses.forEach(function(r){ if (r.mark) g[r.mark][r.id] = (g[r.mark][r.id] || 0) + 1; });
+  });
+  var keys = THEMES.map(function(t){ return t[0]; }).filter(function(k){ return groups[k]; });
+  if (!keys.length) return '';
+  var line = function(obj, label){
+    var ids = Object.keys(obj); if (!ids.length) return '';
+    return '<p><b>' + label + '</b>' + esc(ids.map(function(id){ return LENS[id].short + (obj[id] > 1 ? ' (' + obj[id] + ')' : ''); }).join(', ')) + '</p>';
+  };
+  return '<div class="section" style="margin-top:28px"><h3>By theme</h3><ul class="bytheme">' + keys.map(function(k){
+    var g = groups[k];
+    return '<li><h4>' + esc(THEME_LABEL[k]) + '<span class="label">' + plural(g.n, 'moment') + '</span></h4>' +
+      line(g.lands, 'Landed') + line(g.unsure, 'Not sure') + line(g.pushes, 'Pushed back') + '</li>';
+  }).join('') + '</ul></div>';
+}
+
+/* The prism drawing. Units in the SVG equal CSS pixels, so text stays readable at any width. */
+var lastBenchW = 0;
+function drawPrism(){
+  var holder = $('bench-svg'); if (!holder || !currentStats) return;
+  var W = Math.max(290, Math.round(holder.clientWidth || 340));
+  lastBenchW = W;
+  holder.innerHTML = prismSVG(currentStats, W, animateNext);
+  animateNext = false;
+}
+function f1(n){ return Math.round(n * 10) / 10; }
+function pt(p){ return f1(p[0]) + ',' + f1(p[1]); }
+function lerp(a, b, t){ return [a[0] + (b[0]-a[0]) * t, a[1] + (b[1]-a[1]) * t]; }
+
+function prismSVG(st, W, animate){
+  var N = FAMILY_ORDER.length, wide = W >= 720;
+  var H, cx, cy, side, bandEnd, labelX, top, bottom, refX, refTop, refBottom, nameSize, metaSize;
+  if (wide) {
+    H = 560; side = Math.min(210, W * 0.2); cx = W * 0.3; cy = 300;
+    bandEnd = W - 270; labelX = bandEnd + 16; top = 40; bottom = H - 22;
+    refX = 132; refTop = 52; refBottom = 206; nameSize = 16; metaSize = 12;
+  } else {
+    H = N * 54 + 54; side = Math.min(104, W * 0.26); cx = Math.max(side * 0.62, W * 0.18); cy = H / 2;
+    bandEnd = W - 150; labelX = W - 142; top = 36; bottom = H - 16;
+    refX = 10; refTop = 44; refBottom = cy - 120; nameSize = 14; metaSize = 11;
+  }
+  var h = side * Math.sqrt(3) / 2;
+  var apex = [cx, cy - 2*h/3], bl = [cx - side/2, cy + h/3], br = [cx + side/2, cy + h/3];
+  var entry = lerp(bl, apex, 0.42);
+  var slot = (bottom - top) / N;
+  var maxLands = 1;
+  FAMILY_ORDER.forEach(function(k){ maxLands = Math.max(maxLands, st.fam[k].lands); });
+  var beamY = wide ? cy + 36 : cy + 22;
+  var bw = st.moments ? Math.min(14, 2.5 + st.moments * 1.6) : 1.5;
+
+  var s = [];
+  s.push('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-labelledby="prism-title prism-desc"' + (animate ? ' class="animate"' : '') + '>');
+  s.push('<title id="prism-title">Resonance prism</title>');
+  s.push('<desc id="prism-desc">' + esc(prismDesc(st)) + '</desc>');
+  s.push('<defs>' +
+    '<linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".26"/><stop offset=".55" stop-color="#fff" stop-opacity=".07"/><stop offset="1" stop-color="#9fb4ff" stop-opacity=".12"/></linearGradient>' +
+    '<linearGradient id="beamfade" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".1"/><stop offset="1" stop-color="#fff" stop-opacity="1"/></linearGradient>' +
+    '<filter id="glow" filterUnits="userSpaceOnUse" x="0" y="0" width="' + W + '" height="' + H + '"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
+    '</defs>');
+
+  /* reflected pushback rays */
+  var pf = FAMILY_ORDER.filter(function(k){ return st.fam[k].pushes > 0; });
+  if (pf.length) {
+    s.push('<text class="t-cap" x="' + (wide ? 16 : 10) + '" y="' + (wide ? 26 : 24) + '" font-size="11">PUSHBACK, REFLECTED</text>');
+    s.push('<g class="refl">');
+    pf.forEach(function(k, i){
+      var y = pf.length === 1 ? (refTop + refBottom) / 2 : refTop + i * (refBottom - refTop) / (pf.length - 1);
+      var x = wide ? refX : refX + (i % 2) * 6;
+      var w = Math.min(10, 1.2 + 2.2 * st.fam[k].pushes);
+      s.push('<line x1="' + f1(entry[0]) + '" y1="' + f1(entry[1]) + '" x2="' + f1(x) + '" y2="' + f1(y) + '" stroke="' + FAMILIES[k].hue + '" stroke-width="' + f1(w) + '" stroke-linecap="round" opacity=".85"/>');
+      if (wide) s.push('<text class="t-meta" x="' + (x - 10) + '" y="' + f1(y + 4) + '" font-size="12" text-anchor="end">' + esc(FAMILIES[k].short) + ' ' + st.fam[k].pushes + '</text>');
+    });
+    s.push('</g>');
+  }
+
+  /* incoming white light */
+  s.push('<line x1="0" y1="' + f1(beamY) + '" x2="' + f1(entry[0]) + '" y2="' + f1(entry[1]) + '" stroke="url(#beamfade)" stroke-width="' + f1(bw) + '" stroke-linecap="round" filter="url(#glow)"' + (st.moments ? '' : ' stroke-dasharray="3 6"') + '/>');
+  if (wide) s.push('<text class="t-cap" x="16" y="' + f1(beamY + bw/2 + 20) + '" font-size="11">WHITE LIGHT: ' + esc(plural(st.moments, 'moment').toUpperCase()) + '</text>');
+  else s.push('<text class="t-cap" x="8" y="' + f1(bl[1] + 26) + '" font-size="11">WHITE LIGHT</text><text class="t-cap" x="8" y="' + f1(bl[1] + 40) + '" font-size="11">' + esc(plural(st.moments, 'moment').toUpperCase()) + '</text>');
+
+  /* exit points along the far face */
+  var exits = FAMILY_ORDER.map(function(k, i){ return 0.36 + (i / (N - 1)) * 0.3; });
+  var e0 = lerp(apex, br, exits[0]), eN = lerp(apex, br, exits[N-1]);
+  s.push('<polygon points="' + pt(entry) + ' ' + pt(e0) + ' ' + pt(eN) + '" fill="#fff" opacity="' + (st.moments ? .16 : .05) + '"/>');
+  s.push('<polygon points="' + pt(apex) + ' ' + pt(br) + ' ' + pt(bl) + '" fill="url(#glass)" stroke="rgba(255,255,255,.7)" stroke-width="1.2" stroke-linejoin="round"/>');
+  s.push('<line x1="' + f1(apex[0]) + '" y1="' + f1(apex[1] + 6) + '" x2="' + f1(bl[0] + 8) + '" y2="' + f1(bl[1] - 3) + '" stroke="#fff" stroke-opacity=".25" stroke-width="1"/>');
+
+  /* spectrum bands */
+  s.push('<g style="mix-blend-mode:screen">');
+  FAMILY_ORDER.forEach(function(k, i){
+    var d = st.fam[k], F = FAMILIES[k], tot = d.lands + d.unsure + d.pushes;
+    var yc = top + slot * (i + 0.5);
+    var a = lerp(apex, br, exits[i] - 0.008), b = lerp(apex, br, exits[i] + 0.008), m = lerp(apex, br, exits[i]);
+    if (!tot) {
+      s.push('<line class="band" style="--i:' + i + '" x1="' + f1(m[0]) + '" y1="' + f1(m[1]) + '" x2="' + f1(bandEnd) + '" y2="' + f1(yc) + '" stroke="' + F.hue + '" stroke-opacity=".38" stroke-width="1" stroke-dasharray="2 5"/>');
+    } else {
+      var hh = d.lands ? 3 + (slot * 0.74 - 3) * (d.lands / maxLands) : 1.4;
+      var op = d.lands ? 0.38 + 0.62 * (d.lands / tot) : 0.3;
+      s.push('<polygon class="band" style="--i:' + i + '" points="' + pt(a) + ' ' + pt(b) + ' ' + f1(bandEnd) + ',' + f1(yc + hh/2) + ' ' + f1(bandEnd) + ',' + f1(yc - hh/2) + '" fill="' + F.hue + '" fill-opacity="' + f1(op * 100) / 100 + '"/>');
+    }
+  });
+  s.push('</g>');
+
+  /* labels */
+  FAMILY_ORDER.forEach(function(k, i){
+    var d = st.fam[k], F = FAMILIES[k], tot = d.lands + d.unsure + d.pushes;
+    var yc = top + slot * (i + 0.5);
+    var parts = [];
+    if (d.lands) parts.push(d.lands + ' landed');
+    if (d.unsure) parts.push(d.unsure + ' not sure');
+    if (d.pushes) parts.push(d.pushes + ' pushed back');
+    var meta = tot ? parts : ['not tried yet'];
+    var lines = [];
+    if (wide || meta.join(' · ').length <= 19) lines = [meta.join(' · ')];
+    else { lines = [meta.slice(0, Math.min(2, meta.length - 1) || 1).join(' · ')]; var rest = meta.slice(lines[0].split(' · ').length); if (rest.length) lines.push(rest.join(' · ')); }
+    var y0 = yc - (lines.length > 1 ? 9 : 3);
+    s.push('<text class="t-name" x="' + f1(labelX) + '" y="' + f1(y0) + '" font-size="' + nameSize + '"' + (tot ? '' : ' opacity=".6"') + '>' + esc(F.short) + '</text>');
+    lines.forEach(function(ln, j){
+      s.push('<text class="t-meta" x="' + f1(labelX) + '" y="' + f1(y0 + metaSize + 4 + j * (metaSize + 2)) + '" font-size="' + metaSize + '">' + esc(ln) + '</text>');
+    });
+  });
+  s.push('</svg>');
+  return s.join('');
+}
+function prismDesc(st){
+  if (!st.moments) return 'No moments marked yet, so the light has not split.';
+  var landed = FAMILY_ORDER.filter(function(k){ return st.fam[k].lands; }).map(function(k){ return FAMILIES[k].name + ' ' + st.fam[k].lands; });
+  var pushed = FAMILY_ORDER.filter(function(k){ return st.fam[k].pushes; }).map(function(k){ return FAMILIES[k].name + ' ' + st.fam[k].pushes; });
+  return 'White light from ' + plural(st.moments, 'moment') + ' splits into bands by tradition. Landed: ' + (landed.join(', ') || 'none') + '. Pushed back: ' + (pushed.join(', ') || 'none') + '. The tables below give every figure.';
+}
+
+/* ------------------------------------------------------------------ */
+/* View: bring a moment                                                */
+/* ------------------------------------------------------------------ */
+
+function newDraft(){
+  return {stage:'form', what:'', felt:'', theme:'', date: todayISO(), lenses:[]};
+}
+
+function renderNew(){
+  if (!state.draft && lastSaved) return renderSaved();
+  if (!state.draft) { state.draft = newDraft(); save(); }
+  if (state.draft.stage === 'lenses') return renderLensStage();
+  var d = state.draft;
+  var grew = state.settings.grewUp.map(function(k){ return FAMILIES[k].name; });
+  var queued = state.queued.map(function(id){ return LENS[id].short; });
+  view.innerHTML =
+    '<section class="view" aria-labelledby="h-new">' +
+    '<div class="view-head"><h2 id="h-new" tabindex="-1">Bring a moment</h2>' +
+    '<p class="lede">One real thing that happened to you, recently or long ago. A few sentences is plenty. Next, four traditions will each frame it their own way.</p></div>' +
+    '<div class="new-grid"><form id="moment-form" novalidate>' +
+      '<div class="field"><label for="m-what">What happened</label><span class="hint" id="m-what-hint">Specific beats general: "my sister didn\'t call back after the scan" rather than "family stuff".</span>' +
+        '<textarea id="m-what" rows="5" aria-describedby="m-what-hint">' + esc(d.what) + '</textarea></div>' +
+      '<div class="field"><label for="m-felt">What it felt like <span class="hint">(optional)</span></label>' +
+        '<textarea id="m-felt" rows="2">' + esc(d.felt) + '</textarea></div>' +
+      '<fieldset class="chips form-chips"><legend>What kind of moment was it?</legend>' +
+        THEMES.map(function(t){
+          return '<span class="chip"><input type="radio" name="mtheme" id="mt-' + t[0] + '" value="' + t[0] + '"' + (d.theme === t[0] ? ' checked' : '') + '><label for="mt-' + t[0] + '">' + esc(t[1]) + '</label></span>';
+        }).join('') +
+      '</fieldset>' +
+      '<div class="field"><label for="m-date">When</label><input type="date" id="m-date" value="' + esc(d.date) + '"></div>' +
+      '<p class="err" id="form-err" role="alert"></p>' +
+      '<div class="btn-row"><button type="submit" class="btn primary">Pass it through the lenses</button>' +
+      (d.what || d.felt ? '<button type="button" class="btn quiet" data-act="discard-draft">Clear this form</button>' : '') + '</div>' +
+    '</form>' +
+    '<aside class="aside" aria-label="Notes">' +
+      '<h3>Before you start</h3>' +
+      '<ul><li>You do not need to know what the moment means. Prism will not tell you either.</li>' +
+      '<li>Each lens shows how one tradition tends to frame this kind of moment, and the questions it would ask you.</li>' +
+      '<li>You mark each lens: lands, not sure, or pushes back. Pushback is as useful as a match.</li></ul>' +
+      '<p class="muted">' + (grew.length ? 'Traditions you grew up with: ' + esc(grew.join(', ')) + '. One of their less familiar strands will usually be in the mix.' : 'If you grew up with a tradition, add it under Different doors and Prism will offer its less familiar strands.') + '</p>' +
+      (queued.length ? '<p><strong>Waiting for this moment:</strong> ' + esc(queued.join(', ')) + '</p>' : '') +
+    '</aside></div></section>';
+}
+
+function renderLensStage(){
+  var d = state.draft;
+  var cards = d.lenses.map(function(r){ return lensCard(r, d.theme); }).join('');
+  view.innerHTML =
+    '<section class="view" aria-labelledby="h-lenses">' +
+    '<div class="view-head"><h2 id="h-lenses" tabindex="-1">Through the lenses</h2>' +
+    '<p class="lede">Each lens shows how one tradition tends to frame a moment like this, and what it would ask you. Mark how each one sits with you. Pushing back is as useful as a match: knowing what does not fit is part of knowing what does.</p></div>' +
+    '<div class="beam">' +
+      '<div class="beam-meta"><span class="label">Your moment</span><span class="label">' + esc(fmtDate(d.date)) + '</span><span class="tag">' + esc(THEME_LABEL[d.theme]) + '</span></div>' +
+      '<p class="beam-what">' + esc(d.what) + '</p>' +
+      (d.felt ? '<p class="beam-felt">Felt: ' + esc(d.felt) + '</p>' : '') +
+      '<button type="button" class="btn small" data-act="edit-moment">Edit the moment</button>' +
+      beamArt() +
+    '</div>' +
+    '<div class="lens-tools">' +
+      '<button type="button" class="btn quiet" data-act="reshuffle">Reshuffle unmarked lenses</button>' +
+      '<button type="button" class="btn quiet" data-act="browse-toggle" aria-expanded="' + browseOpen + '" aria-controls="browse">' + (browseOpen ? 'Hide all lenses' : 'Browse all lenses') + '</button>' +
+      '<span class="muted" id="lens-count">' + plural(d.lenses.length, 'lens', 'lenses') + ' on the table</span>' +
+    '</div>' +
+    '<div id="browse" class="browse"' + (browseOpen ? '' : ' hidden') + '>' + browseHTML() + '</div>' +
+    '<div class="lens-grid" id="lens-grid">' + cards + '</div>' +
+    '<div class="save-bar"><button type="button" class="btn primary" data-act="save-moment">Save this moment</button>' +
+    '<p class="err" id="save-err" role="alert"></p></div>' +
+    '</section>';
+}
+
+function beamArt(){
+  var cols = FAMILY_ORDER.map(function(k){ return FAMILIES[k].hue; });
+  var lines = cols.map(function(c, i){
+    var y = 18 + i * 5.5;
+    return '<line x1="128" y1="' + (44 + i * 0.9).toFixed(1) + '" x2="200" y2="' + y.toFixed(1) + '" stroke="' + c + '" stroke-width="1.6" opacity=".9"/>';
+  }).join('');
+  return '<svg class="beam-art" viewBox="0 0 200 96" aria-hidden="true" focusable="false">' +
+    '<line x1="0" y1="56" x2="100" y2="48" stroke="#fff" stroke-width="2.4"/>' +
+    lines +
+    '<path d="M114 14 140 76H88Z" fill="rgba(255,255,255,.1)" stroke="rgba(255,255,255,.75)" stroke-width="1.1"/></svg>';
+}
+
+function lensCard(r, theme){
+  var L = LENS[r.id], F = FAMILIES[L.fam];
+  var tt = L.t[theme] || L.t.change;
+  var qs = [tt[1], L.ask];
+  var grew = state.settings.grewUp.indexOf(L.fam) >= 0;
+  var id = L.id;
+  return '<article class="lens" id="card-' + id + '" data-mark="' + (r.mark || '') + '" aria-labelledby="ln-' + id + '">' +
+    '<div class="lens-head">' + swatch(F.hue) + '<span class="label">' + esc(F.name) + '</span>' +
+      (grew ? '<span class="tag">A different door</span>' : '') + '</div>' +
+    '<h3 class="lens-name" id="ln-' + id + '" tabindex="-1">' + esc(L.name) + '</h3>' +
+    '<p class="idea">' + esc(L.idea) + '</p>' +
+    '<p class="term"><dfn>' + esc(L.term) + '</dfn>: ' + esc(L.gloss) + '</p>' +
+    (L.quote ? '<blockquote class="quote"><p>' + esc(L.quote.text) + '</p><footer>' + esc(L.quote.by) + '</footer></blockquote>' : '') +
+    '<div class="frame"><p class="label">How it tends to frame ' + esc(themeLower(theme)) + '</p><p class="frame-text">' + esc(tt[0]) + '</p></div>' +
+    '<fieldset class="qs"><legend class="label">Questions it would ask you. Pick one to answer, if you like</legend>' +
+      qs.map(function(q, i){
+        return '<div class="q"><input type="radio" name="qq-' + id + '" id="qq-' + id + '-' + i + '" value="' + i + '" data-lens="' + id + '"' + (r.q === i ? ' checked' : '') + '><label for="qq-' + id + '-' + i + '">' + esc(q) + '</label></div>';
+      }).join('') +
+    '</fieldset>' +
+    '<div class="ans"><label for="ans-' + id + '" class="hint">Your answer to the chosen question (optional)</label>' +
+      '<textarea id="ans-' + id + '" data-lens="' + id + '" rows="3" placeholder="A sentence or two. If you are pushing back, saying why is useful.">' + esc(r.answer) + '</textarea></div>' +
+    (L.note ? '<p class="note">' + esc(L.note) + '</p>' : '') +
+    '<fieldset class="marks"><legend>How does this sit with you?<span class="hint">Required. Any answer counts, pushback included.</span></legend>' +
+      MARKS.map(function(m){
+        return '<span class="mark"><input type="radio" name="mk-' + id + '" id="mk-' + id + '-' + m[0] + '" value="' + m[0] + '" data-lens="' + id + '"' + (r.mark === m[0] ? ' checked' : '') + '><label for="mk-' + id + '-' + m[0] + '">' + markIcon(m[0]) + esc(m[1]) + '</label></span>';
+      }).join('') +
+    '</fieldset>' +
+    '<div class="lens-foot"><button type="button" class="btn link" data-act="remove-lens" data-id="' + id + '">Remove this lens from the moment</button></div>' +
+    '</article>';
+}
+
+function browseHTML(){
+  var on = {}; (state.draft ? state.draft.lenses : []).forEach(function(r){ on[r.id] = true; });
+  var counts = lensCounts();
+  return '<h3 style="margin-bottom:6px">All ' + LENSES.length + ' lenses</h3><p class="muted" style="margin-bottom:8px">Grouped by tradition, in alphabetical order.</p>' +
+    FAMILY_ORDER.map(function(k){
+      var ls = LENSES.filter(function(l){ return l.fam === k; });
+      return '<div class="browse-fam"><h4>' + swatch(FAMILIES[k].hue) + esc(FAMILIES[k].name) + '</h4><ul>' + ls.map(function(l){
+        var first = l.idea.split('. ')[0] + '.';
+        return '<li><div><strong>' + esc(l.name) + '</strong>' + (counts[l.id] ? ' <span class="label">used ' + counts[l.id] + 'x</span>' : '') + '<p>' + esc(first) + '</p></div>' +
+          (on[l.id] ? '<span class="muted">On the table</span>' : '<button type="button" class="btn small" data-act="add-lens" data-id="' + l.id + '">Add ' + esc(l.short) + ' to this moment</button>') + '</li>';
+      }).join('') + '</ul></div>';
+    }).join('');
+}
+
+function renderSaved(){
+  var m = state.moments.filter(function(x){ return x.id === lastSaved; })[0];
+  if (!m) { lastSaved = null; return renderNew(); }
+  var c = {lands:0, unsure:0, pushes:0};
+  m.lenses.forEach(function(r){ if (r.mark) c[r.mark]++; });
+  view.innerHTML = '<section class="view" aria-labelledby="h-saved"><div class="saved">' +
+    '<h2 id="h-saved" tabindex="-1">Saved</h2>' +
+    '<p>' + esc(THEME_LABEL[m.theme]) + ', ' + esc(fmtDate(m.date)) + '. ' + plural(m.lenses.length, 'lens', 'lenses') + ' marked: ' + c.lands + ' landed, ' + c.unsure + ' not sure, ' + c.pushes + ' pushed back.</p>' +
+    '<p class="muted">One moment is a single reading. The map becomes worth looking at after several, across different kinds of moment.</p>' +
+    '<div class="btn-row"><button type="button" class="btn primary" data-act="nav" data-view="map">See the resonance map</button>' +
+    '<button type="button" class="btn" data-act="another">Bring another moment</button>' +
+    '<button type="button" class="btn quiet" data-act="nav" data-view="moments">Read it in Moments</button></div>' +
+    '</div></section>';
+}
+
+/* ------------------------------------------------------------------ */
+/* View: different doors                                               */
+/* ------------------------------------------------------------------ */
+
+function grewChecks(prefix){
+  var g = state.settings.grewUp;
+  return '<fieldset class="checks"><legend>Traditions you grew up with or around</legend>' +
+    FAMILY_ORDER.map(function(k){
+      var id = prefix + '-' + k;
+      return '<span class="check"><input type="checkbox" id="' + id + '" data-grew="' + k + '"' + (g.indexOf(k) >= 0 ? ' checked' : '') + '><label for="' + id + '">' + esc(FAMILIES[k].name) + '</label></span>';
+    }).join('') + '</fieldset>';
+}
+
+function renderDoors(){
+  var g = state.settings.grewUp;
+  var st = stats('all');
+  var inDraft = {}; (state.draft && state.draft.stage === 'lenses' ? state.draft.lenses : []).forEach(function(r){ inDraft[r.id] = true; });
+  var sections = g.map(function(k){
+    var F = FAMILIES[k];
+    var ls = LENSES.filter(function(l){ return l.fam === k; });
+    ls.sort(function(a, b){ return (st.fam[k].tried[a.id] ? 1 : 0) - (st.fam[k].tried[b.id] ? 1 : 0); });
+    return '<section class="door-fam" aria-labelledby="df-' + k + '"><h3 id="df-' + k + '">' + swatch(F.hue) + esc(F.name) + '</h3>' +
+      '<p>' + esc(F.intro) + '</p>' +
+      '<ul class="door-list">' + ls.map(function(l){
+        var s = st.lens[l.id];
+        var tried = !!s;
+        var status = tried ? 'Tried: ' + s.lands + ' landed, ' + s.unsure + ' not sure, ' + s.pushes + ' pushed back' : 'Not tried yet';
+        var queued = state.queued.indexOf(l.id) >= 0 || inDraft[l.id];
+        return '<li class="door" data-tried="' + (tried ? 1 : 0) + '"><span class="label">' + esc(status) + '</span>' +
+          '<h4>' + esc(l.name) + '</h4>' +
+          '<p class="why">' + esc(l.door) + '</p>' +
+          '<p class="idea">' + esc(l.idea) + '</p>' +
+          (queued ? '<p class="ok">Waiting on the table for your next moment.</p>'
+                  : '<button type="button" class="btn small" data-act="door-use" data-id="' + l.id + '">Use ' + esc(l.short) + ' on my next moment</button>') +
+          '</li>';
+      }).join('') + '</ul>' +
+      '<p class="muted" style="margin-top:12px">' + esc(F.more) + '</p></section>';
+  }).join('');
+
+  view.innerHTML =
+    '<section class="view" aria-labelledby="h-doors">' +
+    '<div class="view-head"><h2 id="h-doors" tabindex="-1">The same house, a different door</h2>' +
+    '<p class="lede">If you grew up inside a tradition and it never struck a chord, that may say more about the door you were shown than about the whole house. Tick the traditions you grew up with, and Prism shows their other strands, starting with the ones you have not tried.</p></div>' +
+    grewChecks('dg') +
+    (g.length ? sections : '<div class="empty" style="margin-top:22px"><p>Nothing ticked yet. This is stored once, on this device, and you can change it here or under Settings and data.</p></div>') +
+    '</section>';
+}
+
+/* ------------------------------------------------------------------ */
+/* View: moments archive                                               */
+/* ------------------------------------------------------------------ */
+
+function renderMoments(){
+  var f = state.ui.archTheme;
+  var list = state.moments.slice().sort(function(a, b){ return (b.date + b.created).localeCompare(a.date + a.created); })
+    .filter(function(m){ return f === 'all' || m.theme === f; });
+  var items = list.map(function(m){
+    var confirm = pendingDelete === m.id
+      ? '<div class="confirm" role="group" aria-label="Confirm delete"><p>Delete this moment and its marks for good?</p><button type="button" class="btn danger solid small" data-act="del-yes" data-id="' + esc(m.id) + '">Yes, delete it</button><button type="button" class="btn small" data-act="del-no">Keep it</button></div>'
+      : '<div><button type="button" class="btn link" data-act="del-moment" data-id="' + esc(m.id) + '">Delete this moment</button></div>';
+    return '<li><article class="moment" aria-label="Moment from ' + esc(fmtDate(m.date)) + '">' +
+      '<div class="moment-meta"><span>' + esc(fmtDate(m.date)) + '</span><span class="tag">' + esc(THEME_LABEL[m.theme]) + '</span>' + (m.example ? '<span class="tag">Example</span>' : '') + '</div>' +
+      '<p class="moment-what">' + esc(m.what) + '</p>' +
+      (m.felt ? '<p class="moment-felt">Felt: ' + esc(m.felt) + '</p>' : '') +
+      '<ul class="resp">' + m.lenses.map(function(r){
+        var L = LENS[r.id];
+        return '<li><div class="resp-head">' + swatch(FAMILIES[L.fam].hue) + '<strong>' + esc(L.short) + '</strong><span class="muted">' + esc(FAMILIES[L.fam].name) + '</span>' +
+          (r.mark ? '<span class="resp-mark">' + markIcon(r.mark) + esc(MARK_LABEL[r.mark]) + '</span>' : '') + '</div>' +
+          (r.answer ? '<div class="resp-ans">' + (r.question ? '<q>' + esc(r.question) + '</q>' : '') + esc(r.answer) + '</div>' : '') + '</li>';
+      }).join('') + '</ul>' + confirm + '</article></li>';
+  }).join('');
+  view.innerHTML =
+    '<section class="view" aria-labelledby="h-moments">' +
+    '<div class="view-head"><h2 id="h-moments" tabindex="-1">Moments</h2>' +
+    '<p class="lede">Every moment you have brought, with how each lens sat with you.</p></div>' +
+    '<div class="arch-tools"><label for="arch-theme">Show</label><select id="arch-theme"><option value="all">All themes</option>' +
+      THEMES.map(function(t){ return '<option value="' + t[0] + '"' + (f === t[0] ? ' selected' : '') + '>' + esc(t[1]) + '</option>'; }).join('') + '</select>' +
+      '<span class="muted">' + plural(list.length, 'moment') + '</span></div>' +
+    (items ? '<ol class="moments">' + items + '</ol>'
+           : '<div class="empty"><p>' + (state.moments.length ? 'No moments with this theme yet.' : 'No moments yet.') + '</p><button type="button" class="btn primary" data-act="nav" data-view="new">Bring a moment</button></div>') +
+    '</section>';
+}
+
+/* ------------------------------------------------------------------ */
+/* View: settings and data                                             */
+/* ------------------------------------------------------------------ */
+
+function exportJSON(){
+  return JSON.stringify({app:'inderstanding-prism', version:1, exported:new Date().toISOString(), settings:state.settings, moments:state.moments, draft:state.draft, queued:state.queued}, null, 2);
+}
+
+function renderData(){
+  var t = state.settings.theme;
+  var ex = state.moments.filter(function(m){ return m.example; }).length;
+  view.innerHTML =
+    '<section class="view" aria-labelledby="h-data">' +
+    '<div class="view-head"><h2 id="h-data" tabindex="-1">Settings and data</h2>' +
+    '<p class="lede">Everything Prism knows is stored in this browser, on this device, and nowhere else.</p>' +
+    (storageOk ? '' : '<p class="err">This browser is not letting Prism save, so your moments will be lost when you close the page. Export them before you go.</p>') +
+    '</div>' +
+    '<div class="data-grid">' +
+      '<section aria-labelledby="h-grew"><h3 id="h-grew">Where you started</h3><p class="muted">Used by Different doors, and to offer less familiar strands of these traditions when you bring a moment.</p>' + grewChecks('gu') + '</section>' +
+      '<section aria-labelledby="h-look"><h3 id="h-look">Appearance</h3><fieldset class="radios"><legend>Theme</legend>' +
+        [['system','Follow my device'],['light','Light'],['dark','Dark']].map(function(o){
+          return '<span class="check"><input type="radio" name="tpref" id="tp-' + o[0] + '" value="' + o[0] + '"' + (t === o[0] ? ' checked' : '') + '><label for="tp-' + o[0] + '">' + o[1] + '</label></span>';
+        }).join('') + '</fieldset>' +
+        '<h3 style="margin-top:18px">Examples</h3>' +
+        (ex ? '<p>' + plural(ex, 'example moment is', 'example moments are') + ' loaded.</p><div class="btn-row"><button type="button" class="btn" data-act="clear-examples">Clear examples and start my own</button></div>'
+            : '<p class="muted">No example moments are loaded.</p><div class="btn-row"><button type="button" class="btn quiet" data-act="restore-examples">Show the two example moments again</button></div>') +
+      '</section>' +
+      '<section aria-labelledby="h-export"><h3 id="h-export">Export</h3><p class="muted">Your moments, marks and settings as plain JSON. Copy it somewhere safe to keep a backup or move it to another device.</p>' +
+        '<div class="btn-row"><button type="button" class="btn" data-act="export">Show my data as JSON</button></div>' +
+        '<label for="export-box" class="hint">Exported data</label><textarea id="export-box" readonly rows="8" placeholder="Press &quot;Show my data as JSON&quot;"></textarea>' +
+        '<div class="btn-row"><button type="button" class="btn quiet" data-act="copy">Copy the JSON</button><span id="copy-status" class="ok" role="status"></span></div></section>' +
+      '<section aria-labelledby="h-import"><h3 id="h-import">Import</h3><p class="muted">Paste JSON exported from Prism. It replaces everything currently stored here.</p>' +
+        '<label for="import-box" class="hint">JSON to import</label><textarea id="import-box" rows="8"></textarea>' +
+        '<div class="btn-row"><button type="button" class="btn" data-act="import">Import and replace my data</button></div><p id="import-status" role="status"></p></section>' +
+      '<section aria-labelledby="h-erase" style="grid-column:1 / -1"><h3 id="h-erase">Erase</h3>' +
+        '<p class="muted">Removes every moment, mark and setting Prism has stored on this device. Export first if you want a copy.</p>' +
+        (eraseArmed
+          ? '<div class="confirm" role="group" aria-label="Confirm erase"><p>This cannot be undone. Erase everything?</p><button type="button" class="btn danger solid" data-act="erase-yes" id="erase-yes">Yes, erase everything</button><button type="button" class="btn" data-act="erase-no">Cancel</button></div>'
+          : '<div class="btn-row"><button type="button" class="btn danger" data-act="erase" id="erase-btn">Erase everything on this device</button></div>') +
+        '<p id="erase-status" class="ok" role="status"></p>' +
+      '</section>' +
+    '</div></section>';
+}
+
+/* ------------------------------------------------------------------ */
+/* Actions                                                             */
+/* ------------------------------------------------------------------ */
+
+function draftLens(id){
+  if (!state.draft) return null;
+  for (var i = 0; i < state.draft.lenses.length; i++) if (state.draft.lenses[i].id === id) return state.draft.lenses[i];
+  return null;
+}
+function updateLensCount(){
+  var el = $('lens-count'); if (el && state.draft) el.textContent = plural(state.draft.lenses.length, 'lens', 'lenses') + ' on the table';
+}
+function refreshGrid(focusId){
+  var grid = $('lens-grid'); if (!grid || !state.draft) return;
+  grid.innerHTML = state.draft.lenses.map(function(r){ return lensCard(r, state.draft.theme); }).join('');
+  var br = $('browse'); if (br) br.innerHTML = browseHTML();
+  updateLensCount();
+  if (focusId) { var h = $('ln-' + focusId); if (h) h.focus(); }
+}
+
+function goToLenses(){
+  var d = state.draft;
+  var err = $('form-err');
+  d.what = ($('m-what').value || '').trim();
+  d.felt = ($('m-felt').value || '').trim();
+  d.date = $('m-date').value || todayISO();
+  if (!d.what) { err.textContent = 'Write a sentence or two about what happened first.'; $('m-what').focus(); return; }
+  if (!d.theme) { err.textContent = 'Pick the kind of moment it was, so the lenses can frame it.'; var r = $('mt-loss'); if (r) r.focus(); return; }
+  if (!d.lenses.length) {
+    var queued = state.queued.filter(function(id){ return LENS[id]; });
+    var picks = pickLenses(Math.max(0, 4 - queued.length), queued, []);
+    d.lenses = queued.concat(picks).map(function(id){ return {id:id, mark:null, q:0, answer:''}; });
+    state.queued = [];
+  }
+  d.stage = 'lenses';
+  save(); render();
+  var h = $('h-lenses'); if (h) h.focus({preventScroll:true});
+  try { window.scrollTo({top:0}); } catch (e) {}
+}
+
+function saveMoment(){
+  var d = state.draft, err = $('save-err');
+  if (!d.lenses.length) { err.textContent = 'Add at least one lens before saving.'; return; }
+  var missing = d.lenses.filter(function(r){ return !r.mark; });
+  if (missing.length) {
+    err.textContent = 'Mark every lens before saving (lands, not sure or pushes back). Still to mark: ' + missing.map(function(r){ return LENS[r.id].short; }).join(', ') + '.';
+    var first = $('mk-' + missing[0].id + '-lands'); if (first) first.focus();
+    return;
+  }
+  var m = {id:uid(), example:false, created:new Date().toISOString(), date:d.date, theme:d.theme, what:d.what, felt:d.felt,
+    lenses: d.lenses.map(function(r){
+      var L = LENS[r.id], tt = L.t[d.theme] || L.t.change;
+      return {id:r.id, mark:r.mark, q:r.q, question: r.answer ? (r.q === 1 ? L.ask : tt[1]) : '', answer:r.answer.trim()};
+    })};
+  state.moments.push(m);
+  state.draft = null; browseOpen = false; lastSaved = m.id;
+  save(); render();
+  var h = $('h-saved'); if (h) h.focus();
+  announce('Moment saved.');
+}
+
+function clearExamples(){
+  state.moments = state.moments.filter(function(m){ return !m.example; });
+  save();
+  announce('Examples cleared.');
+  lastSaved = null;
+  setView('new');
+}
+
+function doImport(){
+  var box = $('import-box'), out = $('import-status');
+  var text = (box.value || '').trim();
+  out.className = 'err';
+  if (!text) { out.textContent = 'Paste some JSON into the box first.'; box.focus(); return; }
+  var obj;
+  try { obj = JSON.parse(text); } catch (e) { out.textContent = 'That is not valid JSON, so nothing was changed.'; return; }
+  if (!obj || typeof obj !== 'object' || !Array.isArray(obj.moments)) { out.textContent = 'That JSON has no list of moments, so nothing was changed.'; return; }
+  var next = normalize(obj);
+  next.ui = state.ui;
+  state = next; lastSaved = null; save();
+  render();
+  var o2 = $('import-status'); if (o2) { o2.className = 'ok'; o2.textContent = 'Imported ' + plural(state.moments.length, 'moment') + '.'; }
+  announce('Import finished.');
+}
+
+function doCopy(){
+  var box = $('export-box'), st = $('copy-status');
+  if (!box.value) box.value = exportJSON();
+  var done = function(ok){ st.textContent = ok ? 'Copied.' : 'Selected. Press Ctrl+C or Cmd+C to copy.'; };
+  var fallback = function(){ try { box.focus(); box.select(); box.setSelectionRange(0, box.value.length); } catch (e) {} done(false); };
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(box.value).then(function(){ done(true); }, fallback);
+    } else fallback();
+  } catch (e) { fallback(); }
+}
+
+document.addEventListener('click', function(e){
+  var b = e.target.closest('[data-act]'); if (!b) return;
+  var act = b.getAttribute('data-act'), id = b.getAttribute('data-id');
+  switch (act) {
+    case 'nav':
+      if (b.getAttribute('data-view') === 'new' && !state.draft) lastSaved = null;
+      pendingDelete = null; eraseArmed = false;
+      setView(b.getAttribute('data-view')); break;
+    case 'toggle-theme':
+      state.settings.theme = effectiveTheme() === 'dark' ? 'light' : 'dark';
+      save(); applyTheme(); if (state.ui.view === 'map') { animateNext = false; drawPrism(); } if (state.ui.view === 'data') { render(); }
+      announce(state.settings.theme === 'dark' ? 'Dark theme on.' : 'Light theme on.'); break;
+    case 'clear-examples': clearExamples(); break;
+    case 'restore-examples':
+      var have = {}; state.moments.forEach(function(m){ have[m.id] = true; });
+      exampleMoments().forEach(function(m){ if (!have[m.id]) state.moments.push(m); });
+      save(); render(); announce('Example moments added back.'); break;
+    case 'discard-draft':
+      state.draft = newDraft(); save(); render(); var w = $('m-what'); if (w) w.focus(); break;
+    case 'edit-moment':
+      state.draft.stage = 'form'; save(); render(); var w2 = $('m-what'); if (w2) w2.focus(); break;
+    case 'reshuffle':
+      var keep = state.draft.lenses.filter(function(r){ return r.mark || r.answer; });
+      var drop = state.draft.lenses.filter(function(r){ return !(r.mark || r.answer); }).map(function(r){ return r.id; });
+      var want = Math.max(drop.length, keep.length ? 0 : 4);
+      if (!want) { announce('Every lens on the table is marked or answered, so there is nothing to reshuffle.'); var se = $('save-err'); if (se) se.textContent = 'All lenses are marked or answered. Use Browse all lenses to add more.'; break; }
+      var fresh = pickLenses(want, keep.map(function(r){ return r.id; }), drop);
+      state.draft.lenses = keep.concat(fresh.map(function(x){ return {id:x, mark:null, q:0, answer:''}; }));
+      save(); refreshGrid();
+      announce('Reshuffled. New lenses: ' + fresh.map(function(x){ return LENS[x].short; }).join(', ') + '.'); break;
+    case 'browse-toggle':
+      browseOpen = !browseOpen;
+      var br = $('browse'); br.hidden = !browseOpen; if (browseOpen) br.innerHTML = browseHTML();
+      b.setAttribute('aria-expanded', String(browseOpen)); b.textContent = browseOpen ? 'Hide all lenses' : 'Browse all lenses'; break;
+    case 'add-lens':
+      if (!draftLens(id)) state.draft.lenses.push({id:id, mark:null, q:0, answer:''});
+      save(); refreshGrid(id); announce(LENS[id].short + ' added.'); break;
+    case 'remove-lens':
+      var idx = state.draft.lenses.findIndex(function(r){ return r.id === id; });
+      state.draft.lenses = state.draft.lenses.filter(function(r){ return r.id !== id; });
+      save(); refreshGrid();
+      var nxt = state.draft.lenses[Math.min(idx, state.draft.lenses.length - 1)];
+      if (nxt) { var hn = $('ln-' + nxt.id); if (hn) hn.focus(); } else { var tb = view.querySelector('[data-act="reshuffle"]'); if (tb) tb.focus(); }
+      announce(LENS[id].short + ' removed.'); break;
+    case 'save-moment': saveMoment(); break;
+    case 'another':
+      lastSaved = null; state.draft = newDraft(); save(); render(); var hn2 = $('h-new'); if (hn2) hn2.focus(); break;
+    case 'door-use':
+      if (state.draft && state.draft.stage === 'lenses') { if (!draftLens(id)) state.draft.lenses.push({id:id, mark:null, q:0, answer:''}); }
+      else if (state.queued.indexOf(id) < 0) state.queued.push(id);
+      save(); render();
+      announce(LENS[id].short + ' will be on the table for your next moment.');
+      var nb = view.querySelector('.door-list .btn'); if (nb) nb.focus(); else { var hd = $('h-doors'); if (hd) hd.focus(); }
+      break;
+    case 'del-moment': pendingDelete = id; render(); var y = view.querySelector('[data-act="del-yes"]'); if (y) y.focus(); break;
+    case 'del-no':
+      var keepId = pendingDelete; pendingDelete = null; render();
+      var back = view.querySelector('[data-act="del-moment"][data-id="' + keepId + '"]'); if (back) back.focus(); break;
+    case 'del-yes':
+      state.moments = state.moments.filter(function(m){ return m.id !== id; });
+      pendingDelete = null; save(); render(); announce('Moment deleted.');
+      var hm = $('h-moments'); if (hm) hm.focus(); break;
+    case 'export':
+      $('export-box').value = exportJSON(); $('copy-status').textContent = ''; $('export-box').focus(); break;
+    case 'copy': doCopy(); break;
+    case 'import': doImport(); break;
+    case 'erase': eraseArmed = true; render(); var ey = $('erase-yes'); if (ey) ey.focus(); break;
+    case 'erase-no': eraseArmed = false; render(); var eb = $('erase-btn'); if (eb) eb.focus(); break;
+    case 'erase-yes':
+      var ui = state.ui;
+      state = defaultState(); state.ui = ui; eraseArmed = false; lastSaved = null; browseOpen = false;
+      try { localStorage.removeItem(KEY); } catch (err) {}
+      save(); render();
+      var es = $('erase-status'); if (es) es.textContent = 'Everything has been erased from this device.';
+      announce('Everything erased.'); break;
+  }
+});
+
+document.addEventListener('submit', function(e){
+  if (e.target && e.target.id === 'moment-form') { e.preventDefault(); goToLenses(); }
+});
+
+document.addEventListener('input', function(e){
+  var t = e.target, d = state.draft;
+  if (!t || !t.id) return;
+  if (d && t.id === 'm-what') { d.what = t.value; save(); }
+  else if (d && t.id === 'm-felt') { d.felt = t.value; save(); }
+  else if (d && t.id.indexOf('ans-') === 0) { var r = draftLens(t.getAttribute('data-lens')); if (r) { r.answer = t.value; save(); } }
+});
+
+document.addEventListener('change', function(e){
+  var t = e.target; if (!t) return;
+  var d = state.draft;
+  if (t.name === 'mapf') { state.ui.mapTheme = t.value; save(); animateNext = true; renderMap(); var c = $('mf-' + t.value); if (c) c.focus(); return; }
+  if (t.name === 'mtheme' && d) { d.theme = t.value; save(); var fe = $('form-err'); if (fe) fe.textContent = ''; return; }
+  if (t.id === 'm-date' && d) { d.date = t.value || todayISO(); save(); return; }
+  if (t.name && t.name.indexOf('mk-') === 0 && d) {
+    var r = draftLens(t.getAttribute('data-lens')); if (!r) return;
+    r.mark = t.value; save();
+    var card = $('card-' + r.id); if (card) card.setAttribute('data-mark', r.mark);
+    var se = $('save-err'); if (se && se.textContent) se.textContent = '';
+    return;
+  }
+  if (t.name && t.name.indexOf('qq-') === 0 && d) { var r2 = draftLens(t.getAttribute('data-lens')); if (r2) { r2.q = t.value === '1' ? 1 : 0; save(); } return; }
+  if (t.hasAttribute && t.hasAttribute('data-grew')) {
+    var k = t.getAttribute('data-grew'), g = state.settings.grewUp.filter(function(x){ return x !== k; });
+    if (t.checked) g.push(k);
+    state.settings.grewUp = FAMILY_ORDER.filter(function(x){ return g.indexOf(x) >= 0; });
+    save();
+    if (state.ui.view === 'doors') { var fid = t.id; renderDoors(); var el = $(fid); if (el) el.focus(); }
+    return;
+  }
+  if (t.name === 'tpref') { state.settings.theme = t.value; save(); applyTheme(); return; }
+  if (t.id === 'arch-theme') { state.ui.archTheme = t.value; save(); renderMoments(); var s2 = $('arch-theme'); if (s2) s2.focus(); return; }
+});
+
+/* Redraw the prism when the bench changes width, so labels keep their size. */
+var resizeRaf = 0;
+window.addEventListener('resize', function(){
+  if (resizeRaf) cancelAnimationFrame(resizeRaf);
+  resizeRaf = requestAnimationFrame(function(){
+    var holder = $('bench-svg');
+    if (holder && Math.abs(holder.clientWidth - lastBenchW) > 24) drawPrism();
+  });
+});
+try {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(){ applyTheme(); });
+} catch (e) {}
+
+render();
+})();
+</script>
+</body>
+</html>
