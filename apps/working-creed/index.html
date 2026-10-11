@@ -1,0 +1,1770 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Working Creed</title>
+<style>
+/* Layout concept: a surveyor's field book. One quiet reading column for the daily bearing; the Strata view opens into a cross-section, the one bold drawing in the app. */
+:root {
+  --paper: #EBEEEA;    /* cool stone field-book paper */
+  --ink: #1B2326;      /* basalt ink */
+  --graphite: #525D62; /* pencil notes, secondary text */
+  --rule: #C3CBC7;     /* ruled lines */
+  --field: #F2C230;    /* survey yellow: needle tip, highlighter, selected layer */
+  --oxide: #A4462C;    /* iron oxide: drift, destructive actions */
+  --f-label: "Archivo", "Helvetica Neue", Arial, sans-serif;            /* map lettering, UI */
+  --f-creed: "Spectral", "Iowan Old Style", "Palatino Linotype", Georgia, serif; /* the user's own lines */
+  --f-data: "B612 Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; /* bearings, dates */
+}
+/* Supporting tokens, all derived from the plan above */
+:root {
+  color-scheme: light;
+  --sheet: #F6F8F5;
+  --on-field: #1B2326;
+  --focus: #1B2326;
+  --held: #2E6B50;
+  --drift: var(--oxide);
+  --tested: #2C5A84;
+  --absent: #7A8589;
+  --sed-1: #DCD2B6;
+  --sed-2: #C4CDCD;
+  --sed-3: #D0D5C1;
+  --sed-4: #D6C8BC;
+  --lith: #1B2326;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #131819; --ink: #DCE3E0; --graphite: #9AA6A9; --rule: #323B3E;
+    --field: #E9BB31; --oxide: #E68B6E; --sheet: #1A2023; --focus: #F2C230;
+    --held: #7CC4A2; --tested: #8EB8E0; --absent: #77837F;
+    --sed-1: #4A4332; --sed-2: #2F3A3E; --sed-3: #3A3F31; --sed-4: #463839; --lith: #DCE3E0;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #131819; --ink: #DCE3E0; --graphite: #9AA6A9; --rule: #323B3E;
+  --field: #E9BB31; --oxide: #E68B6E; --sheet: #1A2023; --focus: #F2C230;
+  --held: #7CC4A2; --tested: #8EB8E0; --absent: #77837F;
+  --sed-1: #4A4332; --sed-2: #2F3A3E; --sed-3: #3A3F31; --sed-4: #463839; --lith: #DCE3E0;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-label);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.wc {
+  max-width: 1120px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 4vw, 48px);
+  padding-block: 0 56px;
+  min-height: 100%;
+}
+button, input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+h1, h2, h3 { text-wrap: balance; }
+p { margin: 0; }
+
+/* ---------- Header ---------- */
+.top {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 10;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 16px;
+  padding-block: 14px 0;
+}
+.brand {
+  order: 1;
+  display: inline-flex; align-items: center; gap: 10px;
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font-weight: 700; font-stretch: 125%; text-transform: uppercase;
+  letter-spacing: .1em; font-size: 14px; color: var(--ink);
+}
+.brand svg { width: 28px; height: 18px; flex: none; }
+.stamp {
+  order: 2; margin-left: auto;
+  font-family: var(--f-data); font-size: 12px; letter-spacing: .06em;
+  color: var(--graphite); font-variant-numeric: tabular-nums;
+}
+.tabs { order: 3; flex-basis: 100%; display: flex; gap: 2px; margin-top: 8px; overflow-x: auto; }
+.tab {
+  background: none; border: 0; border-bottom: 2px solid transparent;
+  padding: 10px 12px 9px; margin-bottom: -1px; cursor: pointer;
+  font-size: 12.5px; font-weight: 600; font-stretch: 112%;
+  text-transform: uppercase; letter-spacing: .12em; color: var(--graphite);
+  white-space: nowrap;
+}
+.tab:first-child { padding-left: 0; }
+.tab:hover { color: var(--ink); }
+.tab[aria-current="page"] { color: var(--ink); border-bottom-color: var(--ink); }
+@media (max-width: 439px) { .stamp .dow { display: none; } }
+@media (min-width: 820px) {
+  .top { padding-block: 0; column-gap: 28px; }
+  .brand { padding-block: 14px; }
+  .tabs { order: 2; flex-basis: auto; margin-top: 0; align-self: stretch; }
+  .tab { padding-block: 16px 14px; }
+  .tab:first-child { padding-left: 12px; }
+  .stamp { order: 3; }
+}
+
+/* ---------- Shared bits ---------- */
+.banner {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  padding-block: 12px; border-bottom: 1px dashed var(--rule);
+  font-size: 14px; color: var(--graphite);
+}
+.banner p { flex: 1 1 320px; max-width: 70ch; }
+.tag-ex {
+  display: inline-block; vertical-align: middle;
+  font-family: var(--f-data); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+  background: var(--field); color: var(--on-field); padding: 1px 6px 2px; margin-right: 6px; line-height: 1.5;
+}
+.eyebrow {
+  font-family: var(--f-label); font-stretch: 125%; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .14em; font-size: 11.5px;
+  color: var(--graphite); margin: 0;
+}
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 40px; padding: 8px 16px;
+  border: 1.5px solid var(--ink); border-radius: 2px;
+  background: transparent; color: var(--ink);
+  font-weight: 600; font-size: 14px; line-height: 1.2; cursor: pointer; text-align: center;
+}
+.btn:hover { background: var(--sheet); }
+.btn.primary { background: var(--ink); color: var(--paper); }
+.btn.primary:hover { opacity: .88; }
+.btn.danger { border-color: var(--oxide); color: var(--oxide); }
+.btn.danger.primary { background: var(--oxide); color: var(--paper); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.link {
+  background: none; border: 0; padding: 4px 0; cursor: pointer;
+  color: var(--ink); font-size: 14px;
+  text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px;
+  text-decoration-color: var(--graphite);
+}
+.link:hover { text-decoration-color: var(--ink); }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.msg { font-size: 14px; color: var(--graphite); }
+.msg.err { color: var(--oxide); }
+.opt { font-weight: 400; color: var(--graphite); font-size: 13px; }
+.field { display: grid; gap: 6px; }
+.field > label, .lbl { font-weight: 600; font-size: 14px; }
+.hint { font-size: 13.5px; color: var(--graphite); }
+input[type="text"], textarea {
+  width: 100%; background: var(--sheet); border: 1px solid var(--rule); border-radius: 2px;
+  padding: 10px 12px; font-size: 16px; line-height: 1.45; color: var(--ink);
+}
+input[type="text"]:focus, textarea:focus { border-color: var(--ink); outline: none; box-shadow: 0 0 0 1px var(--ink); }
+textarea { resize: vertical; }
+.v-head { display: grid; gap: 10px; max-width: 68ch; padding-block: clamp(24px, 5vw, 48px) 20px; }
+.v-head h1 { margin: 0; font-family: var(--f-label); font-stretch: 112%; font-weight: 700; font-size: clamp(24px, 3.4vw, 32px); line-height: 1.15; letter-spacing: -.005em; }
+.v-head p { color: var(--graphite); }
+.deg { font-family: var(--f-data); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.chip {
+  display: inline-block; font-size: 11px; font-weight: 600; font-stretch: 112%;
+  text-transform: uppercase; letter-spacing: .1em; line-height: 1.4;
+  padding: 2px 7px; border: 1px solid var(--graphite); color: var(--graphite); border-radius: 2px; white-space: nowrap;
+}
+.chip.c-bedrock { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.chip.c-tested { border-color: var(--ink); color: var(--ink); }
+.chip.gives { border-style: dashed; }
+
+/* check-in segments (core sample) */
+.seg {
+  display: inline-grid; place-items: center; flex: none;
+  width: 20px; height: 22px; border-radius: 2px;
+  font-family: var(--f-data); font-size: 10px; font-weight: 700; line-height: 1;
+  color: var(--paper);
+}
+.seg-held { background: var(--held); }
+.seg-drifted { background: var(--drift); }
+.seg-tested { background: var(--tested); }
+.seg-absent { background: repeating-linear-gradient(135deg, var(--absent) 0 1.5px, transparent 1.5px 5px); color: var(--ink); box-shadow: inset 0 0 0 1px var(--absent); }
+
+/* ---------- Bearing (today) ---------- */
+.bearing { padding-block: clamp(20px, 5vw, 56px) 8px; }
+.b-grid {
+  display: grid; column-gap: 20px; row-gap: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "head compass" "line line" "meta meta" "act act";
+  align-items: start;
+}
+.b-head { grid-area: head; display: grid; gap: 14px; align-self: center; }
+.b-compass { grid-area: compass; width: 124px; }
+.b-line { grid-area: line; }
+.b-meta { grid-area: meta; }
+.b-act { grid-area: act; }
+@media (min-width: 820px) {
+  .b-grid {
+    grid-template-columns: minmax(0, 1.55fr) minmax(260px, 1fr);
+    grid-template-areas: "head compass" "line compass" "meta compass" "act compass";
+    column-gap: 56px;
+  }
+  .b-compass { width: 100%; max-width: 340px; justify-self: end; align-self: center; }
+}
+.b-deg { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; font-family: var(--f-data); }
+.b-deg .num { font-size: clamp(34px, 6vw, 46px); line-height: 1; letter-spacing: .01em; font-variant-numeric: tabular-nums; }
+.b-deg .quad { font-size: 13px; color: var(--graphite); letter-spacing: .06em; }
+.b-line blockquote {
+  margin: clamp(18px, 3vw, 28px) 0 0;
+  font-family: var(--f-creed); font-weight: 300;
+  font-size: clamp(29px, 5vw, 50px); line-height: 1.16; letter-spacing: -.008em;
+  max-width: 21ch; text-wrap: balance;
+}
+.b-meta { display: grid; gap: 6px; margin-top: 22px; max-width: 58ch; font-size: 14.5px; color: var(--graphite); }
+.b-meta .origin { font-family: var(--f-creed); font-style: italic; font-size: 17px; color: var(--graphite); }
+.b-meta .meta-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.b-act { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; font-size: 13.5px; color: var(--graphite); }
+
+.compass { display: block; width: 100%; height: auto; overflow: visible; }
+.cmp-ring { fill: none; stroke: var(--ink); stroke-width: 1.3; }
+.cmp-ring2 { fill: none; stroke: var(--rule); stroke-width: 1; }
+.cmp-tk { stroke: var(--graphite); stroke-width: 1; }
+.cmp-tk.major { stroke: var(--ink); stroke-width: 1.5; }
+.cmp-num { fill: var(--graphite); font-family: var(--f-data); font-size: 9.5px; text-anchor: middle; dominant-baseline: central; }
+.cmp-card { fill: var(--ink); font-family: var(--f-label); font-weight: 700; font-size: 22px; text-anchor: middle; dominant-baseline: central; }
+.cmp-dot { fill: var(--paper); stroke: var(--ink); stroke-width: 1.4; }
+.cmp-arc { fill: none; stroke: var(--graphite); stroke-width: 1; stroke-dasharray: 2 3; }
+.cmp-needle-line { stroke: var(--ink); stroke-width: 1.8; }
+.cmp-tip { fill: var(--field); stroke: var(--ink); stroke-width: 1.3; stroke-linejoin: round; }
+.cmp-pivot { fill: var(--ink); }
+.needle { transform-origin: 130px 130px; transition: transform 1.1s cubic-bezier(.2, .75, .25, 1); }
+@media (max-width: 819px) { .cmp-num { display: none; } }
+@media (min-width: 820px) { .cmp-card { font-size: 14px; } }
+
+.evening { margin-top: clamp(36px, 6vw, 64px); padding-top: 22px; border-top: 1px solid var(--rule); max-width: 760px; display: grid; gap: 16px; }
+.evening h2 { margin: 0; }
+.evening .ev-q { font-size: 17px; }
+.check { display: grid; gap: 16px; }
+.check fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+legend { padding: 0; }
+.res-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+@media (min-width: 640px) { .res-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.res-opt { position: relative; display: flex; }
+.res-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.res-opt label {
+  flex: 1; display: grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 2px; align-items: center; align-content: center;
+  padding: 10px 12px; cursor: pointer;
+  border: 1px solid var(--rule); background: var(--sheet); border-radius: 2px;
+}
+.res-opt label .seg { grid-row: span 2; }
+.res-opt .res-l { font-weight: 600; font-size: 15px; }
+.res-opt .res-h { font-size: 12.5px; color: var(--graphite); line-height: 1.3; }
+.res-opt input:checked + label { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.res-opt input:focus-visible + label { outline: 2px solid var(--focus); outline-offset: 2px; }
+.follow { display: grid; gap: 8px; max-width: 600px; }
+.surv { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; }
+.surv legend { font-size: 14px; font-weight: 600; float: left; margin-right: 6px; padding: 0; }
+.surv label { display: inline-flex; gap: 6px; align-items: center; font-size: 14.5px; cursor: pointer; }
+.surv input { accent-color: var(--ink); width: 16px; height: 16px; }
+.done { display: grid; gap: 10px; }
+.done .done-line { display: flex; gap: 10px; align-items: center; font-size: 16px; }
+.done .note { font-family: var(--f-creed); font-style: italic; font-size: 17px; color: var(--graphite); max-width: 60ch; }
+.nudge { font-size: 14px; color: var(--graphite); max-width: 62ch; }
+.quiet { font-size: 14px; color: var(--graphite); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.yday { margin-top: 28px; max-width: 760px; display: grid; gap: 14px; }
+
+/* ---------- Onboarding ---------- */
+.onboard { padding-block: clamp(28px, 6vw, 72px) 16px; display: grid; gap: 22px; max-width: 900px; }
+.onboard h1 { margin: 0; font-family: var(--f-creed); font-weight: 300; font-size: clamp(28px, 4.4vw, 44px); line-height: 1.18; max-width: 24ch; }
+.onboard > p { max-width: 62ch; color: var(--graphite); }
+.paths { display: grid; gap: 0; margin-top: 8px; border-top: 1px solid var(--rule); }
+@media (min-width: 720px) { .paths { grid-template-columns: 1fr 1fr; } .path + .path { border-left: 1px solid var(--rule); padding-left: 28px; } .path:first-child { padding-right: 28px; } }
+.path { display: grid; gap: 10px; align-content: start; padding-block: 20px; }
+.path + .path { border-top: 1px solid var(--rule); }
+@media (min-width: 720px) { .path + .path { border-top: 0; } }
+.path h2 { margin: 0; font-size: 18px; font-stretch: 112%; }
+.path p { color: var(--graphite); font-size: 15px; max-width: 46ch; }
+.path .btn { justify-self: start; margin-top: 4px; }
+
+/* ---------- Lines ---------- */
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--graphite); }
+.legend > span { display: inline-flex; gap: 6px; align-items: center; }
+.legend .seg { width: 16px; height: 18px; font-size: 9px; }
+.rec-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.rec { display: grid; grid-template-columns: 56px minmax(0, 1fr); column-gap: 16px; padding-block: 22px; border-bottom: 1px solid var(--rule); }
+@media (min-width: 720px) { .rec { grid-template-columns: 84px minmax(0, 1fr); column-gap: 24px; } }
+.rec .rec-deg { font-family: var(--f-data); font-size: 15px; padding-top: 6px; color: var(--graphite); }
+.rec-body { display: grid; gap: 12px; min-width: 0; }
+@media (min-width: 960px) {
+  .rec-body { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); column-gap: 36px; }
+  .rec-body > .rec-tags, .rec-body > .rec-text { grid-column: 1; }
+  .rec-body > .core-wrap { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+  .rec-body > .ask, .rec-body > details { grid-column: 1 / -1; }
+}
+.attn { display: grid; gap: 6px; margin-bottom: 18px; }
+.attn ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.attn .link { font-size: 15px; text-align: left; }
+html { scroll-padding-top: 110px; }
+.rec-text { font-family: var(--f-creed); font-size: clamp(20px, 2.4vw, 24px); line-height: 1.3; max-width: 40ch; }
+.rec-tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.rec-tags .today-mark { font-size: 12.5px; color: var(--ink); font-weight: 600; display: inline-flex; gap: 5px; align-items: center; }
+.rec-tags .today-mark::before { content: ""; width: 8px; height: 8px; background: var(--field); border: 1px solid var(--ink); transform: rotate(45deg); }
+.core-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.core {
+  display: flex; gap: 2px; padding: 3px; max-width: 100%; overflow-x: auto;
+  border: 1px solid var(--rule); background: var(--sheet); border-radius: 13px;
+}
+.core .seg:first-child { border-radius: 10px 2px 2px 10px; }
+.core .seg:last-child { border-radius: 2px 10px 10px 2px; }
+.core .seg:only-child { border-radius: 10px; }
+.core-empty { font-size: 13.5px; color: var(--graphite); font-style: italic; }
+.counts { font-size: 13px; color: var(--graphite); font-variant-numeric: tabular-nums; }
+.ask { display: grid; gap: 10px; max-width: 640px; padding: 14px 16px; background: var(--sheet); border: 1px dashed var(--graphite); }
+.ask-k { font-family: var(--f-data); font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--oxide); }
+.ask.suggest .ask-k { color: var(--held); }
+.ask p { font-size: 15px; }
+.ask .retire-box { display: grid; gap: 10px; padding-top: 6px; border-top: 1px solid var(--rule); }
+.flash { font-size: 14px; padding: 8px 12px; background: var(--sheet); border: 1px solid var(--rule); max-width: 640px; }
+details.more summary { cursor: pointer; font-size: 14px; color: var(--graphite); width: max-content; max-width: 100%; }
+details.more summary:hover { color: var(--ink); }
+details.more[open] summary { margin-bottom: 10px; }
+.more-body { display: grid; gap: 10px; font-size: 14.5px; max-width: 64ch; }
+.more-body dl { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; }
+.more-body dt { color: var(--graphite); font-size: 13px; padding-top: 1px; }
+.more-body dd { margin: 0; }
+.hist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.hist li { display: grid; grid-template-columns: 58px 20px minmax(0, 1fr); gap: 10px; align-items: start; font-size: 14px; }
+.hist time { font-family: var(--f-data); font-size: 12px; color: var(--graphite); padding-top: 3px; }
+.hist .seg { width: 18px; height: 20px; }
+.retired-sec { margin-top: 28px; }
+.retired-sec summary { cursor: pointer; font-weight: 600; font-size: 15px; }
+.retired-sec .rec-text { color: var(--graphite); }
+.lines-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding-block: 0 20px; }
+
+/* ---------- Editor ---------- */
+.conf-legend { display: grid; gap: 4px; font-size: 13.5px; color: var(--graphite); margin: 0; }
+.conf-legend b { color: var(--ink); font-weight: 600; }
+.ed-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.ed-row { display: grid; gap: 10px; padding-block: 18px; border-bottom: 1px solid var(--rule); max-width: 760px; }
+.ed-head { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.ed-num { font-family: var(--f-data); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--graphite); }
+.ed-text-wrap { display: grid; gap: 4px; }
+.ed-row textarea { font-family: var(--f-creed); font-size: 19px; line-height: 1.35; min-height: 64px; }
+.count { font-family: var(--f-data); font-size: 11px; color: var(--graphite); justify-self: end; }
+.conf-set { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+.conf-set legend { font-size: 13.5px; color: var(--graphite); float: left; margin-right: 6px; padding: 0; }
+.seg-opt { position: relative; }
+.seg-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.seg-opt label { display: inline-block; padding: 5px 12px; border: 1px solid var(--rule); background: var(--sheet); font-size: 13.5px; cursor: pointer; border-radius: 2px; }
+.seg-opt input:checked + label { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.seg-opt input:focus-visible + label { outline: 2px solid var(--focus); outline-offset: 2px; }
+.ed-row-act { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.ed-seed { font-size: 13.5px; color: var(--graphite); font-style: italic; }
+.ed-add { padding-block: 14px 4px; }
+.ed-give { margin-top: 28px; display: grid; gap: 6px; max-width: 760px; }
+.ed-give h2 { margin: 0; font-size: 18px; font-stretch: 112%; }
+.ed-give > p { color: var(--graphite); font-size: 15px; max-width: 62ch; }
+.ed-give .ed-list { border-top: 1px dashed var(--graphite); }
+.ed-give .ed-row { border-bottom: 1px dashed var(--graphite); }
+.seed-panel { margin-top: 28px; max-width: 760px; display: grid; gap: 10px; }
+.seed-panel h2 { margin: 0; font-size: 16px; }
+.seed-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.seed-list li { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; justify-content: space-between; padding-block: 6px; border-bottom: 1px dotted var(--rule); }
+.seed-list .s-text { font-family: var(--f-creed); font-size: 16.5px; flex: 1 1 260px; }
+.seed-list .s-from { font-size: 12px; color: var(--graphite); }
+.ed-foot { margin-top: 28px; display: grid; gap: 16px; max-width: 760px; }
+
+/* ---------- Eulogy ---------- */
+.steps { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 13px; color: var(--graphite); }
+.steps li { display: inline-flex; gap: 8px; align-items: center; }
+.steps .n { font-family: var(--f-data); width: 22px; height: 22px; display: inline-grid; place-items: center; border: 1px solid var(--graphite); border-radius: 50%; font-size: 11px; }
+.steps li[aria-current="step"] { color: var(--ink); font-weight: 600; }
+.steps li[aria-current="step"] .n { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.eu-voices { display: grid; gap: 22px; max-width: 760px; }
+.eu-voices textarea { font-family: var(--f-creed); font-size: 18px; line-height: 1.5; min-height: 140px; }
+.note { font-size: 13.5px; color: var(--graphite); }
+.eu-grid { display: grid; gap: 28px; }
+@media (min-width: 900px) { .eu-grid { grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr); align-items: start; } .seeds { position: sticky; top: 90px; } }
+.pass-block { display: grid; gap: 8px; padding-block: 4px 18px; border-bottom: 1px solid var(--rule); }
+.passage { font-family: var(--f-creed); font-size: 19px; line-height: 1.75; max-width: 60ch; }
+.sent { cursor: pointer; border-radius: 1px; padding: 2px 0; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.sent:hover { background: var(--sheet); box-shadow: 0 1px 0 var(--graphite); }
+.sent[aria-pressed="true"] { background: var(--field); color: var(--on-field); }
+.sent:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.passage ::selection { background: var(--field); color: var(--on-field); }
+.sel-slot { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 14px; color: var(--graphite); min-height: 40px; }
+.sel-slot q { font-family: var(--f-creed); font-style: italic; color: var(--ink); }
+.seeds { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--rule); background: var(--sheet); }
+.seeds h2 { margin: 0; font-size: 16px; }
+.seeds .seed-list li { border-bottom-color: var(--rule); }
+.empty-note { font-size: 14px; color: var(--graphite); font-style: italic; }
+
+/* ---------- Strata ---------- */
+.st-grid { display: grid; gap: 28px; }
+@media (min-width: 900px) { .st-grid { grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr); align-items: start; } .st-detail { position: sticky; top: 80px; } }
+.st-fig { margin: 0; display: grid; gap: 10px; }
+.st-fig figcaption { font-size: 13px; color: var(--graphite); max-width: 60ch; }
+#st-svg-wrap { width: 100%; min-height: 120px; }
+#st-svg-wrap svg { display: block; }
+.sed-1 { fill: var(--sed-1); } .sed-2 { fill: var(--sed-2); } .sed-3 { fill: var(--sed-3); } .sed-4 { fill: var(--sed-4); }
+.lith { fill: var(--lith); fill-opacity: .34; }
+.lith-s { fill: none; stroke: var(--lith); stroke-opacity: .3; stroke-width: 1; }
+.st-edge { fill: none; stroke: var(--ink); stroke-opacity: .55; stroke-width: 1; }
+.st-surface { fill: none; stroke: var(--ink); stroke-width: 1.6; }
+.st-axis { stroke: var(--graphite); stroke-width: 1; }
+.st-ax { fill: var(--graphite); font-family: var(--f-data); font-size: 10.5px; }
+.st-ax.strong { fill: var(--ink); }
+.st-k { fill: var(--ink); font-family: var(--f-label); font-weight: 700; font-stretch: 125%; font-size: 11px; letter-spacing: .12em; }
+.st-s { fill: var(--ink); font-family: var(--f-label); font-weight: 500; font-size: 13px; }
+.st-r { fill: var(--ink); font-family: var(--f-creed); font-style: italic; font-size: 14.5px; }
+.halo { paint-order: stroke; stroke: var(--paper); stroke-width: 4px; stroke-linejoin: round; }
+.st-layer { cursor: pointer; }
+.st-layer .st-hit { fill: transparent; }
+.st-layer .st-outline { fill: none; stroke: transparent; stroke-width: 3; }
+.st-layer:hover .st-outline { stroke: var(--graphite); stroke-width: 1.5; }
+.st-layer.sel .st-outline { stroke: var(--field); stroke-width: 4; }
+.st-layer:focus { outline: none; }
+.st-layer:focus-visible .st-outline { stroke: var(--focus); stroke-width: 2; stroke-dasharray: 5 3; }
+.st-layer.sel:focus-visible .st-outline { stroke: var(--field); stroke-width: 4; stroke-dasharray: 8 4; }
+.st-mark { fill: var(--field); stroke: var(--ink); stroke-width: 1; }
+.st-detail { display: grid; gap: 14px; padding: 18px; border: 1px solid var(--rule); background: var(--sheet); min-width: 0; }
+.st-detail h2 { margin: 0; font-size: 20px; font-stretch: 112%; }
+.st-detail h3 { margin: 6px 0 0; font-size: 12px; font-stretch: 125%; text-transform: uppercase; letter-spacing: .12em; color: var(--graphite); }
+.st-dur { font-size: 14px; color: var(--graphite); }
+.st-reason { margin: 0; font-family: var(--f-creed); font-style: italic; font-size: 18px; line-height: 1.45; }
+.st-reason.none { font-style: normal; font-family: var(--f-label); font-size: 14px; color: var(--graphite); }
+.st-changes, .st-lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.st-changes li { display: grid; gap: 3px; font-size: 14.5px; }
+.st-changes .was { color: var(--graphite); text-decoration: line-through; text-decoration-color: var(--graphite); }
+.st-changes .ck { font-family: var(--f-data); font-size: 10.5px; text-transform: uppercase; letter-spacing: .1em; color: var(--graphite); }
+.st-lines li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 10px; font-size: 15px; align-items: baseline; }
+.st-lines .deg { font-size: 12px; color: var(--graphite); }
+.st-lines .t { font-family: var(--f-creed); font-size: 16.5px; line-height: 1.35; }
+.st-lines .chip { margin-left: 6px; vertical-align: 2px; }
+.st-nav { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---------- Creed sheet ---------- */
+.creed { padding-block: clamp(24px, 5vw, 56px) 0; }
+.sheet { max-width: 820px; display: grid; gap: 22px; }
+.sheet-head { display: grid; gap: 6px; }
+.sheet h1 { margin: 0; font-family: var(--f-label); font-stretch: 125%; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .16em; }
+.creed-lines { list-style: none; margin: 0; padding: 0; display: grid; gap: clamp(18px, 3vw, 28px); }
+.creed-lines li { display: grid; grid-template-columns: 46px minmax(0, 1fr); column-gap: 12px; }
+@media (min-width: 720px) { .creed-lines li { grid-template-columns: 70px minmax(0, 1fr); column-gap: 20px; } }
+.creed-lines .deg { font-size: 12px; color: var(--graphite); padding-top: .9em; }
+.creed-lines .t { font-family: var(--f-creed); font-weight: 400; font-size: clamp(22px, 3.3vw, 32px); line-height: 1.28; max-width: 34ch; text-wrap: pretty; }
+.creed-lines .o { grid-column: 2; margin-top: 6px; font-size: 14.5px; color: var(--graphite); max-width: 60ch; }
+.creed-lines .gv { grid-column: 2; margin-top: 6px; font-size: 12px; color: var(--graphite); letter-spacing: .04em; }
+.creed-tools { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-top: 32px; padding-top: 18px; border-top: 1px solid var(--rule); max-width: 820px; }
+
+/* ---------- Data ---------- */
+.data-sec { display: grid; gap: 10px; padding-block: 20px; border-top: 1px solid var(--rule); max-width: 760px; }
+.data-sec h2 { margin: 0; font-size: 17px; }
+.data-sec textarea { font-family: var(--f-data); font-size: 12.5px; line-height: 1.5; }
+.erase-box { display: grid; gap: 10px; padding: 14px; border: 1px dashed var(--oxide); }
+
+/* ---------- Footer ---------- */
+.foot { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--rule); display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; font-size: 13.5px; color: var(--graphite); }
+.foot p { flex: 1 1 260px; }
+.foot .row { gap: 4px 18px; }
+.foot .link { font-size: 13.5px; }
+.store-warn { color: var(--oxide); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&family=B612+Mono:wght@400;700&family=Spectral:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap">
+</head>
+<body>
+<div class="wc" id="wc">
+  <header class="top">
+    <button class="brand" type="button" data-action="nav" data-view="bearing" aria-label="Working Creed, go to today's bearing">
+      <svg viewBox="0 0 28 18" aria-hidden="true"><path d="M2 5H26M14 5V14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"/></svg>
+      <span>Working Creed</span>
+    </button>
+    <p class="stamp" id="stamp"></p>
+    <nav class="tabs" aria-label="Sections">
+      <button class="tab" type="button" data-action="nav" data-view="bearing">Bearing</button>
+      <button class="tab" type="button" data-action="nav" data-view="lines">Lines</button>
+      <button class="tab" type="button" data-action="nav" data-view="strata">Strata</button>
+      <button class="tab" type="button" data-action="nav" data-view="creed">Creed</button>
+    </nav>
+  </header>
+  <div id="banner"></div>
+  <main id="main" tabindex="-1"></main>
+  <footer class="foot">
+    <p id="store-note">Your creed and check-ins are stored only in this browser. Nothing is sent anywhere.</p>
+    <div class="row">
+      <button class="link" type="button" data-action="nav" data-view="start">Find first lines (eulogy exercise)</button>
+      <button class="link" type="button" data-action="nav" data-view="data">Export, import or erase</button>
+    </div>
+  </footer>
+</div>
+<script>
+(function () {
+  'use strict';
+
+  /* ================= constants ================= */
+  var KEY = 'inderstanding.working-creed.v1';
+  var MAX_LEN = 140, MIN_LINES = 3, MAX_LINES = 9;
+  var RESULT = {
+    held:    { label: 'Held',            letter: 'H', hint: 'I lived by it today.' },
+    drifted: { label: 'Drifted',         letter: 'D', hint: 'I moved away from it.' },
+    tested:  { label: 'Tested',          letter: 'T', hint: 'Life pushed against it.' },
+    absent:  { label: "Didn't come up",  letter: '·', hint: 'Nothing today touched it.' }
+  };
+  var CONF = { hunch: 'Hunch', tested: 'Tested', bedrock: 'Bedrock' };
+  var CONF_HINT = {
+    hunch: 'feels right, not lived much yet',
+    tested: 'has held up in real situations',
+    bedrock: "has held for years; you'd stake a lot on it"
+  };
+  var SURV = { yes: 'It held up', partly: 'Partly', no: 'It gave way' };
+  var VOICES = [
+    { k: 'family', label: 'Someone from your family', short: 'Family', hint: 'A partner, child, parent, sibling or cousin.', origin: 'someone from my family' },
+    { k: 'friend', label: 'A friend', short: 'Friend', hint: 'Someone who knows you outside any role.', origin: 'a friend' },
+    { k: 'work', label: 'Someone from your work or community', short: 'Work or community', hint: 'A colleague, neighbour, student, or someone you served alongside.', origin: 'someone from my work or community' }
+  ];
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  /* ================= small utils ================= */
+  function $(sel) { return document.querySelector(sel); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function ymd(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function today() { return ymd(new Date()); }
+  function parseD(s) { var p = s.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2], 12); }
+  function addDays(s, n) { var d = parseD(s); d.setDate(d.getDate() + n); return ymd(d); }
+  function diffDays(a, b) { return Math.round((parseD(b) - parseD(a)) / 86400000); }
+  function fmt(s) { var d = parseD(s); return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
+  function fmtShort(s) { var d = parseD(s); return d.getDate() + ' ' + MONTHS[d.getMonth()]; }
+  function fmtStamp(s) { var d = parseD(s); return '<span class="dow">' + DOW[d.getDay()].toUpperCase() + ' </span>' + (pad(d.getDate()) + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear()).toUpperCase(); }
+  function deg(b) { return String(b).padStart(3, '0') + '°'; }
+  function quadrant(b) {
+    if (b === 0) return 'Due N'; if (b === 90) return 'Due E'; if (b === 180) return 'Due S'; if (b === 270) return 'Due W';
+    if (b < 90) return 'N ' + b + '° E';
+    if (b < 180) return 'S ' + (180 - b) + '° E';
+    if (b < 270) return 'S ' + (b - 180) + '° W';
+    return 'N ' + (360 - b) + '° W';
+  }
+  function angDist(a, b) { var d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
+  function uid(p) { return p + Math.random().toString(36).slice(2, 9) + Math.random().toString(36).slice(2, 5); }
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+  function hashStr(s) { var h = 2166136261 >>> 0; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function rng(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0; var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function clip(s, n) {
+    s = String(s || '').replace(/\s+/g, ' ').trim();
+    if (s.length <= n) return s;
+    var cut = s.slice(0, n - 1); var sp = cut.lastIndexOf(' ');
+    return (sp > n * 0.6 ? cut.slice(0, sp) : cut) + '…';
+  }
+  var NUMW = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+  function numw(n) { return NUMW[n] || String(n); }
+
+  /* ================= storage ================= */
+  var storageOK = true;
+  function load() {
+    try { var raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; }
+    catch (e) { storageOK = false; return null; }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); storageOK = true; }
+    catch (e) { storageOK = false; }
+    updateStoreNote();
+  }
+  function wipe() { try { localStorage.removeItem(KEY); } catch (e) { storageOK = false; } }
+
+  /* ================= state ================= */
+  function emptyState() {
+    return { app: 'working-creed', v: 1, isExample: false, seq: 0, lines: [], checks: [], days: {}, versions: [],
+      eulogy: { family: '', friend: '', work: '', seeds: [] }, created: today() };
+  }
+  function normalize(s) {
+    if (!s || typeof s !== 'object' || !Array.isArray(s.lines) || !Array.isArray(s.versions)) throw new Error('shape');
+    var out = emptyState();
+    out.isExample = !!s.isExample;
+    out.created = typeof s.created === 'string' ? s.created : today();
+    out.lines = s.lines.filter(function (l) { return l && typeof l.id === 'string' && typeof l.text === 'string'; }).map(function (l) {
+      var n = {
+        id: l.id, text: l.text.slice(0, MAX_LEN), origin: typeof l.origin === 'string' ? l.origin : '',
+        confidence: CONF[l.confidence] ? l.confidence : 'hunch', gives: !!l.gives,
+        bearing: Number.isFinite(l.bearing) ? ((Math.round(l.bearing) % 360) + 360) % 360 : 0,
+        created: typeof l.created === 'string' ? l.created : today(), retired: !!l.retired, retiredAt: l.retiredAt || null,
+        keptAt: Number.isFinite(l.keptAt) ? l.keptAt : null, suggestSkipAt: Number.isFinite(l.suggestSkipAt) ? l.suggestSkipAt : null,
+        revisions: Array.isArray(l.revisions) ? l.revisions.filter(function (r) { return r && r.date && typeof r.from === 'string'; }) : []
+      };
+      n.confidenceSince = typeof l.confidenceSince === 'string' ? l.confidenceSince : n.created;
+      return n;
+    });
+    var ids = {}; out.lines.forEach(function (l) { ids[l.id] = true; });
+    out.checks = (Array.isArray(s.checks) ? s.checks : []).filter(function (c) {
+      return c && typeof c.date === 'string' && ids[c.lineId] && RESULT[c.result];
+    }).map(function (c) {
+      return { date: c.date, lineId: c.lineId, result: c.result, note: typeof c.note === 'string' ? c.note.slice(0, 200) : '', survived: SURV[c.survived] ? c.survived : null };
+    });
+    out.days = {};
+    if (s.days && typeof s.days === 'object') {
+      Object.keys(s.days).forEach(function (k) { var d = s.days[k]; if (d && ids[d.lineId]) out.days[k] = { lineId: d.lineId, swapped: !!d.swapped, from: d.from || null }; });
+    }
+    out.versions = s.versions.filter(function (v) { return v && typeof v.date === 'string' && Array.isArray(v.lines); }).map(function (v) {
+      return { id: v.id || uid('v'), date: v.date, reason: typeof v.reason === 'string' ? v.reason : '', auto: !!v.auto,
+        lines: v.lines.filter(function (l) { return l && l.id; }).map(function (l) { return { id: l.id, text: String(l.text || ''), confidence: CONF[l.confidence] ? l.confidence : 'hunch', gives: !!l.gives, origin: l.origin || '' }; }) };
+    });
+    var eu = s.eulogy && typeof s.eulogy === 'object' ? s.eulogy : {};
+    out.eulogy = { family: String(eu.family || ''), friend: String(eu.friend || ''), work: String(eu.work || ''),
+      seeds: Array.isArray(eu.seeds) ? eu.seeds.filter(function (x) { return x && typeof x.text === 'string'; }).map(function (x) { return { id: x.id || uid('s'), text: x.text, from: x.from || 'friend' }; }) : [] };
+    out.seq = Number.isFinite(s.seq) ? s.seq : out.lines.length;
+    return out;
+  }
+
+  function exampleState() {
+    var t = today();
+    var s = emptyState();
+    s.isExample = true;
+    var v1 = addDays(t, -26), rev = addDays(t, -5);
+    s.created = v1;
+    var defs = [
+      { k: 'hard', text: 'I tell people the hard thing early, while it’s still small.', origin: 'Letting a friendship go quiet for a year over one conversation I kept putting off.', confidence: 'tested' },
+      { k: 'know', text: 'When I don’t know, I say so, and then I go and find out.', origin: 'Ruth, my first manager, who said “no idea, let’s look” without a flicker of embarrassment.', confidence: 'bedrock' },
+      { k: 'phone', text: 'I put my phone in another room when someone is talking to me.', origin: 'My son asked if I was listening. I wasn’t.', confidence: 'hunch' },
+      { k: 'seven', text: 'I stop work by seven most evenings, and I don’t apologise for it.', origin: 'Burning out in 2023, and a GP who asked what I did for fun.', confidence: 'hunch' },
+      { k: 'give', text: 'I keep two evenings a month for the tenants’ association, including the dull meetings.', origin: 'Mum ran the residents’ committee on her estate for twenty years and never once called it volunteering.', confidence: 'hunch', gives: true }
+    ];
+    var id = {};
+    defs.forEach(function (d) {
+      var l = { id: 'ex-' + d.k, text: d.text, origin: d.origin, confidence: d.confidence, gives: !!d.gives,
+        bearing: Math.round(s.seq * 137.508 + 47) % 360, created: v1, confidenceSince: v1, retired: false, retiredAt: null,
+        keptAt: null, suggestSkipAt: null, revisions: [] };
+      s.seq++;
+      id[d.k] = l.id;
+      s.lines.push(l);
+    });
+    var oldSeven = 'I never work past six.';
+    s.lines[3].revisions.push({ date: rev, from: oldSeven });
+    function snap(over) {
+      return s.lines.map(function (l) { return { id: l.id, text: (over && over[l.id]) || l.text, confidence: l.confidence, gives: l.gives, origin: l.origin }; });
+    }
+    var o = {}; o[id.seven] = oldSeven;
+    s.versions.push({ id: 'ex-v1', date: v1, reason: 'First draft, written on the train home after a long weekend of thinking about it.', lines: snap(o) });
+    s.versions.push({ id: 'ex-v2', date: rev, reason: '‘Never’ and ‘six’ were wishful. Seven, most evenings, is a line I can actually keep, and the apologising was half the problem.', lines: snap(null) });
+    var plan = [
+      [-12, 'phone', 'drifted', 'Answered a work email while Sam was telling me about his match.'],
+      [-11, 'give', 'held', 'Went to the repairs meeting and took the minutes, since nobody else would.'],
+      [-10, 'seven', 'drifted', 'Grant report deadline. Worked until ten.'],
+      [-9, 'phone', 'held', 'Left it charging in the hall all evening.'],
+      [-8, 'hard', 'tested', 'Told Priya her budget had a gap before the board saw it. Awkward for a day, then fine.', 'yes'],
+      [-7, 'give', 'tested', 'Meeting clashed with Jo’s birthday. Went for the first hour, then left.', 'partly'],
+      [-6, 'phone', 'drifted', 'Scrolled through dinner and only noticed when the plates were empty.'],
+      [-5, 'seven', 'held', 'Shut the laptop at ten to seven.'],
+      [-4, 'give', 'held', ''],
+      [-3, 'phone', 'drifted', 'Checked a delivery while Dad was telling me about his hospital appointment.'],
+      [-2, 'know', 'absent', ''],
+      [-1, 'give', 'held', 'Delivered the repair-request leaflets to Block B.']
+    ];
+    plan.forEach(function (p) {
+      var date = addDays(t, p[0]);
+      s.days[date] = { lineId: id[p[1]], swapped: false, from: null };
+      s.checks.push({ date: date, lineId: id[p[1]], result: p[2], note: p[3], survived: p[4] || null });
+    });
+    return s;
+  }
+
+  var state;
+  (function init() {
+    var raw = load();
+    if (raw) { try { state = normalize(raw); } catch (e) { state = exampleState(); } }
+    else { state = exampleState(); save(); }
+  })();
+
+  /* ================= model helpers ================= */
+  function activeLines() {
+    var act = state.lines.filter(function (l) { return !l.retired; });
+    return act.filter(function (l) { return !l.gives; }).concat(act.filter(function (l) { return l.gives; }));
+  }
+  function lineById(id) { for (var i = 0; i < state.lines.length; i++) if (state.lines[i].id === id) return state.lines[i]; return null; }
+  function lineChecks(id) { return state.checks.filter(function (c) { return c.lineId === id; }).sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }); }
+  function getCheck(date) { for (var i = 0; i < state.checks.length; i++) if (state.checks[i].date === date) return state.checks[i]; return null; }
+  function currentVersion() { return state.versions[state.versions.length - 1] || null; }
+
+  function nextBearing(extraUsed) {
+    var used = state.lines.filter(function (l) { return !l.retired; }).map(function (l) { return l.bearing; }).concat(extraUsed || []);
+    for (var tries = 0; tries < 60; tries++) {
+      var b = Math.round(state.seq * 137.508 + 47) % 360;
+      state.seq++;
+      if (used.every(function (u) { return angDist(u, b) >= 14; })) return b;
+    }
+    return Math.floor(Math.random() * 360);
+  }
+
+  function lastBearingBefore(date) {
+    var best = null;
+    Object.keys(state.days).forEach(function (d) { if (d < date && (!best || d > best)) best = d; });
+    return best ? state.days[best].lineId : null;
+  }
+  function weightFor(line, date) {
+    var w = { hunch: 3, tested: 2, bedrock: 1 }[line.confidence] || 2;
+    var cs = state.checks.filter(function (c) { return c.lineId === line.id && c.date < date; });
+    w += 3 / (1 + cs.length);
+    var drifts = cs.filter(function (c) { return c.result === 'drifted' && diffDays(c.date, date) <= 14; }).length;
+    w += 1.5 * Math.min(drifts, 2);
+    var last = null;
+    Object.keys(state.days).forEach(function (d) { if (d < date && state.days[d].lineId === line.id && (!last || d > last)) last = d; });
+    w += last ? Math.min(diffDays(last, date) / 5, 2) : 2;
+    return w;
+  }
+  function pickLine(date, exclude) {
+    var act = activeLines();
+    var cands = act.filter(function (l) { return exclude.indexOf(l.id) < 0; });
+    if (!cands.length) cands = act;
+    var prev = lastBearingBefore(date);
+    if (cands.length > 1) {
+      var f = cands.filter(function (l) { return l.id !== prev; });
+      if (f.length) cands = f;
+    }
+    var ws = cands.map(function (l) { return weightFor(l, date); });
+    var total = ws.reduce(function (a, b) { return a + b; }, 0);
+    var r = rng(hashStr(date + '|' + exclude.join(',') + '|' + cands.length))() * total;
+    for (var i = 0; i < cands.length; i++) { r -= ws[i]; if (r <= 0) return cands[i]; }
+    return cands[cands.length - 1];
+  }
+  function ensureDay(date) {
+    if (!activeLines().length) return null;
+    var d = state.days[date];
+    if (d) {
+      var l = lineById(d.lineId);
+      if (l && (!l.retired || getCheck(date))) return d;
+    }
+    var line = pickLine(date, []);
+    state.days[date] = { lineId: line.id, swapped: !!(d && d.swapped), from: d ? d.from : null };
+    save();
+    return state.days[date];
+  }
+  function setCheck(date, lineId, result, note, survived) {
+    state.checks = state.checks.filter(function (c) { return c.date !== date; });
+    state.checks.push({ date: date, lineId: lineId, result: result, note: (note || '').trim().slice(0, 200), survived: result === 'tested' ? (survived || null) : null });
+    state.checks.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+    save();
+  }
+
+  function questionFor(line) {
+    if (line.retired) return null;
+    var cs = lineChecks(line.id);
+    if (line.keptAt != null) {
+      if (cs.length < line.keptAt + 3) return null;
+      cs = cs.slice(line.keptAt);
+    }
+    var recent = cs.slice(-5);
+    if (recent.length >= 3) {
+      var dr = recent.filter(function (c) { return c.result === 'drifted'; }).length;
+      if (dr * 2 > recent.length) return { kind: 'drift', n: dr, of: recent.length };
+    }
+    var last3 = cs.slice(-3);
+    if (last3.length === 3 && last3.every(function (c) { return c.result === 'absent'; })) return { kind: 'absent', n: 3, since: last3[0].date };
+    return null;
+  }
+  function suggestionFor(line) {
+    if (line.retired || line.confidence === 'bedrock') return null;
+    var cs = lineChecks(line.id).filter(function (c) { return c.date >= line.confidenceSince; });
+    var sup = cs.filter(function (c) { return c.result === 'held' || (c.result === 'tested' && c.survived !== 'no'); }).length;
+    var testedOk = cs.filter(function (c) { return c.result === 'tested' && c.survived === 'yes'; }).length;
+    if (line.suggestSkipAt != null && sup < line.suggestSkipAt + 4) return null;
+    var lastN = cs.slice(-6);
+    var drifts = lastN.filter(function (c) { return c.result === 'drifted'; }).length;
+    if (line.confidence === 'hunch' && sup >= 4 && drifts <= 1) return { to: 'tested', sup: sup, drifts: drifts, window: lastN.length };
+    if (line.confidence === 'tested' && sup >= 8 && testedOk >= 2 && drifts <= 1) return { to: 'bedrock', sup: sup, drifts: drifts, window: lastN.length, testedOk: testedOk };
+    return null;
+  }
+
+  /* commit a new version of the creed; returns 'layer', 'notes' or false */
+  function commit(rows, reason, date, auto) {
+    date = date || today();
+    var cur = currentVersion();
+    var prev = cur ? cur.lines : [];
+    var prevMap = {}; prev.forEach(function (l) { prevMap[l.id] = l; });
+    var structural = rows.length !== prev.length, notes = false;
+    rows.forEach(function (r) {
+      var p = r.id && prevMap[r.id];
+      if (!p || p.text !== r.text || p.confidence !== r.confidence || !!p.gives !== !!r.gives) structural = true;
+      var line = r.id && lineById(r.id);
+      if (line && (line.origin || '') !== (r.origin || '')) notes = true;
+    });
+    if (!structural) {
+      if (!notes) return false;
+      rows.forEach(function (r) { var l = lineById(r.id); if (l) l.origin = r.origin; });
+      if (cur) cur.lines.forEach(function (vl) { var l = lineById(vl.id); if (l) vl.origin = l.origin; });
+      save();
+      return 'notes';
+    }
+    var keep = {}, out = [], newBearings = [];
+    rows.forEach(function (r) {
+      var line = r.id && lineById(r.id);
+      if (line) {
+        if (line.text !== r.text) { line.revisions.push({ date: date, from: line.text }); line.keptAt = lineChecks(line.id).length; }
+        if (line.confidence !== r.confidence) { line.confidence = r.confidence; line.confidenceSince = date; line.suggestSkipAt = null; }
+        line.text = r.text; line.origin = r.origin; line.gives = !!r.gives;
+        if (line.retired) { line.retired = false; line.retiredAt = null; line.keptAt = lineChecks(line.id).length; }
+      } else {
+        var b = nextBearing(newBearings); newBearings.push(b);
+        line = { id: uid('l'), text: r.text, origin: r.origin, confidence: r.confidence, confidenceSince: date, gives: !!r.gives,
+          bearing: b, created: date, retired: false, retiredAt: null, keptAt: null, suggestSkipAt: null, revisions: [] };
+      }
+      keep[line.id] = true; out.push(line);
+    });
+    var rest = state.lines.filter(function (l) { return !keep[l.id]; });
+    rest.forEach(function (l) { if (!l.retired) { l.retired = true; l.retiredAt = date; } });
+    state.lines = out.concat(rest);
+    state.versions.push({ id: uid('v'), date: date, reason: (reason || '').trim(), auto: !!auto,
+      lines: out.map(function (l) { return { id: l.id, text: l.text, confidence: l.confidence, gives: !!l.gives, origin: l.origin || '' }; }) });
+    var d = state.days[date];
+    if (d) { var dl = lineById(d.lineId); if (dl && dl.retired && !getCheck(date)) delete state.days[date]; }
+    save();
+    return 'layer';
+  }
+  function rowsFromActive() {
+    return activeLines().map(function (l) { return { id: l.id, text: l.text, origin: l.origin, confidence: l.confidence, gives: l.gives }; });
+  }
+
+  function diffVersions(a, b) {
+    var am = {}, bm = {};
+    a.lines.forEach(function (l) { am[l.id] = l; });
+    b.lines.forEach(function (l) { bm[l.id] = l; });
+    return {
+      added: b.lines.filter(function (l) { return !am[l.id]; }),
+      removed: a.lines.filter(function (l) { return !bm[l.id]; }),
+      reworded: b.lines.filter(function (l) { return am[l.id] && am[l.id].text !== l.text; }).map(function (l) { return { from: am[l.id].text, to: l.text }; }),
+      conf: b.lines.filter(function (l) { return am[l.id] && am[l.id].confidence !== l.confidence; }).map(function (l) { return { text: l.text, from: am[l.id].confidence, to: l.confidence }; }),
+      gives: b.lines.filter(function (l) { return am[l.id] && !!am[l.id].gives !== !!l.gives && l.gives; })
+    };
+  }
+  function summarize(i) {
+    var v = state.versions[i];
+    if (i === 0) return 'First version, ' + plural(v.lines.length, 'line');
+    var d = diffVersions(state.versions[i - 1], v), parts = [];
+    if (d.added.length) parts.push(d.added.length + ' new');
+    if (d.reworded.length) parts.push(d.reworded.length + ' reworded');
+    if (d.removed.length) parts.push(d.removed.length + ' retired');
+    if (d.conf.length) parts.push(plural(d.conf.length, 'confidence change'));
+    if (!parts.length && d.gives.length) parts.push('new line about giving');
+    return plural(v.lines.length, 'line') + ' · ' + (parts.join(', ') || 'small edits');
+  }
+
+  /* ================= UI state ================= */
+  var ui = {
+    view: 'bearing', retiring: null, strataSel: null, eulogyStep: 1, showOrigins: false,
+    eraseArm: false, checkEdit: false, ydayOpen: false, flash: null, focus: null, lastDay: today()
+  };
+  var draft = null, rowKey = 1, needleAngle = null, pendingSel = null;
+
+  function setFlash(view, text) { ui.flash = { view: view, text: text }; }
+  function takeFlash(view) {
+    if (ui.flash && ui.flash.view === view) { var t = ui.flash.text; ui.flash = null; return '<p class="flash" role="status">' + esc(t) + '</p>'; }
+    return '';
+  }
+
+  /* ================= rendering ================= */
+  var main = $('#main');
+
+  function renderChrome() {
+    $('#stamp').innerHTML = fmtStamp(today());
+    var tabView = { bearing: 'bearing', lines: 'lines', strata: 'strata', creed: 'creed', edit: 'lines' }[ui.view];
+    document.querySelectorAll('.tab').forEach(function (b) {
+      if (b.dataset.view === tabView) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+    var ban = $('#banner');
+    if (state.isExample) {
+      ban.innerHTML = '<div class="banner"><p><span class="tag-ex">Example</span>This is a made-up person’s creed, with 12 days of evening checks and one revision, so you can see how the app works. None of it is yours.</p>' +
+        '<button class="btn" type="button" data-action="clear-examples" id="clear-examples">Clear examples and start my own</button></div>';
+    } else ban.innerHTML = '';
+    updateStoreNote();
+  }
+  function updateStoreNote() {
+    var n = $('#store-note'); if (!n) return;
+    if (storageOK) { n.textContent = 'Your creed and check-ins are stored only in this browser. Nothing is sent anywhere.'; n.className = ''; }
+    else { n.textContent = 'This browser is not letting the page save, so changes last only until you close the tab. Use Export to keep a copy.'; n.className = 'store-warn'; }
+  }
+
+  function render() {
+    var active = document.activeElement, activeId = active && active.id && main.contains(active) ? active.id : null;
+    ui.lastDay = today();
+    renderChrome();
+    var html = '';
+    switch (ui.view) {
+      case 'lines': html = viewLines(); break;
+      case 'strata': html = viewStrata(); break;
+      case 'creed': html = viewCreed(); break;
+      case 'edit': html = viewEdit(); break;
+      case 'start': html = viewStart(); break;
+      case 'data': html = viewData(); break;
+      default: html = viewBearing();
+    }
+    main.innerHTML = html;
+    if (ui.view === 'strata') drawStrata();
+    if (ui.view === 'bearing') spinNeedle();
+    if (ui.view === 'data') { var ex = $('#data-export'); if (ex) ex.value = JSON.stringify(state, null, 2); }
+    if (ui.view === 'start' && ui.eulogyStep === 2) updateSelSlots();
+    if (ui.view === 'edit') main.querySelectorAll('textarea[data-ed="text"]').forEach(autosize);
+    var target = ui.focus ? document.getElementById(ui.focus) : (activeId ? document.getElementById(activeId) : null);
+    ui.focus = null;
+    if (target) { try { target.focus({ preventScroll: !!activeId }); } catch (e) { target.focus(); } }
+  }
+  function go(view, opts) {
+    ui.view = view; ui.retiring = null; ui.eraseArm = false; ui.checkEdit = false;
+    if (opts && opts.focus) ui.focus = opts.focus;
+    render();
+    if (!opts || !opts.keepScroll) window.scrollTo(0, 0);
+    if (!ui.focus && opts && opts.focusMain) main.focus({ preventScroll: true });
+  }
+
+  function autosize(el) { el.style.height = 'auto'; el.style.height = (el.scrollHeight + 2) + 'px'; }
+
+  /* ---------- compass ---------- */
+  function compassSVG(lines, todayLine) {
+    var C = 130, R = 96, s = '';
+    function pt(a, r) { var rad = (a - 90) * Math.PI / 180; return [C + r * Math.cos(rad), C + r * Math.sin(rad)]; }
+    function f(n) { return Math.round(n * 100) / 100; }
+    s += '<svg class="compass" viewBox="0 0 260 260" aria-hidden="true" focusable="false">';
+    s += '<circle class="cmp-ring2" cx="130" cy="130" r="' + (R - 34) + '"/>';
+    for (var a = 0; a < 360; a += 5) {
+      var len = a % 90 === 0 ? 14 : a % 30 === 0 ? 9 : a % 10 === 0 ? 6 : 3.5;
+      var p1 = pt(a, R), p2 = pt(a, R - len);
+      s += '<line class="cmp-tk' + (a % 30 === 0 ? ' major' : '') + '" x1="' + f(p1[0]) + '" y1="' + f(p1[1]) + '" x2="' + f(p2[0]) + '" y2="' + f(p2[1]) + '"/>';
+      if (a % 30 === 0 && a % 90 !== 0) { var pn = pt(a, R + 15); s += '<text class="cmp-num" x="' + f(pn[0]) + '" y="' + f(pn[1]) + '">' + pad(a).padStart(3, '0') + '</text>'; }
+    }
+    s += '<circle class="cmp-ring" cx="130" cy="130" r="' + R + '"/>';
+    [['N', 0], ['E', 90], ['S', 180], ['W', 270]].forEach(function (c) { var p = pt(c[1], R - 30); s += '<text class="cmp-card" x="' + f(p[0]) + '" y="' + f(p[1]) + '">' + c[0] + '</text>'; });
+    var b = todayLine.bearing;
+    if (b > 0) {
+      var ar = R - 48, s0 = pt(0, ar), s1 = pt(b, ar);
+      s += '<path class="cmp-arc" d="M' + f(s0[0]) + ' ' + f(s0[1]) + ' A' + ar + ' ' + ar + ' 0 ' + (b > 180 ? 1 : 0) + ' 1 ' + f(s1[0]) + ' ' + f(s1[1]) + '"/>';
+    }
+    lines.forEach(function (l) {
+      if (l.id === todayLine.id) return;
+      var p = pt(l.bearing, R); s += '<circle class="cmp-dot" cx="' + f(p[0]) + '" cy="' + f(p[1]) + '" r="3.6"/>';
+    });
+    var from = needleAngle == null ? b - 50 : needleAngle;
+    s += '<g class="needle" data-to="' + b + '" style="transform: rotate(' + from + 'deg)">' +
+      '<line class="cmp-needle-line" x1="130" y1="152" x2="130" y2="' + (C - R + 22) + '"/>' +
+      '<path class="cmp-tip" d="M123 ' + (C - R + 26) + ' L130 ' + (C - R + 2) + ' L137 ' + (C - R + 26) + ' Z"/></g>';
+    s += '<circle class="cmp-pivot" cx="130" cy="130" r="4"/>';
+    s += '</svg>';
+    return s;
+  }
+  function spinNeedle() {
+    var g = main.querySelector('.needle'); if (!g) return;
+    var to = Number(g.dataset.to);
+    var from = needleAngle == null ? to - 50 : needleAngle;
+    var delta = ((to - from) % 360 + 540) % 360 - 180;
+    var target = from + delta;
+    needleAngle = target;
+    requestAnimationFrame(function () { requestAnimationFrame(function () { g.style.transform = 'rotate(' + target + 'deg)'; }); });
+  }
+
+  /* ---------- Bearing view ---------- */
+  function viewOnboard() {
+    return '<section class="onboard" aria-labelledby="ob-h">' +
+      '<p class="eyebrow">No creed yet</p>' +
+      '<h1 id="ob-h">Write a few lines about how you want to live, then test them against ordinary days.</h1>' +
+      '<p>Each morning one line becomes your bearing for the day. Each evening you note whether it held. Over weeks, lines that keep holding can earn more confidence, and lines that keep drifting raise a question for you to answer.</p>' +
+      '<div class="paths">' +
+        '<div class="path"><h2>Find your first lines</h2><p>A guided exercise. Imagine three people speaking about you at the end of your life, write what you hope they could truthfully say, then pick out the phrases that ring true. Allow about twenty minutes.</p>' +
+        '<button class="btn primary" type="button" data-action="nav" data-view="start" id="ob-start">Start the exercise</button></div>' +
+        '<div class="path"><h2>Write them directly</h2><p>If you already know a few things you want to live by, write between three and nine lines now. You can revise them whenever you like; every version is kept.</p>' +
+        '<button class="btn" type="button" data-action="edit" id="ob-write">Write my lines</button></div>' +
+      '</div></section>';
+  }
+
+  function checkForm(p, date, line, existing, question) {
+    var r = existing ? existing.result : '';
+    var opts = Object.keys(RESULT).map(function (k) {
+      return '<div class="res-opt"><input type="radio" name="' + p + '-res" id="' + p + '-res-' + k + '" value="' + k + '"' + (r === k ? ' checked' : '') + '>' +
+        '<label for="' + p + '-res-' + k + '"><span class="seg seg-' + k + '" aria-hidden="true">' + RESULT[k].letter + '</span><span class="res-l">' + esc(RESULT[k].label) + '</span><span class="res-h">' + esc(RESULT[k].hint) + '</span></label></div>';
+    }).join('');
+    function nv(k) { return existing && existing.result === k ? esc(existing.note) : ''; }
+    var sv = existing && existing.survived;
+    var surv = Object.keys(SURV).map(function (k) {
+      return '<label for="' + p + '-surv-' + k + '"><input type="radio" name="' + p + '-surv" id="' + p + '-surv-' + k + '" value="' + k + '"' + (sv === k ? ' checked' : '') + '>' + esc(SURV[k]) + '</label>';
+    }).join('');
+    return '<form class="check" data-prefix="' + p + '" data-date="' + date + '" data-line="' + line.id + '" novalidate>' +
+      '<fieldset><legend class="ev-q">' + esc(question) + '</legend><div class="res-grid" style="margin-top:12px">' + opts + '</div></fieldset>' +
+      '<div class="follow" data-for="held"' + (r === 'held' ? '' : ' hidden') + '><label class="lbl" for="' + p + '-note-held">Anything to note? <span class="opt">Optional</span></label><input type="text" id="' + p + '-note-held" maxlength="140" autocomplete="off" value="' + nv('held') + '"></div>' +
+      '<div class="follow" data-for="drifted"' + (r === 'drifted' ? '' : ' hidden') + '><label class="lbl" for="' + p + '-note-drifted">What pulled you?</label><input type="text" id="' + p + '-note-drifted" maxlength="140" autocomplete="off" placeholder="One line is enough" value="' + nv('drifted') + '"></div>' +
+      '<div class="follow" data-for="tested"' + (r === 'tested' ? '' : ' hidden') + '><label class="lbl" for="' + p + '-note-tested">What happened, and did the line survive?</label><input type="text" id="' + p + '-note-tested" maxlength="140" autocomplete="off" placeholder="One line is enough" value="' + nv('tested') + '">' +
+        '<fieldset class="surv"><legend>Did it survive?</legend>' + surv + '</fieldset></div>' +
+      '<div class="row"><button class="btn primary" type="submit" id="' + p + '-save">Save evening check</button>' +
+        (existing ? '<button class="link" type="button" data-action="check-cancel" data-prefix="' + p + '">Keep what I had</button>' : '') +
+        '<span class="msg" role="status" id="' + p + '-msg"></span></div>' +
+      '</form>';
+  }
+
+  function doneBlock(p, chk, line, label) {
+    var q = questionFor(line), s = !q && suggestionFor(line), nudge = '';
+    if (q && q.kind === 'drift') nudge = 'This line has drifted in ' + numw(q.n) + ' of its last ' + numw(q.of) + ' check-ins. There is a question about it under Lines, whenever you want it.';
+    else if (q) nudge = 'This line hasn’t come up in its last three check-ins. There is a question about it under Lines.';
+    else if (s) nudge = 'This line has held or come through a test ' + numw(s.sup) + ' times since you marked it ' + CONF[line.confidence] + '. There is a suggestion under Lines.';
+    return '<div class="done" id="' + p + '-done" tabindex="-1">' +
+      '<p class="done-line"><span class="seg seg-' + chk.result + '" aria-hidden="true">' + RESULT[chk.result].letter + '</span><span>' + esc(label) + ': <b>' + esc(RESULT[chk.result].label) + '</b>' +
+        (chk.result === 'tested' && chk.survived ? ' · ' + esc(SURV[chk.survived]) : '') + '</span></p>' +
+      (chk.note ? '<p class="note">“' + esc(chk.note) + '”</p>' : '') +
+      (nudge ? '<p class="nudge">' + esc(nudge) + (q || s ? ' <button class="link" type="button" data-action="nav" data-view="lines">Go to Lines</button>' : '') + '</p>' : '') +
+      '<div class="row"><button class="link" type="button" data-action="check-edit" data-prefix="' + p + '" id="' + p + '-change">Change this check</button></div>' +
+      '</div>';
+  }
+
+  function viewBearing() {
+    var act = activeLines();
+    if (!act.length) return viewOnboard();
+    var t = today();
+    var day = ensureDay(t);
+    var line = lineById(day.lineId);
+    var chk = getCheck(t);
+    var canSwap = !day.swapped && !chk && act.length > 1;
+    var h = '<section class="bearing" aria-labelledby="b-eyebrow">';
+    h += '<div class="b-grid">';
+    h += '<div class="b-head"><p class="eyebrow" id="b-eyebrow" tabindex="-1">Today’s bearing · <span style="white-space:nowrap">' + esc(fmtShort(t)) + '</span></p>' +
+      '<p class="b-deg"><span class="num">' + deg(line.bearing) + '</span><span class="quad">' + quadrant(line.bearing) + '</span></p></div>';
+    h += '<div class="b-compass">' + compassSVG(act, line) + '</div>';
+    h += '<div class="b-line"><blockquote id="b-text">' + esc(line.text) + '</blockquote></div>';
+    h += '<div class="b-meta">' +
+      (line.origin ? '<p class="origin"><span class="sr">Where it came from: </span>' + esc(line.origin) + '</p>' : '') +
+      '<p class="meta-row"><span class="chip c-' + line.confidence + '">' + CONF[line.confidence] + '</span>' + (line.gives ? '<span class="chip gives">What I give</span>' : '') +
+      (line.retired ? '<span class="chip">Retired today</span>' : '') + '</p></div>';
+    h += '<div class="b-act">';
+    if (canSwap) h += '<button class="link" type="button" data-action="swap" id="swap">Swap for another line</button><span>You can swap once a day.</span>';
+    else if (day.swapped) h += '<span>Swapped once today. This one stays.</span>';
+    h += '</div>';
+    h += '</div>';
+
+    h += '<section class="evening" aria-labelledby="ev-h"><h2 class="eyebrow" id="ev-h">Evening check</h2>';
+    if (chk && !ui.checkEdit) h += doneBlock('ev', chk, line, 'Recorded for today');
+    else h += checkForm('ev', t, line, chk, 'How did today go with this line?');
+    h += '</section>';
+
+    var y = addDays(t, -1), yd = state.days[y];
+    if (yd && !getCheck(y)) {
+      var yl = lineById(yd.lineId);
+      if (yl) {
+        h += '<section class="yday" aria-labelledby="yd-h"><h2 class="sr" id="yd-h">Yesterday</h2>';
+        if (!ui.ydayOpen) h += '<p class="quiet">Yesterday’s bearing (“' + esc(clip(yl.text, 60)) + '”) has no evening check. <button class="link" type="button" data-action="yday-open" id="yday-open">Add one now</button></p>';
+        else h += '<p class="eyebrow">Yesterday · ' + esc(fmtShort(y)) + ' · ' + deg(yl.bearing) + '</p>' + checkForm('yev', y, yl, null, 'How did yesterday go with “' + clip(yl.text, 80) + '”?');
+        h += '</section>';
+      }
+    } else if (ui.ydayDone === y) {
+      h += '<p class="quiet yday" role="status">Yesterday’s check is saved.</p>';
+    }
+    h += '</section>';
+    return h;
+  }
+
+  /* ---------- Lines view ---------- */
+  function coreHTML(cs, max) {
+    if (!cs.length) return '<span class="core-empty">No check-ins yet.</span>';
+    var shown = cs.slice(-max);
+    var label = 'Last ' + plural(shown.length, 'check-in') + ', oldest first: ' + shown.map(function (c) { return fmtShort(c.date) + ' ' + RESULT[c.result].label; }).join(', ');
+    return '<div class="core" role="img" aria-label="' + esc(label) + '">' + shown.map(function (c) {
+      return '<span class="seg seg-' + c.result + '" title="' + esc(fmt(c.date) + ': ' + RESULT[c.result].label + (c.note ? '. ' + c.note : '')) + '">' + RESULT[c.result].letter + '</span>';
+    }).join('') + '</div>' + (cs.length > max ? '<span class="counts">and ' + (cs.length - max) + ' earlier</span>' : '');
+  }
+  function countsText(cs) {
+    if (!cs.length) return '';
+    var n = { held: 0, drifted: 0, tested: 0, absent: 0 };
+    cs.forEach(function (c) { n[c.result]++; });
+    var parts = [];
+    ['held', 'tested', 'drifted', 'absent'].forEach(function (k) { if (n[k]) parts.push(RESULT[k].label + ' ' + n[k]); });
+    return parts.join(' · ') + ' · since ' + fmtShort(cs[0].date);
+  }
+  function lineRecord(l, isToday) {
+    var cs = lineChecks(l.id);
+    var q = questionFor(l), s = !q && suggestionFor(l);
+    var h = '<li class="rec" id="rec-' + l.id + '"><span class="rec-deg deg">' + deg(l.bearing) + '</span><div class="rec-body">';
+    h += '<div class="rec-tags"><span class="chip c-' + l.confidence + '">' + CONF[l.confidence] + '</span>' + (l.gives ? '<span class="chip gives">What I give</span>' : '') +
+      (isToday ? '<span class="today-mark">Today’s bearing</span>' : '') + (l.retired ? '<span class="chip">Retired' + (l.retiredAt ? ' ' + esc(fmtShort(l.retiredAt)) : '') + '</span>' : '') + '</div>';
+    h += '<p class="rec-text">' + esc(l.text) + '</p>';
+    h += '<div class="core-wrap">' + coreHTML(cs, 15) + (cs.length ? '<span class="counts">' + esc(countsText(cs)) + '</span>' : '') + '</div>';
+    if (q) {
+      var qt = q.kind === 'drift'
+        ? 'This line drifted in ' + numw(q.n) + ' of its last ' + numw(q.of) + ' check-ins. It may not be true for you yet, or it may be the one you most need. What would you like to do with it?'
+        : 'This line hasn’t come up in its last three check-ins. It may describe something that rarely happens to you now, or the wording may be too narrow to meet an ordinary day. What would you like to do with it?';
+      h += '<div class="ask" role="group" aria-labelledby="ask-' + l.id + '"><p class="ask-k" id="ask-' + l.id + '">A question</p><p>' + esc(qt) + '</p>';
+      h += '<div class="row"><button class="btn" type="button" data-action="q-keep" data-id="' + l.id + '" id="q-keep-' + l.id + '">Keep it as written</button>' +
+        '<button class="btn" type="button" data-action="edit" data-id="' + l.id + '" id="q-revise-' + l.id + '">Revise the wording</button>' +
+        '<button class="btn" type="button" data-action="q-retire" data-id="' + l.id + '" id="q-retire-' + l.id + '">Retire it</button></div>';
+      if (ui.retiring === l.id) h += retireBox(l);
+      h += '</div>';
+    } else if (s) {
+      var dtxt = (s.drifts === 0 ? 'no drift' : 'one drift') + ' in its last ' + (s.window === 1 ? 'check-in' : numw(s.window) + ' check-ins');
+      h += '<div class="ask suggest" role="group" aria-labelledby="sug-' + l.id + '"><p class="ask-k" id="sug-' + l.id + '">A suggestion</p>' +
+        '<p>Since you marked it ' + CONF[l.confidence] + ' on ' + esc(fmtShort(l.confidenceSince)) + ', this line has held or come through a test on ' + numw(s.sup) + ' days, with ' + dtxt + '. Raise it to ' + CONF[s.to] + '? Only you can judge whether it has earned that.</p>' +
+        '<div class="row"><button class="btn primary" type="button" data-action="s-raise" data-id="' + l.id + '" data-to="' + s.to + '" id="s-raise-' + l.id + '">Raise to ' + CONF[s.to] + '</button>' +
+        '<button class="btn" type="button" data-action="s-skip" data-id="' + l.id + '" id="s-skip-' + l.id + '">Not yet</button></div></div>';
+    } else if (ui.retiring === l.id) {
+      h += '<div class="ask">' + retireBox(l) + '</div>';
+    }
+    h += '<details class="more"' + (ui.openRec === l.id ? ' open' : '') + '><summary>Record and origin</summary><div class="more-body"><dl>' +
+      '<dt>Came from</dt><dd>' + (l.origin ? esc(l.origin) : '<span class="opt">Not noted</span>') + '</dd>' +
+      '<dt>Written</dt><dd>' + esc(fmt(l.created)) + '</dd>' +
+      '<dt>Confidence</dt><dd>' + CONF[l.confidence] + ' since ' + esc(fmt(l.confidenceSince)) + '</dd>' +
+      (l.revisions.length ? '<dt>Earlier wording</dt><dd>' + l.revisions.map(function (r) { return '“' + esc(r.from) + '” <span class="opt">(until ' + esc(fmtShort(r.date)) + ')</span>'; }).join('<br>') + '</dd>' : '') +
+      '</dl>';
+    if (cs.length) {
+      h += '<ol class="hist" reversed>' + cs.slice().reverse().map(function (c) {
+        return '<li><time datetime="' + c.date + '">' + esc(fmtShort(c.date)) + '</time><span class="seg seg-' + c.result + '" aria-hidden="true">' + RESULT[c.result].letter + '</span><span><b>' + esc(RESULT[c.result].label) + '</b>' +
+          (c.result === 'tested' && c.survived ? ', ' + esc(SURV[c.survived].toLowerCase()) : '') + (c.note ? '. ' + esc(c.note) : '') + '</span></li>';
+      }).join('') + '</ol>';
+    }
+    h += '<div class="row">' + (l.retired
+      ? '<button class="link" type="button" data-action="restore" data-id="' + l.id + '" id="restore-' + l.id + '">Bring this line back</button>'
+      : '<button class="link" type="button" data-action="edit" data-id="' + l.id + '" id="rev-' + l.id + '">Revise this line</button>' +
+        (q ? '' : '<button class="link" type="button" data-action="q-retire" data-id="' + l.id + '" id="ret-' + l.id + '">Retire this line</button>')) + '</div>';
+    h += '</div></details></div></li>';
+    return h;
+  }
+  function retireBox(l) {
+    var act = activeLines();
+    if (l.gives) return '<div class="retire-box"><p>This is your line about what you give to others, so the creed needs it. You can revise its wording, or make another line the one about giving in Revise the creed.</p><div class="row"><button class="link" type="button" data-action="retire-cancel" id="ret-cancel-' + l.id + '">Close</button></div></div>';
+    if (act.length - 1 < MIN_LINES) return '<div class="retire-box"><p>A creed here has at least three lines. Add another line in Revise the creed first, then retire this one.</p><div class="row"><button class="btn" type="button" data-action="edit" id="ret-edit-' + l.id + '">Revise the creed</button><button class="link" type="button" data-action="retire-cancel" id="ret-cancel-' + l.id + '">Cancel</button></div></div>';
+    return '<div class="retire-box"><div class="field"><label for="ret-reason-' + l.id + '">Why retire it? <span class="opt">Optional. This is kept with the new layer in Strata.</span></label>' +
+      '<input type="text" id="ret-reason-' + l.id + '" maxlength="200" autocomplete="off"></div>' +
+      '<div class="row"><button class="btn danger primary" type="button" data-action="retire-confirm" data-id="' + l.id + '" id="ret-confirm-' + l.id + '">Retire this line</button>' +
+      '<button class="link" type="button" data-action="retire-cancel" id="ret-cancel-' + l.id + '">Cancel</button></div></div>';
+  }
+  function viewLines() {
+    var act = activeLines();
+    var ex = state.isExample ? '<span class="tag-ex">Example</span>' : '';
+    if (!act.length) return '<header class="v-head"><h1>Line records</h1><p>No lines yet. Once you have a creed, each line keeps its own record of evening checks here.</p><div class="row"><button class="btn primary" type="button" data-action="edit" id="ln-write">Write my lines</button><button class="btn" type="button" data-action="nav" data-view="start">Find first lines</button></div></header>';
+    var tday = state.days[today()];
+    var h = '<header class="v-head"><p class="eyebrow">' + ex + plural(act.length, 'line') + ' · ' + plural(state.checks.length, 'evening check') + '</p><h1>Line records</h1>' +
+      '<p>Each line has a core of its evening checks, oldest on the left. Lines that keep drifting, or never come up, get a question. Lines that keep holding get a suggestion. Nothing changes unless you choose it.</p>' +
+      '<div class="legend" aria-hidden="true">' + ['held', 'tested', 'drifted', 'absent'].map(function (k) { return '<span><span class="seg seg-' + k + '">' + RESULT[k].letter + '</span>' + RESULT[k].label + '</span>'; }).join('') + '</div></header>';
+    h += takeFlash('lines');
+    var attn = [];
+    act.forEach(function (l) { var q = questionFor(l); if (q) attn.push({ l: l, k: 'A question about' }); else if (suggestionFor(l)) attn.push({ l: l, k: 'A suggestion for' }); });
+    if (attn.length) h += '<div class="attn"><p class="eyebrow">Waiting for you</p><ul>' + attn.map(function (x) {
+      return '<li><button class="link" type="button" data-action="jump" data-id="' + x.l.id + '" id="jump-' + x.l.id + '">' + x.k + ' “' + esc(clip(x.l.text, 52)) + '”</button></li>';
+    }).join('') + '</ul></div>';
+    h += '<div class="lines-actions"><button class="btn" type="button" data-action="edit" id="ln-edit">Revise the creed</button></div>';
+    h += '<ol class="rec-list">' + act.map(function (l) { return lineRecord(l, tday && tday.lineId === l.id); }).join('') + '</ol>';
+    var ret = state.lines.filter(function (l) { return l.retired; });
+    if (ret.length) h += '<details class="retired-sec"><summary>Retired lines (' + ret.length + ')</summary><ol class="rec-list" style="margin-top:12px">' + ret.map(function (l) { return lineRecord(l, false); }).join('') + '</ol></details>';
+    return h;
+  }
+
+  /* ---------- Editor ---------- */
+  function newRow(o) { return Object.assign({ key: rowKey++, id: null, text: '', origin: '', confidence: 'hunch', gives: false, seed: null, seedId: null }, o || {}); }
+  function draftFromCurrent() {
+    var rows = rowsFromActive().map(function (r) { return newRow(r); });
+    if (!rows.length) rows = [newRow(), newRow()];
+    if (!rows.some(function (r) { return r.gives; })) rows.push(newRow({ gives: true }));
+    return { rows: rows, reason: '' };
+  }
+  function seedOrigin(from) { var v = VOICES.filter(function (x) { return x.k === from; })[0]; return 'Eulogy exercise: what ' + (v ? v.origin : 'someone') + ' might say'; }
+  function draftFromSeeds() {
+    var rows = state.eulogy.seeds.slice(0, MAX_LINES - 1).map(function (sd) {
+      return newRow({ text: clip(sd.text, MAX_LEN), origin: seedOrigin(sd.from), seed: sd.text, seedId: sd.id });
+    });
+    rows.push(newRow({ gives: true }));
+    return { rows: rows, reason: '' };
+  }
+  function edRow(r, idx) {
+    var k = r.key, line = r.id && lineById(r.id);
+    var conf = Object.keys(CONF).map(function (c) {
+      return '<span class="seg-opt"><input type="radio" name="ed-conf-' + k + '" id="ed-conf-' + k + '-' + c + '" value="' + c + '" data-ed="confidence" data-key="' + k + '"' + (r.confidence === c ? ' checked' : '') + '><label for="ed-conf-' + k + '-' + c + '">' + CONF[c] + '</label></span>';
+    }).join('');
+    return '<li class="ed-row" data-key="' + k + '">' +
+      '<div class="ed-head"><span class="ed-num">' + (r.gives ? 'What I give' : 'Line ' + (idx + 1)) + (line ? ' · ' + deg(line.bearing) : ' · new') + '</span>' + (line && line.retired ? '<span class="chip">Returning from retirement</span>' : '') + '</div>' +
+      '<div class="ed-text-wrap"><label class="lbl" for="ed-text-' + k + '">' + (r.gives ? 'The line about what you give' : 'The line') + '</label>' +
+        '<textarea id="ed-text-' + k + '" rows="2" maxlength="' + MAX_LEN + '" data-ed="text" data-key="' + k + '" placeholder="' + (r.gives ? 'What you give to other people or your community, in your words' : 'Short, in your own words') + '">' + esc(r.text) + '</textarea>' +
+        '<span class="count" id="ed-count-' + k + '" aria-live="off">' + r.text.length + '/' + MAX_LEN + '</span></div>' +
+      (r.seed && r.seed.length > MAX_LEN ? '<p class="ed-seed">Your full seed: “' + esc(r.seed) + '”</p>' : '') +
+      '<div class="field"><label for="ed-origin-' + k + '">Where it came from</label><input type="text" id="ed-origin-' + k + '" maxlength="200" data-ed="origin" data-key="' + k + '" autocomplete="off" value="' + esc(r.origin) + '" placeholder="An experience, a person, a tradition, a book"></div>' +
+      '<fieldset class="conf-set"><legend>Confidence</legend>' + conf + '</fieldset>' +
+      (r.gives ? '' : '<div class="ed-row-act"><button class="link" type="button" data-action="ed-make-gives" data-key="' + k + '" id="ed-mg-' + k + '">Make this my line about what I give</button>' +
+        '<button class="link" type="button" data-action="ed-remove" data-key="' + k + '" id="ed-rm-' + k + '">' + (line && !line.retired ? 'Remove (it is retired, and its record is kept)' : 'Remove') + '</button></div>') +
+      '</li>';
+  }
+  function viewEdit() {
+    if (!draft) draft = draftFromCurrent();
+    var first = !state.versions.length;
+    var regular = draft.rows.filter(function (r) { return !r.gives; });
+    var give = draft.rows.filter(function (r) { return r.gives; })[0];
+    var total = draft.rows.length;
+    var h = '<header class="v-head">' + (state.isExample ? '<p class="eyebrow"><span class="tag-ex">Example</span>You are editing the example creed</p>' : '') +
+      '<h1>' + (first ? 'Write your creed' : 'Revise the creed') + '</h1>' +
+      '<p>Between three and nine lines, each short enough to remember (140 characters at most) and in your own words. Treat each one as a hypothesis: something you think is true for you, to be checked against ordinary days.' +
+      (first ? '' : ' Saving adds a new layer to Strata; earlier versions stay as they were.') + '</p>' +
+      '<p class="conf-legend"><span><b>Hunch</b>: ' + CONF_HINT.hunch + '.</span> <span><b>Tested</b>: ' + CONF_HINT.tested + '.</span> <span><b>Bedrock</b>: ' + CONF_HINT.bedrock + '.</span></p></header>';
+    h += '<ol class="ed-list" id="ed-list">' + regular.map(edRow).join('') + '</ol>';
+    h += '<div class="ed-add row"><button class="btn" type="button" data-action="ed-add" id="ed-add"' + (total >= MAX_LINES ? ' disabled' : '') + '>Add a line</button><span class="msg">' + total + ' of ' + MAX_LINES + ' lines, including the one about giving</span></div>';
+    h += '<section class="ed-give" aria-labelledby="ed-give-h"><h2 id="ed-give-h">What you give</h2><p>One line is about what you give to other people or to your community. It can be small and concrete. A rough draft marked Hunch is fine.</p>' +
+      '<ol class="ed-list">' + (give ? edRow(give, 0) : '') + '</ol></section>';
+    var seeds = state.eulogy.seeds;
+    if (seeds.length) {
+      h += '<section class="seed-panel" aria-labelledby="ed-seeds-h"><h2 id="ed-seeds-h">Your seeds from the eulogy exercise</h2><ul class="seed-list">' + seeds.map(function (sd) {
+        var used = draft.rows.some(function (r) { return r.seedId === sd.id; });
+        return '<li><span class="s-text">“' + esc(sd.text) + '” <span class="s-from">' + esc(voiceShort(sd.from)) + '</span></span>' +
+          (used ? '<span class="msg">In the draft</span>' : '<button class="link" type="button" data-action="ed-seed" data-id="' + sd.id + '" id="ed-seed-' + sd.id + '"' + (total >= MAX_LINES ? ' disabled' : '') + '>Add as a line</button>') + '</li>';
+      }).join('') + '</ul></section>';
+    }
+    h += '<div class="ed-foot"><div class="field"><label for="ed-reason">' + (first ? 'A note on this first version' : 'What changed, and why?') + ' <span class="opt">Optional, kept with the layer in Strata</span></label>' +
+      '<input type="text" id="ed-reason" maxlength="200" autocomplete="off" data-ed="reason" value="' + esc(draft.reason) + '" placeholder="' + (first ? 'Where you were, what prompted it' : 'What life showed you') + '"></div>' +
+      '<div class="row"><button class="btn primary" type="button" data-action="ed-save" id="ed-save">' + (first ? 'Save my creed' : 'Save as a new layer') + '</button>' +
+      '<button class="btn" type="button" data-action="ed-cancel" id="ed-cancel">Discard changes</button></div>' +
+      '<p class="msg err" id="ed-msg" role="alert"></p></div>';
+    return h;
+  }
+  function voiceShort(k) { var v = VOICES.filter(function (x) { return x.k === k; })[0]; return v ? v.short : ''; }
+
+  /* ---------- Eulogy (Start) ---------- */
+  function splitSentences(text) {
+    var out = [];
+    String(text || '').split(/\n+/).forEach(function (para) {
+      var m = para.match(/[^.!?]+[.!?]*["'”’)\]]*\s*/g);
+      if (m) m.forEach(function (s) { if (s.trim()) out.push(s.trim()); });
+    });
+    return out;
+  }
+  function viewStart() {
+    var e = state.eulogy;
+    var steps = '<ol class="steps"><li' + (ui.eulogyStep === 1 ? ' aria-current="step"' : '') + '><span class="n">1</span>Write</li><li' + (ui.eulogyStep === 2 ? ' aria-current="step"' : '') + '><span class="n">2</span>Choose phrases</li><li><span class="n">3</span>Shape lines</li></ol>';
+    if (ui.eulogyStep === 1) {
+      return '<header class="v-head"><p class="eyebrow">Find your first lines · optional</p><h1>Three people speak about you</h1>' +
+        '<p>Imagine the end of your life. Three people stand up to speak about you: someone from your family, a friend, and someone from your work or community. Write what you would hope each of them could say, and say truthfully. A few sentences each, in their voice. It doesn’t need to be polished.</p>' +
+        '<p class="note">A version of this exercise appears in Stephen Covey’s <cite>The 7 Habits of Highly Effective People</cite> (1989), with four speakers. This one uses three.</p>' + steps + '</header>' +
+        '<div class="eu-voices">' + VOICES.map(function (v) {
+          return '<div class="field"><label for="eu-' + v.k + '">' + esc(v.label) + '</label><p class="hint" id="eu-' + v.k + '-hint">' + esc(v.hint) + '</p>' +
+            '<textarea id="eu-' + v.k + '" rows="5" data-eu="' + v.k + '" aria-describedby="eu-' + v.k + '-hint" placeholder="They might begin: “What I’ll remember is…”">' + esc(e[v.k]) + '</textarea></div>';
+        }).join('') + '</div>' +
+        '<div class="ed-foot"><div class="row"><button class="btn primary" type="button" data-action="eu-next" id="eu-next">Next: choose phrases</button><span class="msg" id="eu-msg" role="status">Saved as you type, on this device.</span></div></div>';
+    }
+    var seeds = e.seeds;
+    var h = '<header class="v-head"><p class="eyebrow">Find your first lines</p><h1>Choose the phrases that ring true</h1>' +
+      '<p>Tap a sentence to make it a seed for a creed line. To take only part of a sentence, drag across the words, then press “Add highlighted words”. Pick what you want to live by now, rather than what would sound best read aloud.</p>' + steps + '</header>';
+    h += '<div class="eu-grid"><div class="eu-pass">';
+    var any = false;
+    VOICES.forEach(function (v) {
+      var sents = splitSentences(e[v.k]);
+      if (!sents.length) return;
+      any = true;
+      h += '<section class="pass-block" aria-labelledby="pb-' + v.k + '"><h2 class="eyebrow" id="pb-' + v.k + '">' + esc(v.label) + '</h2><p class="passage" data-from="' + v.k + '">' +
+        sents.map(function (s, i) {
+          var on = seeds.some(function (sd) { return sd.from === v.k && sd.text === s; });
+          return '<span class="sent" role="button" tabindex="0" aria-pressed="' + on + '" data-action="toggle-sent" data-from="' + v.k + '" data-i="' + i + '" id="sent-' + v.k + '-' + i + '">' + esc(s) + '</span>';
+        }).join(' ') + '</p><div class="sel-slot" id="eu-sel-' + v.k + '"></div></section>';
+    });
+    if (!any) h += '<p class="empty-note">Nothing written yet. Go back and write what at least one of the three people might say.</p>';
+    h += '</div><aside class="seeds" aria-labelledby="seeds-h"><h2 id="seeds-h">Seeds (' + seeds.length + ')</h2>';
+    if (!seeds.length) h += '<p class="empty-note">Seeds you choose appear here.</p>';
+    else h += '<ul class="seed-list">' + seeds.map(function (sd) {
+      return '<li><span class="s-text">“' + esc(sd.text) + '” <span class="s-from">' + esc(voiceShort(sd.from)) + '</span></span><button class="link" type="button" data-action="seed-remove" data-id="' + sd.id + '" id="seed-rm-' + sd.id + '" aria-label="Remove seed: ' + esc(clip(sd.text, 40)) + '">Remove</button></li>';
+    }).join('') + '</ul>';
+    h += '</aside></div>';
+    h += '<div class="ed-foot"><div class="row"><button class="btn primary" type="button" data-action="eu-lines" id="eu-lines"' + (seeds.length ? '' : ' disabled') + '>Next: shape seeds into lines</button>' +
+      '<button class="btn" type="button" data-action="eu-back" id="eu-back">Back to the three voices</button></div></div>';
+    return h;
+  }
+  function updateSelSlots() {
+    VOICES.forEach(function (v) {
+      var slot = document.getElementById('eu-sel-' + v.k); if (!slot) return;
+      var mine = pendingSel && pendingSel.from === v.k;
+      var html = (mine ? '<span>Highlighted: <q>' + esc(clip(pendingSel.text, 160)) + '</q></span>' : '') +
+        '<button class="btn keep-sel" type="button" data-action="eu-add-sel" data-from="' + v.k + '" id="eu-addsel-' + v.k + '"' + (mine ? '' : ' disabled') + '>Add highlighted words</button>';
+      slot.innerHTML = html;
+    });
+  }
+  function closestPassage(node) {
+    while (node && node !== document) { if (node.nodeType === 1 && node.classList.contains('passage')) return node; node = node.parentNode; }
+    return null;
+  }
+  document.addEventListener('selectionchange', function () {
+    if (ui.view !== 'start' || ui.eulogyStep !== 2) return;
+    var sel = window.getSelection();
+    if (!sel || sel.isCollapsed) return;
+    var a = closestPassage(sel.anchorNode), f = closestPassage(sel.focusNode);
+    if (!a || a !== f) return;
+    var text = sel.toString().replace(/\s+/g, ' ').trim();
+    if (text.length < 3) return;
+    var prev = pendingSel;
+    pendingSel = { from: a.dataset.from, text: text.slice(0, 400) };
+    if (!prev || prev.from !== pendingSel.from || prev.text !== pendingSel.text) updateSelSlots();
+  });
+  document.addEventListener('mousedown', function (e) { if (e.target.closest && e.target.closest('.keep-sel')) e.preventDefault(); });
+
+  /* ---------- Strata ---------- */
+  function viewStrata() {
+    var vs = state.versions;
+    var ex = state.isExample ? '<span class="tag-ex">Example</span>' : '';
+    if (!vs.length) return '<header class="v-head"><h1>Strata</h1><p>Every version of your creed is kept here as a layer, oldest at the bottom. Nothing to show until you write the first one.</p><div class="row"><button class="btn primary" type="button" data-action="edit" id="st-write">Write my lines</button></div></header>';
+    if (ui.strataSel == null || ui.strataSel >= vs.length) ui.strataSel = vs.length - 1;
+    var h = '<header class="v-head"><p class="eyebrow">' + ex + plural(vs.length, 'layer') + ' since ' + esc(fmt(vs[0].date)) + '</p><h1>Strata</h1>' +
+      '<p>Every revision of your creed is kept as a layer, oldest at the bottom. Thicker layers stood longer. Select a layer to read that version and the reason you gave for changing it.</p></header>';
+    h += takeFlash('strata');
+    h += '<div class="st-grid"><figure class="st-fig"><div id="st-svg-wrap"></div>' +
+      '<figcaption>Fill patterns borrow from geological map convention (dots for sandstone, dashes for shale, brick for limestone). Here they only tell neighbouring layers apart. Use the arrow keys to move between layers.</figcaption></figure>' +
+      '<aside class="st-detail" id="st-detail" aria-live="polite">' + strataDetail(ui.strataSel) + '</aside></div>';
+    return h;
+  }
+  function strataDetail(i) {
+    var vs = state.versions, v = vs[i], t = today(), cur = i === vs.length - 1;
+    var end = cur ? t : vs[i + 1].date, days = diffDays(v.date, end);
+    var dur = cur ? (days === 0 ? 'Laid down today. This is the creed as it stands.' : 'Laid down ' + plural(days, 'day') + ' ago. This is the creed as it stands.')
+      : 'Stood for ' + (days === 0 ? 'less than a day' : plural(days, 'day')) + ', until ' + fmt(vs[i + 1].date) + '.';
+    var h = '<p class="eyebrow">Layer ' + (i + 1) + ' of ' + vs.length + (cur ? ' · current' : '') + '</p>' +
+      '<h2>' + esc(fmt(v.date)) + '</h2><p class="st-dur">' + esc(dur) + '</p>';
+    h += '<h3>' + (i === 0 ? 'Note on the first version' : v.auto ? 'What happened' : 'Reason given') + '</h3>' +
+      (!v.reason ? '<p class="st-reason none">No reason was written down.</p>' : v.auto ? '<p class="st-reason none">' + esc(v.reason) + '</p>' : '<p class="st-reason">“' + esc(v.reason) + '”</p>');
+    if (i > 0) {
+      var d = diffVersions(vs[i - 1], v), items = [];
+      d.reworded.forEach(function (r) { items.push('<li><span class="ck">Reworded</span><span class="was">' + esc(r.from) + '</span><span>' + esc(r.to) + '</span></li>'); });
+      d.added.forEach(function (l) { items.push('<li><span class="ck">New line</span><span>' + esc(l.text) + '</span></li>'); });
+      d.removed.forEach(function (l) { items.push('<li><span class="ck">Retired</span><span class="was">' + esc(l.text) + '</span></li>'); });
+      d.conf.forEach(function (c) { items.push('<li><span class="ck">Confidence ' + esc(CONF[c.from]) + ' to ' + esc(CONF[c.to]) + '</span><span>' + esc(c.text) + '</span></li>'); });
+      d.gives.forEach(function (l) { items.push('<li><span class="ck">Now the line about giving</span><span>' + esc(l.text) + '</span></li>'); });
+      h += '<h3>Changes from layer ' + i + '</h3>' + (items.length ? '<ul class="st-changes">' + items.join('') + '</ul>' : '<p class="st-dur">Only small edits.</p>');
+    }
+    h += '<h3>The creed in this layer</h3><ul class="st-lines">' + v.lines.map(function (l) {
+      var L = lineById(l.id);
+      return '<li><span class="deg">' + (L ? deg(L.bearing) : '') + '</span><span><span class="t">' + esc(l.text) + '</span><span class="chip c-' + l.confidence + '">' + CONF[l.confidence] + '</span>' + (l.gives ? '<span class="chip gives">What I give</span>' : '') + '</span></li>';
+    }).join('') + '</ul>';
+    h += '<div class="st-nav"><button class="btn" type="button" data-action="st-sel" data-i="' + (i - 1) + '" id="st-older"' + (i === 0 ? ' disabled' : '') + '>Older layer</button>' +
+      '<button class="btn" type="button" data-action="st-sel" data-i="' + (i + 1) + '" id="st-newer"' + (cur ? ' disabled' : '') + '>Newer layer</button></div>';
+    return h;
+  }
+  function wavePts(y, seed, x0, x1, amp) {
+    var r = rng(hashStr('w' + seed)), ph1 = r() * 6.28, ph2 = r() * 6.28, f1 = 0.012 + r() * 0.01, f2 = 0.03 + r() * 0.02, pts = [];
+    for (var x = x0; x <= x1 + 0.1; x += 12) {
+      var xx = Math.min(x, x1);
+      pts.push([xx, y + amp * Math.sin(xx * f1 + ph1) + amp * 0.45 * Math.sin(xx * f2 + ph2)]);
+      if (xx === x1) break;
+    }
+    if (pts[pts.length - 1][0] < x1) pts.push([x1, y + amp * Math.sin(x1 * f1 + ph1)]);
+    return pts;
+  }
+  function ptsPath(pts) { return pts.map(function (p, i) { return (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' '); }
+  function drawStrata() {
+    var wrap = document.getElementById('st-svg-wrap'); if (!wrap) return;
+    var vs = state.versions, n = vs.length; if (!n) return;
+    var W = Math.max(280, Math.floor(wrap.clientWidth || 600));
+    var axisW = W < 480 ? 54 : 78, x0 = axisW, x1 = W - 2, t = today();
+    var hs = vs.map(function (v, i) {
+      var end = i < n - 1 ? vs[i + 1].date : t;
+      var d = Math.max(0, diffDays(v.date, end)) + (i === n - 1 ? 1 : 0);
+      return Math.round(Math.min(190, 64 + Math.sqrt(d) * 17));
+    });
+    var top = 30, H = top + hs.reduce(function (a, b) { return a + b; }, 0) + 34;
+    var layers = [], y = top;
+    for (var i = n - 1; i >= 0; i--) { layers.push({ i: i, y0: y, y1: y + hs[i] }); y += hs[i]; }
+    var bottomY = y;
+    var s = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="group" aria-label="Stratigraphic column of creed versions, newest at the top">';
+    s += '<defs>' +
+      '<pattern id="wcp0" width="12" height="10" patternUnits="userSpaceOnUse"><rect class="sed-1" width="12" height="10"/><circle class="lith" cx="3" cy="3" r="1.1"/><circle class="lith" cx="9" cy="8" r="1.1"/></pattern>' +
+      '<pattern id="wcp1" width="20" height="9" patternUnits="userSpaceOnUse"><rect class="sed-2" width="20" height="9"/><path class="lith-s" d="M1 2.5H9M11 7H19"/></pattern>' +
+      '<pattern id="wcp2" width="26" height="14" patternUnits="userSpaceOnUse"><rect class="sed-3" width="26" height="14"/><path class="lith-s" d="M0 0.5H26M0 7.5H26M0.5 0.5V7.5M13.5 7.5V14"/></pattern>' +
+      '<pattern id="wcp3" width="18" height="14" patternUnits="userSpaceOnUse"><rect class="sed-4" width="18" height="14"/><circle class="lith" cx="4" cy="4" r="1"/><path class="lith-s" d="M9 10.5H16"/></pattern>' +
+      '</defs>';
+    // boundary k: top of version k (k = n is surface). bottom of version k = boundary k-1... use per-boundary seeds
+    function boundary(k, yy) { return k === -1 ? [[x0, yy], [x1, yy]] : wavePts(yy, 'b' + k, x0, x1, k === n - 1 ? 2 : 3.2); }
+    var sel = ui.strataSel;
+    var layerSVG = '', labels = '', axis = '';
+    layers.forEach(function (L) {
+      var topPts = boundary(L.i, L.y0), botPts = boundary(L.i - 1, L.y1);
+      var d = ptsPath(topPts) + ' ' + ptsPath(botPts.slice().reverse()).replace(/^M/, 'L') + ' Z';
+      var v = vs[L.i], cur = L.i === n - 1;
+      var aria = 'Layer ' + (L.i + 1) + (cur ? ', current' : '') + ', laid down ' + fmt(v.date) + '. ' + summarize(L.i) + '.' + (v.reason ? ' Reason: ' + v.reason : '');
+      layerSVG += '<g class="st-layer' + (sel === L.i ? ' sel' : '') + '" tabindex="' + (sel === L.i ? 0 : -1) + '" role="button" aria-pressed="' + (sel === L.i) + '" data-i="' + L.i + '" id="st-layer-' + L.i + '" aria-label="' + esc(aria) + '">' +
+        '<path d="' + d + '" fill="url(#wcp' + (L.i % 4) + ')"/>' +
+        '<path class="st-edge" d="' + ptsPath(botPts) + '"/>';
+      var lx = x0 + 12, ly = L.y0 + 22, avail = x1 - lx - 8;
+      var k = 'LAYER ' + (L.i + 1) + (cur ? '  ·  CURRENT' : '');
+      layerSVG += '<text class="st-k halo" x="' + lx + '" y="' + ly + '">' + esc(k) + '</text>';
+      layerSVG += '<text class="st-s halo" x="' + lx + '" y="' + (ly + 19) + '">' + esc(clip(summarize(L.i), Math.floor(avail / 6.8))) + '</text>';
+      if (L.y1 - L.y0 >= 80 && v.reason) layerSVG += '<text class="st-r halo" x="' + lx + '" y="' + (ly + 41) + '">' + (v.auto ? esc(clip(v.reason, Math.floor(avail / 7.1))) : '“' + esc(clip(v.reason, Math.floor(avail / 7.1) - 2)) + '”') + '</text>';
+      layerSVG += '<path class="st-outline" d="' + d + '"/>';
+      layerSVG += '</g>';
+      // axis label at layer base (when it was laid down)
+      var dd = parseD(v.date);
+      axis += '<line class="st-axis" x1="' + (x0 - 7) + '" y1="' + L.y1 + '" x2="' + x0 + '" y2="' + L.y1 + '"/>' +
+        '<text class="st-ax' + (sel === L.i ? ' strong' : '') + '" x="' + (x0 - 10) + '" y="' + (L.y1 - 16) + '" text-anchor="end">' + pad(dd.getDate()) + ' ' + MONTHS[dd.getMonth()].toUpperCase() + '</text>' +
+        '<text class="st-ax" x="' + (x0 - 10) + '" y="' + (L.y1 - 4) + '" text-anchor="end">' + dd.getFullYear() + '</text>';
+      if (sel === L.i) {
+        var my = (L.y0 + L.y1) / 2;
+        axis += '<path class="st-mark" d="M' + (x0 - 2) + ' ' + my + ' L' + (x0 - 11) + ' ' + (my - 6) + ' L' + (x0 - 11) + ' ' + (my + 6) + ' Z"/>';
+      }
+    });
+    s += layerSVG;
+    s += '<path class="st-surface" d="' + ptsPath(boundary(n - 1, top)) + '"/>';
+    s += '<line class="st-axis" x1="' + x0 + '" y1="' + (top - 6) + '" x2="' + x0 + '" y2="' + bottomY + '"/>';
+    s += '<text class="st-ax strong" x="' + (x0 - 10) + '" y="' + (top + 4) + '" text-anchor="end">TODAY</text>';
+    s += axis;
+    s += '<text class="st-ax" x="' + x0 + '" y="' + (bottomY + 22) + '">OLDEST ↓ · NEWEST ↑</text>';
+    s += '</svg>';
+    wrap.innerHTML = s;
+  }
+  function selectLayer(i, focus) {
+    var n = state.versions.length;
+    if (i < 0 || i >= n) return;
+    ui.strataSel = i;
+    drawStrata();
+    var det = $('#st-detail'); if (det) det.innerHTML = strataDetail(i);
+    if (focus) { var g = document.getElementById('st-layer-' + i); if (g) g.focus(); }
+  }
+
+  /* ---------- Creed view ---------- */
+  function viewCreed() {
+    var act = activeLines(), cv = currentVersion();
+    if (!act.length) return '<header class="v-head"><h1>Creed</h1><p>No lines yet. When you write your creed it can be read here in full, ready to read aloud or keep.</p><div class="row"><button class="btn primary" type="button" data-action="edit" id="cr-write">Write my lines</button></div></header>';
+    var h = '<section class="creed"><article class="sheet" aria-labelledby="cr-h"><div class="sheet-head"><h1 id="cr-h">' + (state.isExample ? '<span class="tag-ex">Example</span>' : '') + 'Working creed</h1>' +
+      '<p class="eyebrow">Layer ' + state.versions.length + ' · as of ' + esc(fmt(today())) + '</p></div>';
+    h += '<ul class="creed-lines">' + act.map(function (l) {
+      return '<li><span class="deg">' + deg(l.bearing) + '</span><p class="t">' + esc(l.text) + '</p>' +
+        (ui.showOrigins ? '<p class="o">' + (l.origin ? esc(l.origin) : 'Origin not noted.') + ' <span class="opt">· ' + CONF[l.confidence] + '</span></p>' : '') +
+        (l.gives && ui.showOrigins ? '<p class="gv">The line about what I give</p>' : '') + '</li>';
+    }).join('') + '</ul></article>';
+    h += '<div class="creed-tools"><button class="btn" type="button" data-action="toggle-origins" id="cr-origins" aria-pressed="' + ui.showOrigins + '">' + (ui.showOrigins ? 'Hide where each line came from' : 'Show where each line came from') + '</button>' +
+      '<button class="btn" type="button" data-action="copy-creed" id="cr-copy">Copy as text</button>' +
+      '<button class="link" type="button" data-action="edit" id="cr-edit">Revise the creed</button><span class="msg" id="cr-msg" role="status"></span></div>';
+    h += '<label class="sr" for="cr-text">Creed as plain text</label><textarea id="cr-text" class="sr" readonly tabindex="-1">' + esc(creedText()) + '</textarea>';
+    h += '</section>';
+    return h;
+  }
+  function creedText() {
+    return activeLines().map(function (l) { return l.text; }).join('\n') + '\n\n(Working creed, layer ' + state.versions.length + ', ' + fmt(today()) + ')';
+  }
+
+  /* ---------- Data view ---------- */
+  function viewData() {
+    var h = '<header class="v-head"><h1>Your data</h1><p>Everything lives in this browser only. There is no account and nothing is sent anywhere. Copy it out as JSON to keep a backup or to move it to another device.</p></header>';
+    h += takeFlash('data');
+    h += '<section class="data-sec" aria-labelledby="dx-h"><h2 id="dx-h">Export</h2><label class="lbl" for="data-export">All your data as JSON</label><textarea id="data-export" rows="10" readonly></textarea>' +
+      '<div class="row"><button class="btn primary" type="button" data-action="copy-export" id="data-copy">Copy JSON</button><span class="msg" id="copy-msg" role="status"></span></div></section>';
+    h += '<section class="data-sec" aria-labelledby="di-h"><h2 id="di-h">Import</h2><label class="lbl" for="data-import">Paste JSON exported from Working Creed</label><textarea id="data-import" rows="6" spellcheck="false"></textarea>' +
+      '<p class="hint">Importing replaces everything currently stored here.</p>' +
+      '<div class="row"><button class="btn" type="button" data-action="import" id="data-import-btn">Import and replace what’s here</button><span class="msg" id="import-msg" role="status"></span></div></section>';
+    h += '<section class="data-sec" aria-labelledby="de-h"><h2 id="de-h">Erase</h2><p class="hint">Removes your creed, every evening check, every layer and your eulogy notes from this browser.</p>';
+    if (!ui.eraseArm) h += '<div class="row"><button class="btn danger" type="button" data-action="erase-arm" id="erase-arm">Erase everything on this device</button></div>';
+    else h += '<div class="erase-box" role="group" aria-labelledby="erase-q"><p id="erase-q"><b>Erase everything?</b> This can’t be undone. Export first if you want a copy.</p>' +
+      '<div class="row"><button class="btn danger primary" type="button" data-action="erase-confirm" id="erase-confirm">Yes, erase everything</button><button class="btn" type="button" data-action="erase-cancel" id="erase-cancel">Keep my data</button></div></div>';
+    h += '</section>';
+    return h;
+  }
+
+  /* ================= actions ================= */
+  function openEditor(lineId) {
+    if (!draft) draft = draftFromCurrent();
+    var focus = null;
+    if (lineId) {
+      var r = draft.rows.filter(function (x) { return x.id === lineId; })[0];
+      if (!r) {
+        var l = lineById(lineId);
+        if (l) { r = newRow({ id: l.id, text: l.text, origin: l.origin, confidence: l.confidence }); insertRegular(r); }
+      }
+      if (r) focus = 'ed-text-' + r.key;
+    }
+    go('edit', { focus: focus });
+  }
+  function insertRegular(r) {
+    var gi = draft.rows.findIndex(function (x) { return x.gives; });
+    if (gi < 0) draft.rows.push(r); else draft.rows.splice(gi, 0, r);
+  }
+  function edMsg(t) { var m = $('#ed-msg'); if (m) m.textContent = t; }
+  function edSave() {
+    var rows = draft.rows;
+    rows.forEach(function (r) { r.text = r.text.replace(/\s+/g, ' ').trim(); r.origin = (r.origin || '').trim(); });
+    var regular = rows.filter(function (r) { return !r.gives; }), give = rows.filter(function (r) { return r.gives; })[0];
+    var ordered = regular.concat(give ? [give] : []);
+    for (var i = 0; i < ordered.length; i++) {
+      if (!ordered[i].text) {
+        var nm = ordered[i].gives ? 'The line about what you give' : 'Line ' + (i + 1);
+        edMsg(nm + ' is empty. ' + (ordered[i].gives ? 'Every creed here has one; a rough first draft marked Hunch is fine.' : 'Write it, or remove it.'));
+        var el = document.getElementById('ed-text-' + ordered[i].key); if (el) el.focus();
+        return;
+      }
+    }
+    if (ordered.length < MIN_LINES) { edMsg('A creed here has at least three lines, including the one about giving. Add ' + (MIN_LINES - ordered.length === 1 ? 'one more' : 'two more') + '.'); return; }
+    if (ordered.length > MAX_LINES) { edMsg('Nine lines at most. Remove ' + (ordered.length - MAX_LINES) + '.'); return; }
+    var first = !state.versions.length;
+    var res = commit(ordered.map(function (r) { return { id: r.id, text: r.text, origin: r.origin, confidence: r.confidence, gives: r.gives }; }), draft.reason);
+    if (!res) { edMsg('Nothing has changed, so no new layer was added.'); return; }
+    draft = null;
+    ui.strataSel = null;
+    if (res === 'notes') { setFlash('lines', 'Saved your notes on where lines came from. The lines themselves didn’t change, so no new layer was added.'); go('lines'); return; }
+    if (first) { go('bearing', { focusMain: true }); return; }
+    setFlash('strata', 'Saved as layer ' + state.versions.length + '.');
+    go('strata', { focus: 'st-layer-' + (state.versions.length - 1) });
+  }
+  function readCheckForm(form) {
+    var p = form.dataset.prefix;
+    var r = form.querySelector('input[name="' + p + '-res"]:checked');
+    if (!r) return { error: 'Choose one of the four first.' };
+    var noteEl = document.getElementById(p + '-note-' + r.value);
+    var sv = form.querySelector('input[name="' + p + '-surv"]:checked');
+    return { result: r.value, note: noteEl ? noteEl.value : '', survived: sv ? sv.value : null };
+  }
+
+  var actions = {
+    nav: function (el) {
+      var v = el.dataset.view;
+      if (v === 'start') { ui.eulogyStep = (state.eulogy.family || state.eulogy.friend || state.eulogy.work) && state.eulogy.seeds.length ? 2 : 1; pendingSel = null; }
+      go(v);
+    },
+    edit: function (el) { openEditor(el.dataset.id || null); },
+    restore: function (el) {
+      if (activeLines().length >= MAX_LINES) { ui.openRec = el.dataset.id; setFlash('lines', 'Your creed already has nine lines. Retire or remove one before bringing this back.'); render(); return; }
+      openEditor(el.dataset.id);
+    },
+    'clear-examples': function () {
+      state = emptyState(); draft = null; ui.strataSel = null; needleAngle = null; ui.ydayOpen = false;
+      save();
+      go('bearing', { focus: 'ob-start' });
+    },
+    swap: function () {
+      var t = today(), d = state.days[t];
+      if (!d || d.swapped || getCheck(t)) return;
+      var l = pickLine(t, [d.lineId]);
+      if (!l || l.id === d.lineId) return;
+      state.days[t] = { lineId: l.id, swapped: true, from: d.lineId };
+      save(); ui.focus = 'b-eyebrow'; render();
+    },
+    'check-edit': function (el) { if (el.dataset.prefix === 'ev') { ui.checkEdit = true; ui.focus = 'ev-save'; render(); } },
+    'check-cancel': function () { ui.checkEdit = false; ui.focus = 'ev-change'; render(); },
+    'yday-open': function () { ui.ydayOpen = true; ui.focus = 'yev-res-held'; render(); },
+    jump: function (el) {
+      var rec = document.getElementById('rec-' + el.dataset.id); if (!rec) return;
+      var b = rec.querySelector('.ask button');
+      rec.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      if (b) b.focus({ preventScroll: true });
+    },
+    'q-keep': function (el) {
+      var l = lineById(el.dataset.id); if (!l) return;
+      l.keptAt = lineChecks(l.id).length; save();
+      setFlash('lines', 'Kept as written. The question comes back only if the same pattern shows up over its next few check-ins.');
+      ui.focus = 'rev-' + l.id; ui.openRec = null; render();
+      var fl = main.querySelector('.flash'); if (fl) fl.scrollIntoView({ block: 'nearest' });
+    },
+    'q-retire': function (el) {
+      var id = el.dataset.id;
+      ui.retiring = id; ui.openRec = null; render();
+      var f = document.getElementById('ret-reason-' + id) || document.getElementById('ret-cancel-' + id);
+      if (f) f.focus();
+    },
+    'retire-cancel': function () { var id = ui.retiring; ui.retiring = null; render(); var f = document.getElementById('q-retire-' + id) || document.getElementById('ret-' + id); if (f) f.focus(); },
+    'retire-confirm': function (el) {
+      var l = lineById(el.dataset.id); if (!l) return;
+      var reasonEl = document.getElementById('ret-reason-' + l.id);
+      var own = reasonEl && reasonEl.value.trim();
+      var reason = own || 'Retired “' + l.text + '”. No reason written.';
+      var rows = rowsFromActive().filter(function (r) { return r.id !== l.id; });
+      if (rows.length < MIN_LINES || l.gives) return;
+      commit(rows, reason, null, !own);
+      draft = null; ui.retiring = null; ui.strataSel = null;
+      setFlash('lines', 'Retired. Its record is kept under Retired lines, and Strata has a new layer.');
+      ui.focus = 'ln-edit'; render();
+    },
+    's-raise': function (el) {
+      var l = lineById(el.dataset.id), to = el.dataset.to; if (!l || !CONF[to]) return;
+      var from = l.confidence;
+      var rows = rowsFromActive().map(function (r) { if (r.id === l.id) r.confidence = to; return r; });
+      commit(rows, 'Raised “' + l.text + '” from ' + CONF[from] + ' to ' + CONF[to] + ' after it held up in evening checks.', null, true);
+      draft = null; ui.strataSel = null;
+      setFlash('lines', 'Raised to ' + CONF[to] + '. Strata has a new layer for the change.');
+      ui.focus = 'rev-' + l.id; render();
+    },
+    's-skip': function (el) {
+      var l = lineById(el.dataset.id); if (!l) return;
+      var s = suggestionFor(l); l.suggestSkipAt = s ? s.sup : 0; save();
+      setFlash('lines', 'Left as ' + CONF[l.confidence] + '. You’ll see the suggestion again after a few more good days.');
+      ui.focus = 'rev-' + l.id; render();
+    },
+    'ed-add': function () {
+      if (draft.rows.length >= MAX_LINES) return;
+      var r = newRow(); insertRegular(r); ui.focus = 'ed-text-' + r.key; render();
+    },
+    'ed-remove': function (el) {
+      var k = Number(el.dataset.key), idx = draft.rows.findIndex(function (r) { return r.key === k; });
+      if (idx < 0) return;
+      draft.rows.splice(idx, 1); ui.focus = 'ed-add'; render();
+    },
+    'ed-make-gives': function (el) {
+      var k = Number(el.dataset.key);
+      var old = draft.rows.filter(function (r) { return r.gives; })[0];
+      var row = draft.rows.filter(function (r) { return r.key === k; })[0]; if (!row) return;
+      draft.rows = draft.rows.filter(function (r) { return r !== row; });
+      if (old) { old.gives = false; if (!old.text.trim() && !old.id) draft.rows = draft.rows.filter(function (r) { return r !== old; }); }
+      row.gives = true; draft.rows.push(row);
+      ui.focus = 'ed-text-' + row.key; render();
+    },
+    'ed-seed': function (el) {
+      var sd = state.eulogy.seeds.filter(function (x) { return x.id === el.dataset.id; })[0];
+      if (!sd || draft.rows.length >= MAX_LINES) return;
+      var r = newRow({ text: clip(sd.text, MAX_LEN), origin: seedOrigin(sd.from), seed: sd.text, seedId: sd.id });
+      insertRegular(r); ui.focus = 'ed-text-' + r.key; render();
+    },
+    'ed-save': edSave,
+    'ed-cancel': function () { draft = null; go(state.versions.length ? 'lines' : 'bearing'); },
+    'eu-next': function () {
+      var e = state.eulogy;
+      if (!(e.family.trim() || e.friend.trim() || e.work.trim())) { var m = $('#eu-msg'); if (m) { m.textContent = 'Write what at least one of the three might say first.'; m.className = 'msg err'; } return; }
+      ui.eulogyStep = 2; pendingSel = null; go('start');
+    },
+    'eu-back': function () { ui.eulogyStep = 1; go('start'); },
+    'eu-lines': function () {
+      if (!state.eulogy.seeds.length) return;
+      if (!activeLines().length) draft = draftFromSeeds();
+      else if (!draft) draft = draftFromCurrent();
+      go('edit');
+    },
+    'toggle-sent': function (el, e) {
+      var sel = window.getSelection();
+      // a drag across words also ends in a click; leave that for "Add highlighted words"
+      if (e && e.detail !== 0 && sel && !sel.isCollapsed && sel.toString().trim() && closestPassage(sel.anchorNode)) return;
+      var from = el.dataset.from, text = el.textContent.trim(), seeds = state.eulogy.seeds;
+      var idx = seeds.findIndex(function (s) { return s.from === from && s.text === text; });
+      if (idx >= 0) seeds.splice(idx, 1); else seeds.push({ id: uid('s'), text: text, from: from });
+      save(); pendingSel = null; ui.focus = el.id; render();
+    },
+    'eu-add-sel': function (el) {
+      if (!pendingSel || pendingSel.from !== el.dataset.from) return;
+      var text = pendingSel.text, from = pendingSel.from;
+      if (!state.eulogy.seeds.some(function (s) { return s.from === from && s.text === text; })) state.eulogy.seeds.push({ id: uid('s'), text: text, from: from });
+      pendingSel = null;
+      try { window.getSelection().removeAllRanges(); } catch (e) { /* ignore */ }
+      save(); ui.focus = 'eu-lines'; render();
+    },
+    'seed-remove': function (el) {
+      state.eulogy.seeds = state.eulogy.seeds.filter(function (s) { return s.id !== el.dataset.id; });
+      save(); ui.focus = 'seeds-h'; render();
+    },
+    'st-sel': function (el) { selectLayer(Number(el.dataset.i), false); var b = document.getElementById(el.id); if (b && !b.disabled) b.focus(); else { var g = document.getElementById('st-layer-' + ui.strataSel); if (g) g.focus(); } },
+    'toggle-origins': function () { ui.showOrigins = !ui.showOrigins; ui.focus = 'cr-origins'; render(); },
+    'copy-creed': function () { copyText(creedText(), 'cr-msg', null); },
+    'copy-export': function () { var ta = $('#data-export'); copyText(ta ? ta.value : JSON.stringify(state), 'copy-msg', ta); },
+    'import': function () {
+      var ta = $('#data-import'), m = $('#import-msg'), raw = ta ? ta.value.trim() : '';
+      function say(t, err) { if (m) { m.textContent = t; m.className = 'msg' + (err ? ' err' : ''); } }
+      if (!raw) { say('Paste the exported JSON into the box first.', true); return; }
+      var parsed;
+      try { parsed = JSON.parse(raw); } catch (e) { say('That isn’t valid JSON. Paste the whole export, from the first { to the last }.', true); return; }
+      var next;
+      try { next = normalize(parsed); } catch (e) { say('This JSON doesn’t look like a Working Creed export: it has no lines or layers.', true); return; }
+      state = next; draft = null; ui.strataSel = null; needleAngle = null; save();
+      setFlash('data', 'Imported ' + plural(activeLines().length, 'line') + ', ' + plural(state.checks.length, 'evening check') + ' and ' + plural(state.versions.length, 'layer') + '.');
+      ui.focus = 'data-import-btn'; render();
+    },
+    'erase-arm': function () { ui.eraseArm = true; ui.focus = 'erase-cancel'; render(); },
+    'erase-cancel': function () { ui.eraseArm = false; ui.focus = 'erase-arm'; render(); },
+    'erase-confirm': function () {
+      wipe(); state = emptyState(); draft = null; ui.eraseArm = false; ui.strataSel = null; needleAngle = null; pendingSel = null;
+      setFlash('data', 'Erased. Nothing from Working Creed is stored in this browser now. Reloading the page will show the example creed again until you start your own.');
+      ui.focus = 'data-copy'; render();
+    }
+  };
+
+  function copyText(text, msgId, ta) {
+    var m = document.getElementById(msgId);
+    function fallback() {
+      if (ta) { ta.focus(); ta.select(); }
+      if (m) m.textContent = ta ? 'Your browser blocked the clipboard. The text is selected: press Ctrl+C or Cmd+C to copy it.' : 'Your browser blocked the clipboard. Select the lines above and copy them yourself.';
+    }
+    try {
+      navigator.clipboard.writeText(text).then(function () { if (m) m.textContent = 'Copied.'; }, fallback);
+    } catch (e) { fallback(); }
+  }
+
+  /* ================= events ================= */
+  var root = $('#wc');
+  root.addEventListener('click', function (e) {
+    var el = e.target.closest('[data-action]');
+    if (!el || !root.contains(el) || el.disabled) return;
+    var fn = actions[el.dataset.action];
+    if (fn) fn(el, e);
+  });
+  root.addEventListener('keydown', function (e) {
+    var el = e.target;
+    if (el.dataset && el.dataset.ed === 'text' && e.key === 'Enter') { e.preventDefault(); return; }
+    if (el.getAttribute && el.getAttribute('role') === 'button' && el.tagName !== 'BUTTON') {
+      if (el.classList.contains('st-layer')) {
+        var i = Number(el.dataset.i);
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectLayer(i, true); }
+        else if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { e.preventDefault(); selectLayer(i + 1, true); }
+        else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') { e.preventDefault(); selectLayer(i - 1, true); }
+        else if (e.key === 'Home') { e.preventDefault(); selectLayer(0, true); }
+        else if (e.key === 'End') { e.preventDefault(); selectLayer(state.versions.length - 1, true); }
+        return;
+      }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+    }
+  });
+  root.addEventListener('click', function (e) {
+    var g = e.target.closest && e.target.closest('.st-layer');
+    if (g) selectLayer(Number(g.dataset.i), true);
+  });
+  root.addEventListener('input', function (e) {
+    var el = e.target;
+    if (el.dataset.ed && draft) {
+      if (el.dataset.ed === 'reason') { draft.reason = el.value; return; }
+      edMsg('');
+      var k = Number(el.dataset.key), r = draft.rows.filter(function (x) { return x.key === k; })[0]; if (!r) return;
+      if (el.dataset.ed === 'text') { autosize(el); r.text = el.value.replace(/\n/g, ' '); var c = document.getElementById('ed-count-' + k); if (c) c.textContent = el.value.length + '/' + MAX_LEN; }
+      else if (el.dataset.ed === 'origin') r.origin = el.value;
+    }
+    if (el.dataset.eu) { state.eulogy[el.dataset.eu] = el.value; save(); var m = $('#eu-msg'); if (m && m.classList.contains('err')) { m.textContent = 'Saved as you type, on this device.'; m.className = 'msg'; } }
+  });
+  root.addEventListener('change', function (e) {
+    var el = e.target;
+    if (el.dataset.ed === 'confidence' && draft) {
+      var k = Number(el.dataset.key), r = draft.rows.filter(function (x) { return x.key === k; })[0]; if (r) r.confidence = el.value;
+    }
+    var form = el.closest && el.closest('form.check');
+    if (form && el.name === form.dataset.prefix + '-res') {
+      form.querySelectorAll('.follow').forEach(function (f) { f.hidden = f.dataset.for !== el.value; });
+      var m = document.getElementById(form.dataset.prefix + '-msg'); if (m) { m.textContent = ''; m.className = 'msg'; }
+    }
+  });
+  root.addEventListener('submit', function (e) {
+    var form = e.target; if (!form.classList.contains('check')) return;
+    e.preventDefault();
+    var p = form.dataset.prefix, data = readCheckForm(form);
+    if (data.error) { var m = document.getElementById(p + '-msg'); if (m) { m.textContent = data.error; m.className = 'msg err'; } var f = document.getElementById(p + '-res-held'); if (f) f.focus(); return; }
+    setCheck(form.dataset.date, form.dataset.line, data.result, data.note, data.survived);
+    if (p === 'ev') { ui.checkEdit = false; ui.focus = 'ev-done'; }
+    else { ui.ydayOpen = false; ui.ydayDone = form.dataset.date; ui.focus = 'ev-h'; }
+    render();
+  });
+  var rT = null;
+  window.addEventListener('resize', function () { if (ui.view !== 'strata') return; clearTimeout(rT); rT = setTimeout(drawStrata, 120); });
+  function dayTick() {
+    if (today() === ui.lastDay) return;
+    var a = document.activeElement;
+    if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) return;
+    ui.checkEdit = false; ui.ydayOpen = false; render();
+  }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) dayTick(); });
+  setInterval(dayTick, 60000);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (ui.view === 'strata') drawStrata(); });
+
+  render();
+})();
+</script>
+</body>
+</html>
