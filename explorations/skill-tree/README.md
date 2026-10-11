@@ -36,8 +36,8 @@ Six branches. Each is a question people live with, not a religion, so every trad
 |---|---|---|---|---|
 | Stillness and attention | How do I get quiet enough to notice what is actually here? | Breath attention, Prayer of the heart | Just sitting (zazen), The examen, Remembrance (dhikr), Waiting in silence | Sabbath, Sitting and forgetting |
 | Letting go and flow | How do I stop gripping what I cannot control? | Wu wei, What is up to us | Action without grasping, Impermanence, Trust (tawakkul) | All shall be well, The useless tree, Wabi-sabi |
-| Character and practice | How do I become, day by day, the person I mean to be? | Evening review, Soul-traits (middot) | Accounting of the soul, Self-cultivation (li), A rule of life, The mean | Right speech, The greater struggle |
-| Love and other people | What do I owe the people around me, and how do I give it? | Ubuntu, Humaneness (ren) | Loving-kindness (metta), Repairing the world, Standing with the poor, Giving (sadaqah) | Taking and sending, The honourable harvest |
+| Character and practice | How do I become, day by day, the person I mean to be? | Evening review, Soul-traits (middot) | Accounting of the soul, Ritual practice (li), A rule of life, The mean | Right speech, The greater struggle |
+| Love and other people | What do I owe the people around me, and how do I give it? | Ubuntu, Humaneness (ren) | Loving-kindness (metta), Repairing the world, Standing with the poor, Giving (sadaqah) | Sending and taking, The Honorable Harvest |
 | Meaning and making | What is my life for, and who gets to decide? | The will to meaning, Freedom and responsibility | The absurd and revolt, Your own path (svadharma), The leap | Let your life speak, Ikigai (the small kind), Meaning made together |
 | Wonder and mystery | How do I live alongside what is bigger than me? | The pale blue dot, The view from above | Beginner's mind, The butterfly dream, Radical amazement, The reed flute | The cloud of unknowing, Mono no aware, God or Nature |
 

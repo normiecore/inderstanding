@@ -62,14 +62,14 @@
     n('zazen', 'Just sitting (zazen)', 'buddhism', 'Zen', 'stillness', 2, ['breath'], 'practice', { tags: ['solo', 'body'] }),
     n('examen', 'The examen', 'christianity', 'Ignatian', 'stillness', 2, ['jesus-prayer'], 'practice', { tags: ['solo', 'experiential'], door: true, theistic: true }),
     n('dhikr', 'Remembrance (dhikr)', 'islam', 'Sufism', 'stillness', 2, ['jesus-prayer'], 'practice', { tags: ['experiential', 'body'], theistic: true }),
-    n('waiting-worship', 'Waiting in silence', 'christianity', 'Quaker', 'stillness', 2, ['breath'], 'practice', { tags: ['communal', 'experiential'], door: true }),
-    n('sabbath', 'Sabbath', 'judaism', 'Rabbinic, after Heschel', 'stillness', 3, ['examen'], 'practice', { tags: ['communal', 'structured'] }),
+    n('waiting-worship', 'Waiting in silence', 'christianity', 'Quaker', 'stillness', 2, ['breath'], 'practice', { tags: ['communal', 'experiential'], door: true, theistic: true }),
+    n('sabbath', 'Sabbath', 'judaism', 'Rabbinic, after Heschel', 'stillness', 3, ['examen'], 'practice', { tags: ['communal', 'structured'], theistic: true }),
     n('sitting-forgetting', 'Sitting and forgetting', 'daoism', 'Zhuangzi', 'stillness', 3, ['zazen'], 'practice', { tags: ['solo', 'experiential'] }),
 
     // Letting go and flow
     n('wu-wei', 'Wu wei', 'daoism', 'Laozi', 'letting-go', 1, [], 'idea', { tags: ['nature'] }),
     n('control', 'What is up to us', 'stoicism', 'Epictetus', 'letting-go', 1, [], 'idea', {}),
-    n('karma-yoga', 'Action without grasping', 'hinduism', 'Bhagavad Gita', 'letting-go', 2, ['control'], 'practice', {}),
+    n('karma-yoga', 'Action without grasping', 'hinduism', 'Bhagavad Gita', 'letting-go', 2, ['control'], 'practice', { theistic: true }),
     n('impermanence', 'Impermanence (anicca)', 'buddhism', 'Theravada', 'letting-go', 2, ['wu-wei'], 'idea', {}),
     n('tawakkul', 'Trust (tawakkul)', 'islam', 'Quran and hadith', 'letting-go', 2, ['control'], 'idea', { theistic: true }),
     n('all-shall-be-well', 'All shall be well', 'christianity', 'Julian of Norwich', 'letting-go', 3, ['tawakkul'], 'idea', { tags: ['experiential'], door: true, theistic: true }),
@@ -78,9 +78,9 @@
 
     // Character and practice
     n('evening-review', 'Evening review', 'stoicism', 'Seneca', 'character', 1, [], 'practice', { tags: ['solo', 'structured'] }),
-    n('middot', 'Soul-traits (middot)', 'judaism', 'Mussar', 'character', 1, [], 'idea', { tags: ['structured'], door: true }),
+    n('middot', 'Soul-traits (middot)', 'judaism', 'Mussar', 'character', 1, [], 'idea', { tags: ['structured'], door: true, theistic: true }),
     n('accounting', 'Accounting of the soul', 'judaism', 'Mussar', 'character', 2, ['middot'], 'practice', { tags: ['structured'], door: true }),
-    n('self-cultivation', 'Self-cultivation (li)', 'confucianism', 'Analects', 'character', 2, ['evening-review'], 'practice', { tags: ['communal', 'structured'] }),
+    n('self-cultivation', 'Ritual practice (li)', 'confucianism', 'Analects', 'character', 2, ['evening-review'], 'practice', { tags: ['communal', 'structured'] }),
     n('rule-of-life', 'A rule of life', 'christianity', 'Benedictine', 'character', 2, ['middot'], 'practice', { tags: ['communal', 'structured'], door: true }),
     n('golden-mean', 'The mean', 'greek', 'Aristotle', 'character', 2, ['evening-review'], 'idea', {}),
     n('right-speech', 'Right speech', 'buddhism', 'Eightfold Path', 'character', 3, ['self-cultivation'], 'practice', { tags: ['structured'] }),
@@ -92,9 +92,9 @@
     n('metta', 'Loving-kindness (metta)', 'buddhism', 'Theravada', 'others', 2, ['ren'], 'practice', { tags: ['solo'] }),
     n('tikkun-olam', 'Repairing the world', 'judaism', 'Tikkun olam', 'others', 2, ['ubuntu'], 'practice', { tags: ['communal'] }),
     n('option-for-poor', 'Standing with the poor', 'christianity', 'Liberation theology', 'others', 2, ['ubuntu'], 'practice', { tags: ['communal'], door: true, theistic: true }),
-    n('sadaqah', 'Giving (sadaqah)', 'islam', 'Quran and hadith', 'others', 2, ['ren'], 'practice', {}),
-    n('tonglen', 'Taking and sending', 'buddhism', 'Tibetan Mahayana', 'others', 3, ['metta'], 'practice', { tags: ['solo'] }),
-    n('reciprocity', 'The honourable harvest', 'reciprocity', 'Robin Wall Kimmerer', 'others', 3, ['tikkun-olam'], 'practice', { tags: ['nature'] }),
+    n('sadaqah', 'Giving (sadaqah)', 'islam', 'Quran and hadith', 'others', 2, ['ren'], 'practice', { theistic: true }),
+    n('tonglen', 'Sending and taking', 'buddhism', 'Tibetan Mahayana', 'others', 3, ['metta'], 'practice', { tags: ['solo'] }),
+    n('reciprocity', 'The Honorable Harvest', 'reciprocity', 'Robin Wall Kimmerer', 'others', 3, ['tikkun-olam'], 'practice', { tags: ['nature'] }),
 
     // Meaning and making
     n('frankl', 'The will to meaning', 'existentialism', 'Viktor Frankl', 'meaning', 1, [], 'idea', {}),
@@ -102,7 +102,7 @@
     n('absurd', 'The absurd and revolt', 'existentialism', 'Albert Camus', 'meaning', 2, ['freedom'], 'idea', {}),
     n('svadharma', 'Your own path (svadharma)', 'hinduism', 'Bhagavad Gita', 'meaning', 2, ['frankl'], 'idea', {}),
     n('leap', 'The leap', 'christianity', 'Kierkegaard', 'meaning', 2, ['freedom'], 'idea', { tags: ['experiential'], door: true, theistic: true }),
-    n('let-life-speak', 'Let your life speak', 'christianity', 'Quaker', 'meaning', 3, ['svadharma'], 'practice', { tags: ['experiential'], door: true }),
+    n('let-life-speak', 'Let your life speak', 'christianity', 'Quaker', 'meaning', 3, ['svadharma'], 'practice', { tags: ['experiential'], door: true, theistic: true }),
     n('ikigai', 'Ikigai, the small kind', 'japanese', 'Everyday usage', 'meaning', 3, ['frankl'], 'idea', {}),
     n('humanism', 'Meaning made together', 'humanism', 'Secular humanism', 'meaning', 3, ['absurd'], 'idea', { tags: ['communal'] }),
 
