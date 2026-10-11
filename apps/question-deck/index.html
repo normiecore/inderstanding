@@ -1,0 +1,1667 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Question Deck</title>
+<style>
+/* Layout concept: a card table. Controls sit at the table's edge, cards are dealt across the cloth,
+   and the book of answers lies beneath. The boldness lives on the cards (four suit inks, engraved
+   patterns, a slightly misregistered second impression); everything around them stays quiet. */
+:root {
+  --paper: #E2E5E9;      /* the room: cool grey printing paper */
+  --cloth: #D1D7DE;      /* the table the cards land on */
+  --stock: #FBFBF8;      /* card stock */
+  --ink: #172031;        /* Prussian ink: text, buttons, deck backs */
+  --ink-soft: #4A5467;   /* secondary text */
+  --rule: #B4BCC7;       /* hairlines */
+  --roots: #2B654A;      /* suit inks */
+  --others: #A9352B;
+  --time: #7F5206;
+  --mystery: #373B9A;
+  --danger: #9E2A20;
+
+  --font-display: "Bodoni Moda", "Bodoni 72", "Didot", "Times New Roman", serif;
+  --font-body: "Schibsted Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "Fragment Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --edge: color-mix(in srgb, var(--ink) 16%, transparent);
+  --rule-strong: color-mix(in srgb, var(--ink) 38%, transparent);
+  --hover: color-mix(in srgb, var(--ink) 8%, transparent);
+  --lift: 0 1px 0 color-mix(in srgb, var(--ink) 10%, transparent), 0 12px 26px -16px color-mix(in srgb, var(--ink) 45%, transparent);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #101419;
+    --cloth: #171D25;
+    --stock: #1E2530;
+    --ink: #E4E8EE;
+    --ink-soft: #A4ADBB;
+    --rule: #344050;
+    --roots: #71C79F;
+    --others: #F28C7E;
+    --time: #E4B35A;
+    --mystery: #A9AEFB;
+    --danger: #F49386;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #101419;
+  --cloth: #171D25;
+  --stock: #1E2530;
+  --ink: #E4E8EE;
+  --ink-soft: #A4ADBB;
+  --rule: #344050;
+  --roots: #71C79F;
+  --others: #F28C7E;
+  --time: #E4B35A;
+  --mystery: #A9AEFB;
+  --danger: #F49386;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+}
+img, canvas { max-width: 100%; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+h1, h2, h3 { text-wrap: balance; }
+p { margin: 0; }
+
+.qd {
+  max-width: 1400px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 3.4vw, 48px);
+  padding-block: 18px 64px;
+}
+
+/* ---------- masthead ---------- */
+.masthead {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+  gap: 14px 32px; padding-bottom: 14px; border-bottom: 1px solid var(--rule);
+}
+.wordmark {
+  font-family: var(--font-display); font-weight: 600; font-optical-sizing: auto;
+  font-size: clamp(1.75rem, 1.3rem + 1.5vw, 2.5rem); line-height: 1; letter-spacing: -0.01em;
+}
+.wordmark em { font-style: italic; font-weight: 500; }
+.tagline { margin-top: 8px; color: var(--ink-soft); font-size: 0.92rem; max-width: 52ch; }
+.nav { display: flex; flex-wrap: wrap; gap: 2px 4px; }
+.nav button {
+  font: 500 0.9rem/1 var(--font-body); color: var(--ink-soft); background: none; border: 0;
+  padding: 10px 8px; cursor: pointer; border-bottom: 2px solid transparent; border-radius: 0;
+}
+.nav button:hover { color: var(--ink); }
+.nav button[aria-current="page"] { color: var(--ink); border-bottom-color: var(--ink); }
+
+/* ---------- shared bits ---------- */
+.eyebrow, .mini-label, .pos-label, .tag, .step-n, .deck-count, .slot-label {
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.eyebrow { color: var(--ink-soft); }
+.mini-label { color: var(--ink-soft); display: block; }
+.view-title {
+  font-family: var(--font-display); font-weight: 600; font-optical-sizing: auto;
+  font-size: clamp(1.7rem, 1.35rem + 1.2vw, 2.3rem); line-height: 1.08; margin: 4px 0 0;
+}
+.view-title:focus { outline: none; }
+.lede { color: var(--ink-soft); max-width: 62ch; margin-top: 10px; }
+.tag {
+  display: inline-block; padding: 3px 6px 2px; border: 1px solid var(--rule-strong); border-radius: 2px;
+  color: var(--ink-soft); line-height: 1.2; font-size: 0.66rem; vertical-align: middle;
+}
+.status { font-size: 0.86rem; color: var(--ink-soft); min-height: 1.3em; }
+.status.small { font-size: 0.8rem; }
+
+.btn {
+  font: 600 0.9rem/1.2 var(--font-body); color: var(--ink); background: transparent;
+  border: 1px solid var(--ink); border-radius: 3px; padding: 0.66em 1.05em; cursor: pointer;
+}
+.btn:hover { background: var(--hover); }
+.btn-primary { background: var(--ink); color: var(--stock); }
+.btn-primary:hover { background: color-mix(in srgb, var(--ink) 84%, var(--stock)); }
+.btn:disabled { opacity: 0.42; cursor: not-allowed; }
+.btn-small { font-size: 0.8rem; padding: 0.5em 0.8em; }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--stock); }
+.btn-danger { color: var(--danger); border-color: var(--danger); }
+.btn-danger-solid { background: var(--danger); border-color: var(--danger); color: var(--stock); }
+.btn-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.link-btn {
+  font: inherit; color: var(--ink); background: none; border: 0; padding: 0; cursor: pointer;
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
+}
+.link-btn:hover { text-decoration-thickness: 2px; }
+
+textarea, input[type="text"], select {
+  font: 1rem/1.5 var(--font-body); color: var(--ink); background: var(--stock);
+  border: 1px solid var(--rule); border-radius: 3px; padding: 0.6em 0.7em; width: 100%;
+}
+textarea { resize: vertical; min-height: 4.5em; }
+textarea::placeholder, input::placeholder { color: color-mix(in srgb, var(--ink-soft) 80%, transparent); }
+textarea:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; border-color: var(--ink); }
+select { width: auto; max-width: 100%; padding-right: 2em; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  font: 0.72rem/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 0.6em 0.8em; border: 1px solid var(--rule); background: var(--stock); color: var(--ink);
+  border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+}
+.chip:hover { border-color: var(--ink); }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--stock); border-color: var(--ink); }
+.chip svg { width: 12px; height: 12px; }
+.chip-glyph { color: var(--suit); display: inline-flex; }
+.chip[aria-pressed="true"] .chip-glyph { color: inherit; }
+.view-head { margin-top: 26px; }
+.reading-note { display: grid; gap: 12px; }
+.return-actions { margin-top: 10px; }
+.inline-code { font-family: var(--font-mono); font-size: 0.9em; }
+
+.notice-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 14px;
+  padding: 10px 14px; border: 1px dashed var(--rule-strong); border-radius: 4px; background: color-mix(in srgb, var(--stock) 55%, transparent);
+}
+.notice-bar p { flex: 1 1 320px; font-size: 0.92rem; }
+.toast { margin-top: 12px; font-size: 0.92rem; }
+
+/* ---------- suit colour hooks ---------- */
+.suit-roots { --suit: var(--roots); }
+.suit-others { --suit: var(--others); }
+.suit-time { --suit: var(--time); }
+.suit-mystery { --suit: var(--mystery); }
+
+/* ---------- the card ---------- */
+.card {
+  --suit: var(--ink);
+  background: var(--stock); color: var(--ink);
+  border: 1px solid var(--edge); border-radius: 12px;
+  padding: 12px 13px 13px; display: flex; flex-direction: column; gap: 10px;
+  box-shadow: var(--lift); position: relative; min-width: 0;
+}
+.card:focus { outline: none; }
+.card:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--suit); }
+.card-suit { display: inline-flex; align-items: center; gap: 6px; font: 0.7rem/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; }
+.card-suit svg { width: 14px; height: 14px; flex: none; }
+.card-num { font-family: var(--font-display); font-weight: 600; font-size: 1rem; letter-spacing: 0.04em; line-height: 1; }
+.plate {
+  aspect-ratio: 5 / 3; border: 1px solid color-mix(in srgb, var(--suit) 50%, transparent);
+  border-radius: 3px; overflow: hidden; background: var(--stock);
+}
+.plate canvas { display: block; width: 100%; height: 100%; }
+.card-q {
+  font-family: var(--font-display); font-optical-sizing: auto; font-weight: 500;
+  font-size: clamp(1.1rem, 1rem + 0.35vw, 1.3rem); line-height: 1.24; text-wrap: pretty;
+  margin-top: 2px;
+}
+.card-src { font-family: var(--font-display); font-style: italic; font-size: 0.92rem; line-height: 1.3; color: var(--suit); padding-top: 9px; border-top: 1px solid var(--edge); }
+.card-ctx { font-size: 0.82rem; line-height: 1.45; color: var(--ink-soft); }
+.card-foot {
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; margin-top: auto; padding-top: 4px;
+  font: 0.66rem/1.3 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft);
+}
+.card-foot .mark { color: var(--suit); white-space: nowrap; }
+.card-foot .num-flip { font-family: var(--font-display); font-size: 0.9rem; letter-spacing: 0.04em; color: var(--suit); transform: rotate(180deg); text-transform: none; }
+
+.card.compact { gap: 8px; padding: 11px 12px 12px; border-radius: 10px; }
+.card.compact .plate { aspect-ratio: 5 / 2; }
+.card.compact .card-q { font-size: 1.05rem; }
+.card.compact .card-src { font-size: 0.86rem; padding-top: 7px; }
+.card.compact .card-ctx { font-size: 0.78rem; }
+
+.back::after {
+  content: ""; position: absolute; inset: 9px; border: 3px double var(--ink);
+  border-radius: 5px; pointer-events: none; opacity: 0.85;
+}
+.back {
+  background-color: var(--stock); background-image: var(--back-img, none);
+  background-size: cover; background-position: center; background-repeat: no-repeat;
+  border: 1px solid var(--edge); border-radius: 12px;
+}
+
+/* ---------- today: before drawing ---------- */
+.today {
+  display: grid; margin-top: 26px; gap: 28px 40px; align-items: start;
+  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+  grid-template-areas: "controls table" "controls lately";
+}
+.controls { grid-area: controls; display: flex; flex-direction: column; gap: 22px; }
+.today > .table { grid-area: table; }
+.lately { grid-area: lately; }
+.step { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.step-label { font-weight: 600; font-size: 0.98rem; display: flex; align-items: center; gap: 10px; padding: 0; }
+.step-label .opt { font-weight: 400; color: var(--ink-soft); font-size: 0.86rem; }
+.step-n {
+  display: inline-grid; place-items: center; width: 22px; height: 22px; border: 1px solid var(--ink);
+  border-radius: 50%; font-size: 0.7rem; letter-spacing: 0; flex: none;
+}
+.spreads { display: grid; gap: 6px; margin-top: 2px; }
+.spread {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start;
+  padding: 10px 12px; border: 1px solid var(--rule); border-radius: 4px; background: var(--stock); cursor: pointer;
+}
+.spread:hover { border-color: var(--rule-strong); }
+.spread:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.spread input { margin: 4px 0 0; accent-color: var(--ink); width: 16px; height: 16px; }
+.spread-name { display: block; font-weight: 600; }
+.spread-desc { display: block; font-size: 0.86rem; color: var(--ink-soft); }
+.paths { display: grid; gap: 10px; margin-top: 6px; }
+.field { display: grid; gap: 4px; }
+.field label { font-size: 0.86rem; font-weight: 600; }
+
+.table {
+  position: relative; background: var(--cloth); border-radius: 6px;
+  padding: clamp(28px, 3.2vw, 40px);
+}
+.reg { position: absolute; width: 12px; height: 12px; border: 1px solid var(--rule-strong); border-radius: 50%; pointer-events: none; }
+.reg::before, .reg::after { content: ""; position: absolute; background: var(--rule-strong); }
+.reg::before { left: 5px; top: -4px; bottom: -4px; width: 1px; }
+.reg::after { top: 5px; left: -4px; right: -4px; height: 1px; }
+.reg.tl { top: 8px; left: 8px; } .reg.tr { top: 8px; right: 8px; }
+.reg.bl { bottom: 8px; left: 8px; } .reg.br { bottom: 8px; right: 8px; }
+
+.table-row { display: flex; flex-wrap: wrap; gap: 24px 30px; align-items: flex-start; }
+.deck-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; flex: none; }
+.deck { position: relative; width: 150px; aspect-ratio: 5 / 8; cursor: pointer; }
+.deck-card { position: absolute; inset: 0; translate: calc(var(--i, 0) * -1.3px) calc(var(--i, 0) * -1.7px); box-shadow: 0 1px 0 var(--edge); }
+.deck-card:nth-child(1) { --i: 6; } .deck-card:nth-child(2) { --i: 5; } .deck-card:nth-child(3) { --i: 4; } .deck-card:nth-child(4) { --i: 3; }
+.deck-card:nth-child(5) { --i: 2; } .deck-card:nth-child(6) { --i: 1; } .deck-card:nth-child(7) { --i: 0; }
+.deck-count { color: var(--ink-soft); }
+.slots { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; flex: 0 0 190px; grid-template-columns: minmax(0, 1fr); }
+.slots-3 { flex: 1 1 300px; grid-template-columns: repeat(3, minmax(0, 172px)); }
+.suit-key { flex: 1 1 230px; align-self: center; display: grid; gap: 12px; font-size: 0.88rem; color: var(--ink-soft); max-width: 640px; }
+.suit-key ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); }
+.suit-key li { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 10px; line-height: 1.4; }
+.suit-key li svg { width: 15px; height: 15px; margin-top: 2px; }
+.suit-key b { display: block; color: var(--ink); font-weight: 600; }
+.slot { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.slot-label { color: var(--ink-soft); font-size: 0.66rem; line-height: 1.35; min-height: 2.7em; overflow-wrap: anywhere; }
+.slot-outline { aspect-ratio: 5 / 8; border: 1.5px dashed var(--rule-strong); border-radius: 12px; }
+
+.lately { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px 32px; }
+.lately-block { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; gap: 8px; align-content: start; }
+.lately-row { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 14px; align-items: start; }
+.lately-q { font-family: var(--font-display); font-size: 1.05rem; line-height: 1.3; }
+.lately-a { color: var(--ink-soft); font-size: 0.92rem; margin-top: 6px; }
+
+/* ---------- today: dealt reading ---------- */
+.reading { margin-top: 26px; display: grid; gap: 24px; }
+.reading-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 14px 40px; align-items: end; }
+.reading-head .carry { color: var(--ink-soft); max-width: 60ch; }
+.brought { font-family: var(--font-display); font-style: italic; font-size: 1.15rem; line-height: 1.4; max-width: 60ch; }
+.brought .mini-label { font-style: normal; margin-bottom: 2px; }
+.turn-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 18px; }
+.dealt { list-style: none; margin: 0; padding: 0; display: grid; gap: 28px 24px; align-items: start; }
+.dealt-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.dealt-1 .dealt-item {
+  display: grid; gap: 12px 32px; grid-template-columns: minmax(0, 330px) minmax(0, 1fr);
+  grid-template-areas: "label label" "card after";
+}
+.dealt-1 .pos-label { grid-area: label; }
+.dealt-1 .flip { grid-area: card; }
+.dealt-1 .after-flip { grid-area: after; }
+.dealt-item { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.pos-label { color: var(--ink); font-weight: 400; }
+.after-flip { display: grid; gap: 14px; align-content: start; }
+.card-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.answer { display: grid; gap: 6px; }
+.answer-label { font-family: var(--font-display); font-style: italic; font-size: 1.1rem; }
+.answer textarea { min-height: 8em; }
+.dealt-1 .answer textarea { min-height: 12em; }
+
+.flip { perspective: 1800px; transform-origin: 0 0; }
+.flip-inner { position: relative; transform-style: preserve-3d; transition: transform 0.75s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.flip-front { backface-visibility: hidden; -webkit-backface-visibility: hidden; transform: rotateY(180deg); }
+.flip-front > .card { height: 100%; }
+.flip-back {
+  position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  display: grid; place-items: end center; padding: 0 0 18px; cursor: pointer; box-shadow: var(--lift); font: inherit; color: var(--ink);
+}
+.flip-back:hover .back-label { background: var(--ink); color: var(--stock); }
+.back-label { font: 0.72rem/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; background: var(--stock); border: 1px solid var(--ink); padding: 7px 10px; border-radius: 2px; }
+.flip.is-flipped .flip-inner { transform: rotateY(180deg); }
+.flip.static .flip-inner, .flip.static .flip-front { transform: none; transition: none; }
+
+.putback { display: grid; gap: 8px; justify-items: start; font-size: 0.9rem; color: var(--ink-soft); }
+.putback-confirm { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+
+/* ---------- book of answers ---------- */
+.book { display: grid; grid-template-columns: minmax(0, 270px) minmax(0, 1fr); gap: 32px 48px; margin-top: 26px; align-items: start; }
+.book-side { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); display: grid; gap: 18px; }
+.filter { display: grid; gap: 8px; }
+.count { font: 0.78rem/1.4 var(--font-mono); color: var(--ink-soft); }
+.entry { padding-block: 24px 30px; border-top: 1px solid var(--rule); }
+.entry:first-child { border-top: 0; padding-top: 4px; }
+.entry-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.entry-date { font-family: var(--font-display); font-weight: 600; font-size: 1.55rem; line-height: 1.15; margin: 0; }
+.entry-spread { font: 0.72rem/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+.entry-brought { font-family: var(--font-display); font-style: italic; font-size: 1.05rem; color: var(--ink-soft); margin-top: 8px; max-width: 64ch; }
+.entry-paths { font-size: 0.88rem; color: var(--ink-soft); margin-top: 4px; }
+.entry-cards { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 26px; }
+.entry-card { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 18px; }
+.entry-q { font-family: var(--font-display); font-weight: 500; font-size: 1.05rem; line-height: 1.3; margin-top: 3px; max-width: 60ch; }
+.entry-src { font-size: 0.82rem; color: var(--ink-soft); margin-top: 3px; }
+.entry-src i { font-family: var(--font-display); }
+.entry-answer { font-size: 1.12rem; line-height: 1.62; white-space: pre-wrap; max-width: 62ch; margin-top: 12px; overflow-wrap: anywhere; }
+.entry-unanswered { font-size: 0.92rem; color: var(--ink-soft); margin-top: 10px; font-style: italic; }
+.entry-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; margin-top: 8px; font-size: 0.86rem; color: var(--ink-soft); }
+.entry-edit { display: grid; gap: 8px; margin-top: 12px; max-width: 62ch; }
+.entry-edit textarea { min-height: 9em; }
+
+.mini {
+  position: relative; width: 64px; aspect-ratio: 5 / 8; border-radius: 6px; overflow: hidden;
+  border: 1px solid var(--edge); background: var(--stock); box-shadow: 0 1px 0 var(--edge);
+}
+.mini canvas { display: block; width: 100%; height: 100%; }
+.mini-num {
+  position: absolute; left: 4px; top: 4px; padding: 1px 4px; border-radius: 2px;
+  background: var(--stock); color: var(--suit); font: 600 0.68rem/1.1 var(--font-display);
+}
+.lately-row .mini { width: 56px; }
+
+.empty { padding: 26px 0; color: var(--ink-soft); max-width: 60ch; display: grid; gap: 12px; justify-items: start; }
+.empty strong { color: var(--ink); font-family: var(--font-display); font-size: 1.3rem; font-weight: 600; }
+
+/* ---------- returning ---------- */
+.returns { margin-top: 18px; }
+.return { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 24px 40px; padding-block: 30px; border-top: 1px solid var(--rule); align-items: start; }
+.return-meta { font: 0.76rem/1.4 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 14px; }
+.answers-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.answer-col { padding: 4px 24px 6px; border-left: 1px solid var(--rule); display: grid; gap: 6px; align-content: start; }
+.answer-col:first-child { padding-left: 0; border-left: 0; }
+.answer-col h3 { font-family: var(--font-display); font-weight: 600; font-size: 1.2rem; line-height: 1.2; margin: 0; }
+.answer-col .gap { font: 0.7rem/1.3 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--suit, var(--ink-soft)); }
+.answer-col .ctx { font-size: 0.84rem; color: var(--ink-soft); }
+.answer-col .ans { font-size: 1.06rem; line-height: 1.6; white-space: pre-wrap; margin-top: 6px; overflow-wrap: anywhere; }
+
+/* ---------- the deck ---------- */
+.deck-tools { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: flex-end; margin-top: 18px; }
+.deck-tools .count { padding-bottom: 13px; }
+.deck-stats { display: flex; flex-wrap: wrap; gap: 4px 22px; margin-top: 14px; font: 0.78rem/1.4 var(--font-mono); color: var(--ink-soft); }
+.deck-stats b { color: var(--ink); font-weight: 400; }
+.deck-grid { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 22px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); }
+.deck-item { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.deck-item .card { flex: 1; }
+.deck-item.is-aside .card { opacity: 0.62; }
+.drawn-count { font: 0.7rem/1.3 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); margin-left: auto; }
+
+/* ---------- about ---------- */
+.about { display: grid; grid-template-columns: minmax(0, 66ch) minmax(0, 320px); gap: 32px 56px; margin-top: 26px; align-items: start; }
+.prose { display: grid; gap: 14px; }
+.prose h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; margin: 18px 0 0; }
+.prose p { line-height: 1.62; }
+.prose code { font-family: var(--font-mono); font-size: 0.86em; background: var(--stock); border: 1px solid var(--rule); padding: 0 4px; border-radius: 2px; }
+.figures { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); background: var(--stock); border: 1px solid var(--edge); border-radius: 6px; padding: 18px 18px 20px; }
+.figures dl { margin: 10px 0 0; display: grid; gap: 12px; }
+.figures dt { font: 0.68rem/1.3 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+.figures dd { margin: 2px 0 0; font-family: var(--font-display); font-size: 1.3rem; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.figures dd.dd-text { font-size: 1rem; }
+.figures dd .times { font-family: var(--font-body); font-weight: 400; font-size: 0.8em; }
+.figures dd small { font-variant-numeric: normal; display: block; font-family: var(--font-body); font-size: 0.8rem; font-weight: 400; color: var(--ink-soft); margin-top: 2px; }
+
+/* ---------- data ---------- */
+.data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 22px; margin-top: 22px; align-items: start; }
+.panel { background: var(--stock); border: 1px solid var(--edge); border-radius: 6px; padding: 18px; display: grid; gap: 10px; }
+.panel h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.3rem; margin: 0; }
+.panel p { font-size: 0.92rem; color: var(--ink-soft); }
+.panel textarea { font: 0.78rem/1.45 var(--font-mono); min-height: 12em; background: var(--paper); }
+.confirm { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--danger); border-radius: 4px; }
+.confirm p { color: var(--ink); }
+
+.colophon { margin-top: 56px; padding-top: 14px; border-top: 1px solid var(--rule); font-size: 0.82rem; color: var(--ink-soft); display: flex; flex-wrap: wrap; gap: 6px 24px; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1080px) {
+  .dealt-3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+}
+@media (max-width: 900px) {
+  .today { display: flex; flex-direction: column; align-items: stretch; gap: 22px; }
+  .today > .controls { display: contents; }
+  .today > .table { order: 1; }
+  .today .step-go { order: 2; }
+  .today > .lately { order: 3; }
+  .book, .about { grid-template-columns: minmax(0, 1fr); }
+  .book-side, .figures { position: static; }
+  .reading-head { grid-template-columns: minmax(0, 1fr); }
+  .return { grid-template-columns: minmax(0, 1fr); }
+  .return > .card, .return-card { max-width: 380px; }
+}
+@media (max-width: 640px) {
+  .dealt-1 .dealt-item { grid-template-columns: minmax(0, 1fr); grid-template-areas: "label" "card" "after"; }
+  .dealt-1 .flip, .dealt-3 .flip { max-width: 420px; }
+  .deck { width: 104px; }
+  .table-row { gap: 18px; }
+  .slots { flex: 0 0 132px; }
+  .slots-3 { flex: 1 1 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .suit-key { display: none; }
+  .answer-col { padding: 14px 0 0; border-left: 0; border-top: 1px solid var(--rule); }
+  .answer-col:first-child { border-top: 0; padding-top: 0; }
+  .answers-row { gap: 14px; }
+  .nav button { padding: 9px 6px; font-size: 0.86rem; }
+  .entry-card { grid-template-columns: 48px minmax(0, 1fr); gap: 14px; }
+  .entry-card .mini { width: 48px; }
+}
+@supports (grid-template-rows: subgrid) {
+  .dealt-3 .dealt-item { display: grid; grid-row: span 3; grid-template-rows: subgrid; gap: 10px; }
+  .dealt-3 .flip, .dealt-3 .flip-inner, .dealt-3 .flip-front { height: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flip-inner { transition: none; }
+  * { scroll-behavior: auto !important; }
+}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..800;1,6..96,400..800&family=Fragment+Mono:ital@0;1&family=Schibsted+Grotesk:ital,wght@0,400..700;1,400..700&display=swap">
+</head>
+<body>
+<div class="qd" id="app">
+  <header class="masthead">
+    <div class="brand">
+      <p class="wordmark">The <em>Question</em> Deck</p>
+      <p class="tagline" id="tagline">Shuffle, draw a question taken from a real tradition or writer, carry it through the day, and write your own answer.</p>
+    </div>
+    <nav class="nav" aria-label="Sections">
+      <button type="button" data-view="today" aria-current="page">Today</button>
+      <button type="button" data-view="book">Book of answers</button>
+      <button type="button" data-view="returning">Returning questions</button>
+      <button type="button" data-view="deck">The deck</button>
+      <button type="button" data-view="about">About the randomness</button>
+      <button type="button" data-view="data">Your data</button>
+    </nav>
+  </header>
+  <div id="banners"></div>
+  <main id="view"></main>
+  <footer class="colophon">
+    <span>Everything stays in this browser. No accounts, no tracking.</span>
+    <span>Direct quotations name their source. Adapted questions are marked “after”.</span>
+  </footer>
+</div>
+<script>
+(function () {
+'use strict';
+
+/* =========================================================
+   The deck. Every card is a question, never an answer.
+   Direct quotations are marked by their source; anything
+   adapted is attributed "after ...".
+   ========================================================= */
+var SUITS = {
+  roots:   { name: 'Roots',   about: 'where you come from and what formed you' },
+  others:  { name: 'Others',  about: 'relationships, community and what you give' },
+  time:    { name: 'Time',    about: 'change, mortality and the seasons of a life' },
+  mystery: { name: 'Mystery', about: 'the sacred, the unknown and awe' }
+};
+var SUIT_KEYS = ['roots', 'others', 'time', 'mystery'];
+
+// [id, question, source, context, tradition, strand]
+var RAW = {
+  roots: [
+    ['ro-01', 'What was your original face before your parents were born?', 'Zen koan, after Huineng', 'Built on Huineng\'s question in The Gateless Gate (case 23): not thinking of good or evil, what is your original face? A koan is not solved by argument; you carry it.', 'Buddhist', 'Zen'],
+    ['ro-02', 'Whose path have you been trying to walk well, when your own might suit you better even walked badly?', 'after the Bhagavad Gita 3.35', 'Krishna tells Arjuna it is better to follow your own dharma (svadharma) imperfectly than another\'s perfectly.', 'Hindu', 'Bhagavad Gita'],
+    ['ro-03', 'In the last week, when were you your own friend, and when were you your own enemy?', 'after the Bhagavad Gita 6.5', 'Krishna: lift yourself by yourself and do not let yourself sink, for the self alone is your friend and the self alone is your enemy. (Paraphrased.)', 'Hindu', 'Bhagavad Gita'],
+    ['ro-04', 'Which of your beliefs did you inherit, and which have you actually tested?', 'after al-Ghazali, Deliverance from Error', 'Al-Ghazali (d. 1111) noticed that children of Christians, Jews and Muslims tend to grow up in their parents\' faith, and set out to test what he had only received by imitation (taqlid).', 'Islamic and Sufi', 'Sufi'],
+    ['ro-05', 'What are you separated from that you still miss, and what does the missing tell you about what you love?', 'after Rumi, the Song of the Reed', 'The Masnavi opens with a reed flute lamenting that it was cut from the reed bed. In Sufi reading, the longing itself points back to its source.', 'Islamic and Sufi', 'Sufi'],
+    ['ro-06', 'Where are you in your world? Of the years you have had so far, how far have you come?', 'after Martin Buber, The Way of Man', 'Buber retells how Rabbi Shneur Zalman, jailed in St Petersburg, explained God\'s question to Adam, "Where are you?" (Genesis 3:9): it is asked of every person in every age.', 'Jewish', 'Hasidic'],
+    ['ro-07', 'Where are you trying to be someone admirable instead of being more fully yourself?', 'after Rabbi Zusya of Hanipol', 'A Hasidic story: Zusya said that in the world to come he would not be asked "Why were you not Moses?" but "Why were you not Zusya?"', 'Jewish', 'Hasidic'],
+    ['ro-08', 'Which of your traits is turned up too high right now, and which too low?', 'after Mussar teaching on middot', 'Mussar, a Jewish ethical practice revived by Rabbi Israel Salanter in 19th-century Lithuania, holds that every trait (middah) has a right measure. Even humility can be overdone.', 'Jewish', 'Mussar'],
+    ['ro-09', 'What does the soft animal of your body love that you keep talking yourself out of?', 'after Mary Oliver, Wild Geese', '"You do not have to be good," the poem begins. "You only have to let the soft animal of your body / love what it loves."', 'Poets and writers', ''],
+    ['ro-10', 'In what part of your life are you trying hardest to be someone other than who you are?', 'after Kierkegaard, The Sickness unto Death', 'Writing as Anti-Climacus in 1849, Kierkegaard describes a quiet despair: wanting to be rid of the self you actually are.', 'Christian', 'Kierkegaard'],
+    ['ro-11', 'What were you raised to think you naturally are, that you later found you had learned?', 'after Simone de Beauvoir, The Second Sex', '"One is not born, but rather becomes, a woman" (1949): de Beauvoir\'s case that much of what seems natural in us is made.', 'Existentialist and absurdist', ''],
+    ['ro-12', 'What do you owe the people who raised you, and what don\'t you owe them?', 'after Confucius, Analects 4.18', 'Xiao (care for parents) runs through the Analects, but Confucius also says that when parents are wrong you should tell them so, gently.', 'Confucian', ''],
+    ['ro-13', 'What do you understand about other people that you haven\'t yet turned on yourself?', 'after Laozi, Daodejing 33', '"One who knows others is clever; one who knows oneself is clear-sighted (ming)." Translations of the line vary.', 'Daoist', 'Laozi'],
+    ['ro-14', 'What part of you was once called useless, and has it turned out to protect you?', 'after Zhuangzi, chapter 4', 'A carpenter dismisses a huge shrine oak as useless timber. That night the tree tells him in a dream that being useless is how it lived so long.', 'Daoist', 'Zhuangzi'],
+    ['ro-15', 'If your life spoke for you, without your explanations, what would it say you care about?', 'after the Quaker saying "Let your life speak"', 'The phrase appears in Quaker Advices & Queries no. 27. Quakers have no creed; they keep a set of queries, questions meant to be answered with how you live.', 'Christian', 'Quaker'],
+    ['ro-16', 'When you say "I" today, what exactly are you pointing to?', 'after Ramana Maharshi, Who Am I?', 'Ramana Maharshi taught self-enquiry (atma vichara): when a thought arises, ask to whom it arises, and trace the "I" back to its source.', 'Hindu', 'Advaita Vedanta'],
+    ['ro-17', 'Which teaching have you tried in your own life long enough to know whether it helps?', 'after the Kalama Sutta (AN 3.65)', 'The Buddha tells the Kalamas not to accept teachings on tradition or a teacher\'s authority alone, but to see for themselves whether they lead to harm or to well-being.', 'Buddhist', 'Theravada'],
+    ['ro-18', 'What would you keep doing even if no one ever saw it?', 'after Rilke, Letters to a Young Poet', 'In the first letter (1903), Rilke tells Franz Kappus to stop asking editors whether his poems are good and ask himself in the stillest hour of the night: must I write?', 'Poets and writers', ''],
+    ['ro-19', 'Who taught you what love looks like, and what did they get wrong?', 'after bell hooks, All About Love', 'hooks argues that many of us learned love in homes where care and harm were mixed, and borrows M. Scott Peck\'s definition: the will to extend yourself for someone\'s growth.', 'Poets and writers', ''],
+    ['ro-20', 'Which habit of thought did you pick up so early that you have never examined it?', 'after Socrates, in Plato\'s Apology 38a', 'At his trial in 399 BCE Socrates said the unexamined life is not worth living, and that he would not stop questioning people even if it cost him his life.', 'Greek and Roman', 'Socratic']
+  ],
+  others: [
+    ['ot-01', 'Who was this week actually for?', 'after Hillel, Pirkei Avot 1:14', '"If I am not for myself, who will be for me? And if I am only for myself, what am I? And if not now, when?"', 'Jewish', 'Rabbinic'],
+    ['ot-02', 'What work in the world will never be finished, and which small part of it is yours this week?', 'after Rabbi Tarfon, Pirkei Avot 2:16', '"It is not your duty to finish the work, but neither are you free to neglect it."', 'Jewish', 'Rabbinic'],
+    ['ot-03', 'Where are you taking up too much room, and where too little?', 'after Mussar teaching on anavah', 'Modern Mussar teachers such as Alan Morinis describe anavah (humility) as taking up your rightful space, neither more nor less.', 'Jewish', 'Mussar'],
+    ['ot-04', 'Whose faults can you see clearly right now, while your own run out behind you?', 'after Abba Moses, Sayings of the Desert Fathers', 'Called to judge a brother, Abba Moses arrived carrying a leaking jug of water and said his own sins were running out behind him unseen, yet he had come to judge another\'s.', 'Christian', 'Desert Fathers'],
+    ['ot-05', 'Who do you find hard to respect, and what would looking for "that of God" in them involve this week?', 'after Quaker Advices & Queries no. 17', 'Quakers speak of "that of God in everyone", a phrase from George Fox in 1656. Query 17 asks whether you respect it even when it shows up in unfamiliar ways.', 'Christian', 'Quaker'],
+    ['ot-06', 'Whose advice have you been hearing without really listening to?', 'after the Rule of St Benedict, Prologue', 'The Rule, written for monks around 530, opens with the word "Listen" and asks the reader to attend with the ear of the heart.', 'Christian', 'Benedictine'],
+    ['ot-07', 'Who needed your full attention this week, and did they get it?', 'after Simone Weil, letter to Joë Bousquet', 'Weil, a French philosopher drawn to Christian mysticism, wrote in 1942 that "attention is the rarest and purest form of generosity."', 'Christian', 'Christian mystic'],
+    ['ot-08', 'In what I did for others today, was I wholehearted? With friends, was I trustworthy? Did I practise what I was taught?', 'after Zengzi, Analects 1.4', 'Zengzi, a disciple of Confucius, said he examined himself on these three points every day.', 'Confucian', ''],
+    ['ot-09', 'What did someone do to you that you have since done to someone else?', 'after Confucius, Analects 15.24', 'Asked for one word to live by, Confucius chose shu (reciprocity): what you would not want for yourself, do not do to others.', 'Confucian', ''],
+    ['ot-10', 'When did you last move to help someone before you had time to think about it?', 'after Mencius 2A:6', 'Mencius argued that anyone who suddenly saw a child about to fall into a well would feel alarm and compassion: the sprout of ren (humaneness) in everyone.', 'Confucian', 'Mencius'],
+    ['ot-11', 'Who are you likely to find difficult tomorrow, and what do you have in common with them?', 'after Marcus Aurelius, Meditations 2.1', 'Marcus reminds himself each morning that he will meet ungrateful and arrogant people, and that they share his nature, so he cannot be angry with his own kin.', 'Greek and Roman', 'Stoic'],
+    ['ot-12', 'Which friend would you like to eat with more often, and what is in the way?', 'after Epicurus, Principal Doctrines 27', 'Epicurus lived with friends in his Garden in Athens and called friendship by far the greatest thing wisdom provides for a happy life.', 'Greek and Roman', 'Epicurean'],
+    ['ot-13', 'Which of your friendships run on usefulness, which on fun, and which on who you both are?', 'after Aristotle, Nicomachean Ethics VIII', 'Aristotle sorts friendships by what holds them together: utility, pleasure or character. Only the last kind, he says, tends to last.', 'Greek and Roman', 'Aristotelian'],
+    ['ot-14', 'Whose freedom does your freedom rest on, and are you helping theirs?', 'after Simone de Beauvoir, The Ethics of Ambiguity', 'De Beauvoir (1947): "To will oneself free is also to will others free."', 'Existentialist and absurdist', ''],
+    ['ot-15', 'Who has made you who you are this year, without either of you noticing?', 'after Ubuntu: umuntu ngumuntu ngabantu', 'A Nguni saying from southern Africa: a person is a person through other people. Desmond Tutu described it as your humanity being bound up in other people\'s.', 'Ubuntu', ''],
+    ['ot-16', 'Who is waiting for you to acknowledge something before either of you can move on?', 'after Desmond Tutu, No Future Without Forgiveness', 'Tutu chaired South Africa\'s Truth and Reconciliation Commission and grounded its approach in ubuntu: harm done to one person diminishes everyone.', 'Ubuntu', ''],
+    ['ot-17', 'What have you received lately that you have not given anything back for?', 'after Robin Wall Kimmerer, Braiding Sweetgrass', 'Kimmerer, a Potawatomi botanist, writes that "all flourishing is mutual": a gift starts a relationship, and the relationship asks something of you.', 'Potawatomi (Kimmerer)', ''],
+    ['ot-18', 'What did you take today that you could have asked for, or taken less of?', 'after Kimmerer, the Honorable Harvest', 'Kimmerer\'s account of the Honorable Harvest includes: ask permission, take only what you need, never take more than half, and give a gift in return.', 'Potawatomi (Kimmerer)', ''],
+    ['ot-19', 'Whose view of your town do you rarely hear, and how could you hear it this week?', 'after Gustavo Gutiérrez, A Theology of Liberation', 'Gutiérrez, a Peruvian priest, argued that faith should be read from the side of the poor, which liberation theology calls the preferential option for the poor.', 'Christian', 'Liberation theology'],
+    ['ot-20', 'Who is the hardest person for you to wish well, and what exactly would you wish them if you tried?', 'after metta practice, as set out in the Visuddhimagga', 'Metta (loving-kindness) practice moves outward in stages: yourself, a dear friend, a neutral person, and finally someone hostile.', 'Buddhist', 'Theravada'],
+    ['ot-21', 'Where this week did you act from love without enough knowledge, or from knowledge without love?', 'after Bertrand Russell, What I Believe', 'Russell, a secular humanist, wrote in 1925 that "the good life is one inspired by love and guided by knowledge."', 'Humanist', ''],
+    ['ot-22', 'Who did you make a little happier today, and how?', 'after Robert Ingersoll\'s creed', 'The 19th-century American freethinker\'s creed: "Happiness is the only good. The place to be happy is here. The time to be happy is now. The way to be happy is to make others so."', 'Humanist', ''],
+    ['ot-23', 'Where are you pushing against something that would give way if you went around it?', 'after Laozi, Daodejing 8 and 78', 'Laozi praises water: it benefits everything without contending, settles in the low places people avoid, and nothing is better at wearing down the hard.', 'Daoist', 'Laozi'],
+    ['ot-24', 'Who do you assume you understand, and how would you know if you didn\'t?', 'after Zhuangzi, chapter 17', 'On a bridge over the Hao, Huizi asks: "You are not a fish, so how do you know what fish enjoy?" Zhuangzi: "You are not me, so how do you know I don\'t know?"', 'Daoist', 'Zhuangzi'],
+    ['ot-25', 'What did you use today that came from people you will never meet?', 'after Thich Nhat Hanh, on interbeing', 'The Vietnamese Zen teacher said that if you look closely at a sheet of paper you can see the cloud, the rain, the tree and the logger in it.', 'Buddhist', 'Zen']
+  ],
+  time: [
+    ['ti-01', 'Where today did you feel most alive, and where most drained?', 'after the Ignatian examen', 'Ignatius of Loyola asked his companions to review each day, noticing consolation (being drawn toward life and love) and desolation (being drawn away).', 'Christian', 'Ignatian'],
+    ['ti-02', 'What from five years ago makes sense to you now that didn\'t at the time?', 'after Kierkegaard\'s journals, 1843', 'Kierkegaard wrote that life can only be understood backwards, but it must be lived forwards.', 'Christian', 'Kierkegaard'],
+    ['ti-03', 'Which old situation are you likely to meet again soon, and what will you do differently this time?', 'after Maimonides, Laws of Teshuvah 2:1', 'Maimonides says complete teshuvah (return) is when the same situation comes round again, with the same pull, and you choose differently.', 'Jewish', 'Rabbinic'],
+    ['ti-04', 'If one day a week were set apart from making and getting, what would you stop doing first?', 'after Abraham Joshua Heschel, The Sabbath', 'Heschel (1951) called the Sabbath "a palace in time": one day given to time itself rather than to things.', 'Jewish', 'Sabbath'],
+    ['ti-05', 'If you watched one trait each evening this week, which would you choose, and what did today show you about it?', 'after Menachem Mendel Lefin, Cheshbon HaNefesh', 'Cheshbon hanefesh means "accounting of the soul". Lefin\'s 19th-century manual has you work on one trait a week, a method he adapted from Benjamin Franklin.', 'Jewish', 'Mussar'],
+    ['ti-06', 'What are you doing mostly for the result, and would you still do it if the result never came?', 'after the Bhagavad Gita 2.47', 'On the eve of battle, Krishna tells Arjuna he has a right to his action but never to its fruits. This is the root of karma yoga.', 'Hindu', 'Bhagavad Gita'],
+    ['ti-07', 'Which stage of life are you in, and are you living as if you were in another?', 'after the ashrama system', 'Classical Hindu texts describe four ashramas, or life stages: student, householder, forest-dweller (a gradual withdrawal) and renunciant.', 'Hindu', 'Dharma texts'],
+    ['ti-08', 'Who or what that you love will change or be gone one day, and how would remembering that change today?', 'after the Five Remembrances (AN 5.57)', 'The Buddha recommends recalling often that ageing, illness, death and separation from what we love will come, and that our actions are what we truly own.', 'Buddhist', 'Theravada'],
+    ['ti-09', 'What hurt you this week, and what did you add to it yourself?', 'after the Sallatha Sutta (SN 36.6)', 'The Buddha compares pain to being struck by an arrow, and the worry and resistance we add to being struck by a second one.', 'Buddhist', 'Theravada'],
+    ['ti-10', 'What ordinary task is waiting for you that you could do with your whole attention?', 'after Zhaozhou, The Gateless Gate, case 7', 'A new monk asked Zhaozhou for teaching. "Have you eaten your rice porridge?" "Yes." "Then wash your bowl."', 'Buddhist', 'Zen'],
+    ['ti-11', 'What are you now so expert at that you have stopped seeing it?', 'after Shunryu Suzuki, Zen Mind, Beginner\'s Mind', 'Suzuki (1970): "In the beginner\'s mind there are many possibilities, but in the expert\'s there are few."', 'Buddhist', 'Zen'],
+    ['ti-12', 'What could you put down this season that you are carrying out of habit?', 'after Laozi, Daodejing 48', '"In pursuit of learning, every day something is added. In pursuit of the Dao, every day something is dropped." Translations vary.', 'Daoist', 'Laozi'],
+    ['ti-13', 'Think of a death that changed you. What did you understand about change afterwards that you hadn\'t before?', 'after Zhuangzi, chapter 18', 'When his wife died, Zhuangzi was found drumming on a basin and singing. He said he had grieved, then came to see her death as part of the turning of the seasons.', 'Daoist', 'Zhuangzi'],
+    ['ti-14', 'If you summed up each decade of your life so far in one line, what would the lines say?', 'after Confucius, Analects 2.4', '"At fifteen I set my heart on learning. At thirty I took my stand. At forty I had no doubts..." Confucius describes his life by decades, up to seventy.', 'Confucian', ''],
+    ['ti-15', 'What are you worrying about that isn\'t up to you, and which small part of it is?', 'after Epictetus, Enchiridion 1', 'Epictetus, who was born enslaved, opens his handbook: some things are up to us and some are not.', 'Greek and Roman', 'Stoic'],
+    ['ti-16', 'Who or what has been taking your time this month without your agreement?', 'after Seneca, On the Shortness of Life', 'Seneca observes that people guard their money and land closely but let others take their time freely, the one thing it is right to be stingy with.', 'Greek and Roman', 'Stoic'],
+    ['ti-17', 'If this were your last month, which conversation would you stop putting off?', 'after Marcus Aurelius, Meditations 2.11', 'Marcus reminds himself that he could leave life at any moment, and lets that shape what he does, says and thinks.', 'Greek and Roman', 'Stoic'],
+    ['ti-18', 'What do you want right now, and what happens to you if you get it, and if you don\'t?', 'after Epicurus, Vatican Sayings 71', 'Epicurus proposed asking of every desire: what will happen to me if it is fulfilled, and what if it is not?', 'Greek and Roman', 'Epicurean'],
+    ['ti-19', 'Which task do you repeat endlessly, and could you push that boulder as your own?', 'after Albert Camus, The Myth of Sisyphus', 'Camus ends his 1942 essay: "One must imagine Sisyphus happy." The rock belongs to him, and so does the walk back down.', 'Existentialist and absurdist', ''],
+    ['ti-20', 'In your last hard winter, what in you kept going?', 'after Albert Camus, Return to Tipasa', 'Revisiting the Roman ruins of his Algerian youth after the war, Camus wrote that in the middle of winter he found in himself "an invincible summer."', 'Existentialist and absurdist', ''],
+    ['ti-21', 'Tell me, what is it you plan to do with your one wild and precious life?', 'Mary Oliver, The Summer Day', 'The poem\'s last lines, after a day spent watching a grasshopper and strolling through the fields. From House of Light (1990).', 'Poets and writers', ''],
+    ['ti-22', 'When were you last happy and noticed it at the time?', 'after Kurt Vonnegut, A Man Without a Country', 'Vonnegut\'s Uncle Alex would stop on a summer afternoon and say aloud, "If this isn\'t nice, I don\'t know what is." Vonnegut urged readers to do the same.', 'Humanist', '']
+  ],
+  mystery: [
+    ['my-01', 'If you sat alone in a quiet room for an hour, what would you start thinking about first?', 'after Abba Moses, Sayings of the Desert Fathers', 'A brother asked Abba Moses for a word. He said: "Go, sit in your cell, and your cell will teach you everything."', 'Christian', 'Desert Fathers'],
+    ['my-02', 'Where were you physically present today but somewhere else in your head, and where were you?', 'after Amma Syncletica', 'One of the Desert Mothers of 4th-century Egypt, she warned that you can live alone in the desert and still live in a crowd of your own thoughts.', 'Christian', 'Desert Mothers'],
+    ['my-03', 'What are you holding as if everything depends on you alone?', 'after Julian of Norwich, Revelations of Divine Love', 'Julian, an anchoress in 14th-century Norwich, recorded words she heard in a vision: "All shall be well, and all shall be well, and all manner of thing shall be well."', 'Christian', 'English mystics'],
+    ['my-04', 'If you said plainly what you want right now, without tidying it first, what would it be?', 'after Ignatius of Loyola, Spiritual Exercises', 'Each prayer period in the Exercises begins by asking for "what I want and desire", said honestly.', 'Christian', 'Ignatian'],
+    ['my-05', 'What do you say matters most, and what else are you wanting that pulls against it?', 'after Kierkegaard, Purity of Heart Is to Will One Thing', 'In this 1847 discourse, Kierkegaard argues that a divided will is our ordinary condition, and that wanting one thing wholeheartedly is rare.', 'Christian', 'Kierkegaard'],
+    ['my-06', 'What feeling arrived this week that you tried to turn away at the door?', 'after Rumi, The Guest House (Coleman Barks\'s version)', 'Every feeling is a guest, even "a crowd of sorrows", because each "may be clearing you out for some new delight." Barks\'s English is a free version, not a literal translation.', 'Islamic and Sufi', 'Sufi'],
+    ['my-07', 'What would you do differently today if you knew you were fully seen?', 'after the Hadith of Gabriel', 'There ihsan (doing what is beautiful) is defined as worshipping God as though you see Him, and if you do not see Him, knowing that He sees you.', 'Islamic and Sufi', 'Hadith'],
+    ['my-08', 'When did you last feel you weren\'t separate from what was around you?', 'after the Chandogya Upanishad 6', 'Uddalaka teaches his son Svetaketu by dissolving salt in water: "tat tvam asi", you are that.', 'Hindu', 'Upanishads'],
+    ['my-09', 'What empty space in your life is quietly doing the most work?', 'after Laozi, Daodejing 11', 'Thirty spokes share one hub, Laozi says, and it is the empty centre that makes the wheel useful. The same goes for a bowl and a room.', 'Daoist', 'Laozi'],
+    ['my-10', 'Which part of your everyday life might look strange if you woke up from it?', 'after Zhuangzi, chapter 2', 'Zhuangzi dreamt he was a butterfly, woke, and could not tell whether he was a man who had dreamt of being a butterfly or a butterfly dreaming of being a man.', 'Daoist', 'Zhuangzi'],
+    ['my-11', 'Where does something you do feel effortless now, and what did it take to get there?', 'after Zhuangzi, chapter 3', 'Cook Ding\'s knife stayed sharp for nineteen years because he found the gaps between the joints instead of hacking. Daoists call this ease wu wei, effortless action.', 'Daoist', 'Zhuangzi'],
+    ['my-12', 'What astonished you this week, and who did you tell?', 'after Mary Oliver, Sometimes', '"Instructions for living a life: / Pay attention. / Be astonished. / Tell about it." From Red Bird (2008).', 'Poets and writers', ''],
+    ['my-13', 'What did you pay close attention to today, for longer than felt useful?', 'after Mary Oliver, The Summer Day', 'After watching a grasshopper eat sugar from her hand, the speaker says: "I don\'t know exactly what a prayer is. / I do know how to pay attention."', 'Poets and writers', ''],
+    ['my-14', 'Which question in your life are you trying to answer too soon?', 'after Rilke, Letters to a Young Poet', 'In the fourth letter (1903) Rilke asks Kappus to be patient with what is unsolved and "to love the questions themselves." Live the questions now, he says.', 'Poets and writers', ''],
+    ['my-15', 'When did a piece of art last make you feel you had to change something, and what was it?', 'after Rilke, Archaic Torso of Apollo', 'The 1908 sonnet describes a headless ancient statue that somehow sees you, and ends abruptly: "You must change your life."', 'Poets and writers', ''],
+    ['my-16', 'Instead of asking what life means, what is your life asking of you this week?', 'after Viktor Frankl, Man\'s Search for Meaning', 'Frankl, a psychiatrist who survived Auschwitz, wrote that we should stop asking about the meaning of life and think of ourselves as the ones being questioned by it.', 'Existentialist and absurdist', 'Logotherapy'],
+    ['my-17', 'What were you certain of five years ago that you are no longer sure about?', 'after Montaigne\'s motto, "Que sais-je?"', '"What do I know?" Montaigne had the question struck on a medal in 1576, next to a pair of balanced scales.', 'Humanist', 'Sceptic'],
+    ['my-18', 'What living thing near your home do you not yet know the name of?', 'after Kimmerer, Learning the Grammar of Animacy', 'Kimmerer notes that Potawatomi speaks of trees and rivers as beings, a "who" rather than an "it", and asks what changes when we do the same.', 'Potawatomi (Kimmerer)', ''],
+    ['my-19', 'When has something in you said no before you could explain why, and were you right to listen?', 'after Socrates, in Plato\'s Apology 31d', 'Socrates said that since childhood a sign (daimonion) came to him, a voice that only ever turned him back and never urged him on.', 'Greek and Roman', 'Socratic'],
+    ['my-20', 'What did you meet this month that was bigger than you, and how did it feel to stand next to it?', 'after Rudolf Otto, The Idea of the Holy', 'Otto (1917) described the holy as mysterium tremendum et fascinans: a mystery that makes you tremble and draws you in at once.', 'Christian', 'Lutheran'],
+    ['my-21', 'What, specifically, do you fear about dying, and is it death itself or something before it?', 'after Epicurus, Letter to Menoeceus', 'Epicurus wrote that death is nothing to us: while we exist, death is not here, and when death is here, we no longer exist.', 'Greek and Roman', 'Epicurean'],
+    ['my-22', 'What happened recently that you can\'t explain, and can you leave it unexplained for now?', 'after John Keats, on negative capability', 'In an 1817 letter Keats admired being "capable of being in uncertainties, Mysteries, doubts, without any irritable reaching after fact and reason."', 'Poets and writers', 'Romantic']
+  ]
+};
+
+var DECK = [];
+var BY_ID = new Map();
+SUIT_KEYS.forEach(function (suit) {
+  RAW[suit].forEach(function (row, i) {
+    var c = { id: row[0], suit: suit, n: i + 1, numeral: roman(i + 1), q: row[1], src: row[2], ctx: row[3], fam: row[4], strand: row[5] };
+    DECK.push(c); BY_ID.set(c.id, c);
+  });
+});
+var FAMILIES = Array.from(new Set(DECK.map(function (c) { return c.fam; }))).sort();
+
+var SPREADS = {
+  one:   { name: 'One card',    count: 1, desc: 'A single question to carry through today.', positions: function () { return ['The question for today']; } },
+  three: { name: 'Three cards', count: 3, desc: 'Where I stand, what I\'m not seeing, what I could do.', positions: function () { return ['Where I stand', 'What I\'m not seeing', 'What I could do']; } },
+  cross: { name: 'Crossroads',  count: 3, desc: 'For a decision. Name both paths, then draw a question for each and one underneath both.',
+           positions: function (a, b) { return [a ? 'A question for “' + a + '”' : 'A question for path A', b ? 'A question for “' + b + '”' : 'A question for path B', 'The question underneath both']; } }
+};
+
+/* =========================================================
+   Helpers
+   ========================================================= */
+function roman(n) {
+  var map = [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']], out = '';
+  map.forEach(function (p) { while (n >= p[0]) { out += p[1]; n -= p[0]; } });
+  return out;
+}
+function $(s, el) { return (el || document).querySelector(s); }
+function $$(s, el) { return Array.prototype.slice.call((el || document).querySelectorAll(s)); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function str(v, max) { return typeof v === 'string' ? v.slice(0, max) : ''; }
+function uid() { return 'r' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36); }
+function pad(n) { return String(n).padStart(2, '0'); }
+function dateKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function todayKey() { return dateKey(new Date()); }
+function parseKey(k) { var p = k.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+function daysBetween(a, b) { return Math.round((parseKey(b) - parseKey(a)) / 86400000); }
+function fmtDate(k) {
+  var d = parseKey(k), o = { weekday: 'long', day: 'numeric', month: 'long' };
+  if (d.getFullYear() !== new Date().getFullYear()) o.year = 'numeric';
+  return d.toLocaleDateString('en-GB', o);
+}
+function fmtShort(k) { return parseKey(k).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); }
+function ago(k) { var n = daysBetween(k, todayKey()); return n <= 0 ? 'today' : n === 1 ? 'yesterday' : n + ' days ago'; }
+function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+function reduceMotion() { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } }
+
+/* =========================================================
+   Randomness: crypto.getRandomValues with rejection sampling,
+   so every index (and every deck order) is equally likely.
+   ========================================================= */
+var HAS_CRYPTO = !!(window.crypto && typeof window.crypto.getRandomValues === 'function');
+function randInt(n) {
+  if (!HAS_CRYPTO) return Math.floor(Math.random() * n);
+  var limit = 4294967296 - (4294967296 % n), buf = new Uint32Array(1), x;
+  do { window.crypto.getRandomValues(buf); x = buf[0]; } while (x >= limit);
+  return x % n;
+}
+function shuffleArr(a) {
+  for (var i = a.length - 1; i > 0; i--) { var j = randInt(i + 1), t = a[i]; a[i] = a[j]; a[j] = t; }
+  return a;
+}
+function log10Factorial(n) { var s = 0; for (var i = 2; i <= n; i++) s += Math.log10(i); return s; }
+function ordersHTML(n) {
+  if (n < 2) return '1';
+  var l = log10Factorial(n), e = Math.floor(l), m = Math.pow(10, l - e);
+  if (e < 6) return Math.round(Math.pow(10, l)).toLocaleString('en-GB');
+  return m.toFixed(1) + '<span class="times"> × </span>10<sup>' + e + '</sup>';
+}
+function evenOddsDay(n) {
+  var p = 1;
+  for (var d = 1; d <= n + 1; d++) { p *= Math.max(0, 1 - (d - 1) / n); if (1 - p >= 0.5) return d; }
+  return n + 1;
+}
+
+/* =========================================================
+   State and storage
+   ========================================================= */
+var KEY = 'inderstanding.question-deck.v1';
+var storageOK = true;
+
+function emptyDraft() { return { bring: '', spread: 'one', a: '', b: '' }; }
+function normalize(o) {
+  if (!o || typeof o !== 'object' || !Array.isArray(o.readings)) return null;
+  var readings = o.readings.filter(function (r) {
+    return r && typeof r === 'object' && /^\d{4}-\d{2}-\d{2}$/.test(r.date) && SPREADS[r.spread] && Array.isArray(r.cards);
+  }).map(function (r) {
+    return {
+      id: str(r.id, 60) || uid(), date: r.date, createdAt: Number(r.createdAt) || 0, spread: r.spread,
+      bring: str(r.bring, 600), paths: { a: str(r.paths && r.paths.a, 80), b: str(r.paths && r.paths.b, 80) },
+      example: !!r.example,
+      cards: r.cards.filter(function (c) { return c && BY_ID.has(c.cardId); }).map(function (c) {
+        return { cardId: c.cardId, position: str(c.position, 140) || 'The question', answer: str(c.answer, 20000), answeredAt: Number(c.answeredAt) || null };
+      })
+    };
+  }).filter(function (r) { return r.cards.length; });
+  var marks = {};
+  if (o.marks && typeof o.marks === 'object') Object.keys(o.marks).forEach(function (k) { if (BY_ID.has(k) && (o.marks[k] === 'keep' || o.marks[k] === 'aside')) marks[k] = o.marks[k]; });
+  var d = o.draft || {};
+  return {
+    v: 1, readings: readings, marks: marks,
+    draft: { bring: str(d.bring, 600), spread: SPREADS[d.spread] ? d.spread : 'one', a: str(d.a, 80), b: str(d.b, 80) },
+    examplesCleared: !!o.examplesCleared
+  };
+}
+function load() {
+  try {
+    var raw = window.localStorage.getItem(KEY);
+    if (!raw) return null;
+    return normalize(JSON.parse(raw));
+  } catch (e) { storageOK = false; return null; }
+}
+function save() {
+  try { window.localStorage.setItem(KEY, JSON.stringify(state)); storageOK = true; }
+  catch (e) { storageOK = false; }
+  renderBanners();
+}
+var saveTimer = null;
+function saveSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(save, 450); }
+
+function shiftDate(days) { var d = new Date(); d.setDate(d.getDate() - days); return dateKey(d); }
+function exReading(daysAgo, spread, bring, paths, cards) {
+  var date = shiftDate(daysAgo), pos = SPREADS[spread].positions(paths.a, paths.b);
+  var created = parseKey(date).getTime() + 8 * 3600000;
+  return {
+    id: 'ex-' + daysAgo, date: date, createdAt: created, spread: spread, bring: bring, paths: paths, example: true,
+    cards: cards.map(function (c, i) { return { cardId: c[0], position: pos[i], answer: c[1], answeredAt: c[1] ? created + 11 * 3600000 : null }; })
+  };
+}
+function makeExamples() {
+  return [
+    exReading(21, 'one', 'First week back after the move. Everything feels slightly off.', { a: '', b: '' }, [
+      ['ti-01', 'Most alive: walking home along the canal on Tuesday with my phone in my bag.\n\nMost drained: the four o\'clock meeting where I agreed to take on the supplier review when I didn\'t want to. I didn\'t notice until I got home that I\'d been annoyed all evening.']
+    ]),
+    exReading(16, 'three', 'Mum asked if I\'ll go to church with her at Christmas. I don\'t know if I\'d be going for her or out of guilt.', { a: '', b: '' }, [
+      ['ro-02', 'I spent years trying to be a decent Christian by Mum\'s standard and never felt much. My own path might be something quieter that I haven\'t named yet. I\'d rather walk that badly than keep faking the other one.'],
+      ['ot-01', 'Honestly, mostly for me: work, the gym, sorting the flat. I didn\'t ring Mum back until Thursday. Going at Christmas could just be for her, and that might be reason enough.'],
+      ['ti-10', '']
+    ]),
+    exReading(11, 'cross', 'Need to answer about the team lead job by Friday.', { a: 'Take the team lead role', b: 'Stay where I am and keep my evenings' }, [
+      ['ti-06', 'Mostly for the result: the title, the money, proving I can. Would I do the actual work for nothing? Some of it. I like helping Priya and Tom get unstuck.'],
+      ['ti-16', 'Work already has Sunday evenings. Nobody asked for them; I just started checking email. If I stay, I want those back either way.'],
+      ['my-05', 'I say I want a calm life with time to think. I also want people to see me as capable. Those pull against each other more than I\'d admitted.']
+    ]),
+    exReading(7, 'one', '', { a: '', b: '' }, [
+      ['my-09', 'The half hour before anyone else is up. Nothing happens in it and it\'s the reason the rest of the day works. I\'d been filling it with my phone lately.']
+    ]),
+    exReading(3, 'one', 'Said yes to the team lead role, with Fridays protected.', { a: '', b: '' }, [
+      ['ti-01', 'Most alive: cooking with Sam on Sunday, no screens anywhere.\n\nMost drained: less than three weeks ago. The four o\'clock meeting is still there, but I said no to the extra project and nothing bad happened. I\'m saying what I think sooner.']
+    ])
+  ];
+}
+function freshState(withExamples) {
+  return { v: 1, readings: withExamples ? makeExamples() : [], marks: {}, draft: emptyDraft(), examplesCleared: !withExamples };
+}
+
+var state = load();
+if (!state) {
+  state = freshState(true);
+  if (storageOK) save();
+}
+
+/* =========================================================
+   Derived data
+   ========================================================= */
+function sortedReadings() {
+  return state.readings.slice().sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : (b.createdAt - a.createdAt); });
+}
+function todaysReading() {
+  var t = todayKey();
+  for (var i = state.readings.length - 1; i >= 0; i--) if (state.readings[i].date === t && !state.readings[i].example) return state.readings[i];
+  return null;
+}
+function activeIds() { return DECK.filter(function (c) { return state.marks[c.id] !== 'aside'; }).map(function (c) { return c.id; }); }
+function hasExamples() { return state.readings.some(function (r) { return r.example; }); }
+function drawCounts() {
+  var m = {};
+  state.readings.forEach(function (r) { r.cards.forEach(function (c) { m[c.cardId] = (m[c.cardId] || 0) + 1; }); });
+  return m;
+}
+function returningGroups() {
+  var g = {};
+  state.readings.forEach(function (r) { r.cards.forEach(function (c, i) { (g[c.cardId] = g[c.cardId] || []).push({ r: r, c: c, i: i }); }); });
+  return Object.keys(g).filter(function (k) { return g[k].length > 1; }).map(function (k) {
+    var list = g[k].sort(function (a, b) { return a.r.date < b.r.date ? -1 : a.r.date > b.r.date ? 1 : a.r.createdAt - b.r.createdAt; });
+    return { id: k, draws: list };
+  }).sort(function (a, b) { var la = a.draws[a.draws.length - 1].r.date, lb = b.draws[b.draws.length - 1].r.date; return la < lb ? 1 : -1; });
+}
+function findReading(id) { for (var i = 0; i < state.readings.length; i++) if (state.readings[i].id === id) return state.readings[i]; return null; }
+
+/* =========================================================
+   Generative card plates (Canvas). Seeded by card id.
+   ========================================================= */
+function hashStr(s) { var h = 2166136261 >>> 0; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function mulberry32(a) {
+  return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function hexToRgb(h) {
+  h = String(h).trim();
+  if (h[0] === '#') h = h.slice(1);
+  if (h.length === 3) h = h.split('').map(function (c) { return c + c; }).join('');
+  var n = parseInt(h, 16);
+  if (isNaN(n)) return [23, 32, 49];
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function rgba(hex, a) { var c = hexToRgb(hex); return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')'; }
+var colorCache = null;
+function themeColors() {
+  if (colorCache) return colorCache;
+  var cs = getComputedStyle(document.documentElement), o = {};
+  ['stock', 'ink', 'roots', 'others', 'time', 'mystery', 'paper'].forEach(function (k) { o[k] = cs.getPropertyValue('--' + k).trim() || '#172031'; });
+  var c = hexToRgb(o.stock);
+  o.dark = (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) < 110;
+  colorCache = o;
+  return o;
+}
+
+function circlePath(ctx, x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); }
+
+var PAINT = {
+  // Tree rings: wood grain, seasons laid down one ring at a time.
+  roots: function (ctx, w, h, R, o) {
+    var cx = w * (0.12 + 0.76 * R()), cy = h * (0.3 + 0.8 * R()), sx = 1.25 + R() * 0.9;
+    var p1 = R() * 6.28, p2 = R() * 6.28, p3 = R() * 6.28, a1 = 0.05 + R() * 0.05, a2 = 0.03 + R() * 0.04;
+    ctx.fillStyle = o.tint;
+    ctx.beginPath(); ctx.ellipse(cx + 4, cy - 3, w * 0.2 * sx, w * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = o.ink; ctx.lineWidth = o.lw;
+    var maxR = Math.hypot(w, h) * 1.05, rad = 1.6, i = 0, t, step = 0.04;
+    while (rad < maxR) {
+      ctx.beginPath();
+      for (t = 0; t <= Math.PI * 2 + 0.0001; t += step) {
+        var wob = 1 + a1 * Math.sin(3 * t + p1 + rad * 0.015) + a2 * Math.sin(5 * t + p2 - rad * 0.01) + 0.02 * Math.sin(11 * t + p3 + rad * 0.05);
+        var rr = rad * wob, x = cx + Math.cos(t) * rr * sx, y = cy + Math.sin(t) * rr;
+        if (t === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.closePath(); ctx.stroke();
+      rad += o.k * (2.2 + 2.8 * (0.5 + 0.5 * Math.sin(i * 0.9 + p1)) + R() * 1.1);
+      i++;
+    }
+    var checks = 1 + Math.floor(R() * 3);
+    ctx.lineWidth = o.lw * 1.5;
+    for (var c = 0; c < checks; c++) {
+      var ang = R() * Math.PI * 2, r0 = maxR * (0.05 + R() * 0.2), len = maxR * (0.15 + R() * 0.3);
+      ctx.beginPath();
+      for (var s = 0; s <= 1.0001; s += 0.1) {
+        var rr2 = r0 + len * s, jag = (R() - 0.5) * 0.06;
+        var x2 = cx + Math.cos(ang + jag) * rr2 * sx, y2 = cy + Math.sin(ang + jag) * rr2;
+        if (s === 0) ctx.moveTo(x2, y2); else ctx.lineTo(x2, y2);
+      }
+      ctx.stroke();
+    }
+    ctx.fillStyle = o.ink; circlePath(ctx, cx, cy, 1.4 * o.k); ctx.fill();
+  },
+  // A weave: warp and weft passing over and under each other.
+  others: function (ctx, w, h, R, o) {
+    ctx.save();
+    ctx.translate(w / 2, h / 2); ctx.rotate((R() - 0.5) * 0.5); ctx.translate(-w / 2, -h / 2);
+    var ext = Math.max(w, h) * 0.45, sp = 3.1 * o.k;
+    function bands(len) { var arr = [], pos = -ext; while (pos < len + ext) { var bw = (14 + R() * 20) * Math.max(1, o.k * 0.7), gap = (3 + R() * 7) * o.k; arr.push([pos, pos + bw]); pos += bw + gap; } return arr; }
+    var HB = bands(h), VB = bands(w);
+    ctx.fillStyle = o.tint;
+    HB.forEach(function (b) { if (R() < 0.4) ctx.fillRect(-ext + 3, b[0] + 2.5, w + 2 * ext, b[1] - b[0]); });
+    ctx.strokeStyle = o.ink; ctx.lineWidth = o.lw;
+    function hband(y0, y1) {
+      ctx.beginPath();
+      for (var y = y0 + sp * 0.6; y < y1 - sp * 0.3; y += sp) { ctx.moveTo(-ext, y); ctx.lineTo(w + ext, y); }
+      ctx.stroke();
+      ctx.lineWidth = o.lw * 1.6; ctx.beginPath(); ctx.moveTo(-ext, y0); ctx.lineTo(w + ext, y0); ctx.moveTo(-ext, y1); ctx.lineTo(w + ext, y1); ctx.stroke(); ctx.lineWidth = o.lw;
+    }
+    function vseg(x0, x1, y0, y1, clear) {
+      if (y1 <= y0) return;
+      if (clear) { ctx.fillStyle = o.stock; ctx.fillRect(x0 - 0.5, y0 - 0.5, x1 - x0 + 1, y1 - y0 + 1); }
+      ctx.beginPath();
+      for (var x = x0 + sp * 0.6; x < x1 - sp * 0.3; x += sp) { ctx.moveTo(x, y0); ctx.lineTo(x, y1); }
+      ctx.stroke();
+      ctx.lineWidth = o.lw * 1.6; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0, y1); ctx.moveTo(x1, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.lineWidth = o.lw;
+      if (clear) { ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y0); ctx.moveTo(x0, y1); ctx.lineTo(x1, y1); ctx.stroke(); }
+    }
+    HB.forEach(function (b) { hband(b[0], b[1]); });
+    VB.forEach(function (vb, j) {
+      var y = -ext;
+      HB.forEach(function (hb, i) {
+        vseg(vb[0], vb[1], y, hb[0], false);
+        if ((i + j) % 2 === 0) vseg(vb[0], vb[1], hb[0], hb[1], true);
+        y = hb[1];
+      });
+      vseg(vb[0], vb[1], y, h + ext, false);
+    });
+    ctx.restore();
+  },
+  // Sun over the tide: engraved sea lines, spacing widening toward the viewer.
+  time: function (ctx, w, h, R, o) {
+    var horizon = h * (0.4 + 0.2 * R()), sx = w * (0.18 + 0.64 * R()), sr = w * (0.08 + 0.08 * R()), sy = horizon - sr * (0.1 + 1.2 * R());
+    ctx.fillStyle = o.tint; circlePath(ctx, sx + 3.5, sy + 2.5, sr * 1.04); ctx.fill();
+    ctx.strokeStyle = o.ink; ctx.lineWidth = o.lw;
+    var sp = 4.3 * o.k, y;
+    ctx.beginPath();
+    for (y = sp * 0.7; y < horizon; y += sp) {
+      var dy = y - sy;
+      if (Math.abs(dy) < sr + 2) { var dx = Math.sqrt(Math.max(0, (sr + 2) * (sr + 2) - dy * dy)); ctx.moveTo(0, y); ctx.lineTo(sx - dx, y); ctx.moveTo(sx + dx, y); ctx.lineTo(w, y); }
+      else { ctx.moveTo(0, y); ctx.lineTo(w, y); }
+    }
+    ctx.stroke();
+    ctx.lineWidth = o.lw * 1.4; circlePath(ctx, sx, sy, sr); ctx.stroke();
+    ctx.lineWidth = o.lw; circlePath(ctx, sx, sy, sr * 0.62); ctx.stroke();
+    ctx.fillStyle = o.stock; ctx.fillRect(0, horizon - 1.5, w, h);
+    var f1 = 0.03 + R() * 0.04, f2 = 0.08 + R() * 0.08, p1 = R() * 6.28, p2 = R() * 6.28, i = 0;
+    y = horizon;
+    while (y < h + 8) {
+      var amp = 0.35 + i * 0.2, g = (2.1 + i * 0.32) * o.k;
+      ctx.beginPath();
+      for (var x = 0; x <= w + 2; x += 2) {
+        var yy = y + amp * (Math.sin(x * f1 + p1 + i * 0.5) + 0.5 * Math.sin(x * f2 + p2 - i * 0.3));
+        if (x === 0) ctx.moveTo(x, yy); else ctx.lineTo(x, yy);
+      }
+      ctx.stroke();
+      y += g; i++;
+    }
+  },
+  // Two sunbursts from nearby centres: a moire nobody quite designed.
+  mystery: function (ctx, w, h, R, o) {
+    var cx = w * (0.22 + 0.56 * R()), cy = h * (0.28 + 0.44 * R()), d = 6 + R() * 14, ang = R() * 6.28;
+    var c2x = cx + Math.cos(ang) * d, c2y = cy + Math.sin(ang) * d;
+    var n = Math.max(60, Math.round((150 + R() * 90) / o.k)), far = Math.hypot(w, h) * 1.2, s = w * 0.2;
+    ctx.fillStyle = o.tint;
+    ctx.beginPath(); ctx.moveTo(cx + 3, cy + 2.5 - s); ctx.lineTo(cx + 3 + s * 0.72, cy + 2.5); ctx.lineTo(cx + 3, cy + 2.5 + s); ctx.lineTo(cx + 3 - s * 0.72, cy + 2.5); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = o.ink; ctx.lineWidth = o.lw * 0.9;
+    function rays(x, y, ph, r0) {
+      ctx.beginPath();
+      for (var i = 0; i < n; i++) { var a = ph + i / n * Math.PI * 2; ctx.moveTo(x + Math.cos(a) * r0, y + Math.sin(a) * r0); ctx.lineTo(x + Math.cos(a) * far, y + Math.sin(a) * far); }
+      ctx.stroke();
+    }
+    var vr = 7 + R() * 10;
+    rays(cx, cy, 0, vr); rays(c2x, c2y, R() * 0.1, vr);
+    ctx.fillStyle = o.stock; circlePath(ctx, cx, cy, vr + 3); ctx.fill();
+    ctx.lineWidth = o.lw * 1.3; circlePath(ctx, cx, cy, vr + 3); ctx.stroke();
+    ctx.fillStyle = o.ink; circlePath(ctx, cx, cy, 1.6 * o.k); ctx.fill();
+  }
+};
+
+function paintPattern(cv) {
+  var card = BY_ID.get(cv.getAttribute('data-pattern'));
+  if (!card) return;
+  var cw = cv.clientWidth, ch = cv.clientHeight;
+  if (!cw || !ch) return;
+  var dpr = Math.min(window.devicePixelRatio || 1, 2.5), W = Math.round(cw * dpr), H = Math.round(ch * dpr);
+  if (cv.width !== W) cv.width = W;
+  if (cv.height !== H) cv.height = H;
+  var ctx = cv.getContext('2d');
+  if (!ctx) return;
+  var col = themeColors(), ink = col[card.suit];
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = col.stock; ctx.fillRect(0, 0, W, H);
+  var u = W / 300;
+  ctx.scale(u, u);
+  var opts = { ink: ink, stock: col.stock, tint: rgba(ink, col.dark ? 0.22 : 0.17), k: Math.max(1, 2.6 / (3.1 * u)), lw: Math.max(0.55, 0.85 / u) };
+  try { PAINT[card.suit](ctx, 300, H / u, mulberry32(hashStr(card.id)), opts); } catch (e) { /* decorative only */ }
+}
+
+var ro = ('ResizeObserver' in window) ? new ResizeObserver(function (entries) {
+  entries.forEach(function (en) {
+    var cv = en.target, key = cv.clientWidth + 'x' + cv.clientHeight;
+    if (cv.__size === key) return;
+    cv.__size = key; paintPattern(cv);
+  });
+}) : null;
+function paintIn(root) {
+  $$('canvas[data-pattern]', root).forEach(function (cv) {
+    if (ro) ro.observe(cv); else paintPattern(cv);
+  });
+}
+function repaintAll() {
+  colorCache = null;
+  makeBack();
+  $$('canvas[data-pattern]').forEach(paintPattern);
+}
+
+// Shared card back: a guilloche rosette printed in ink over a misregistered red impression.
+function makeBack() {
+  try {
+    var col = themeColors(), S = 2, W = 300, H = 480;
+    var cv = document.createElement('canvas'); cv.width = W * S; cv.height = H * S;
+    var ctx = cv.getContext('2d'); ctx.scale(S, S);
+    ctx.fillStyle = col.stock; ctx.fillRect(0, 0, W, H);
+    var second = rgba(col.others, col.dark ? 0.55 : 0.5), ink = col.ink;
+    function rosette(cx, cy, A, B, n, copies, lw) {
+      ctx.lineWidth = lw;
+      for (var j = 0; j < copies; j++) {
+        var rot = j * (Math.PI * 2 / n) / copies;
+        ctx.beginPath();
+        for (var t = 0; t <= Math.PI * 2 + 0.001; t += 0.012) {
+          var r = A + B * Math.sin(n * t), x = cx + Math.cos(t + rot) * r, y = cy + Math.sin(t + rot) * r;
+          if (t === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath(); ctx.stroke();
+      }
+    }
+    function plate(dx, dy, color) {
+      ctx.strokeStyle = color;
+      rosette(W / 2 + dx, H / 2 + dy, 96, 30, 14, 5, 0.55);
+      rosette(W / 2 + dx, H / 2 + dy, 56, 18, 10, 4, 0.55);
+      rosette(W / 2 + dx, H / 2 + dy, 24, 9, 7, 3, 0.5);
+      ctx.lineWidth = 0.6;
+      for (var i = 0; i < 2; i++) {
+        var yy = (i ? H - 84 : 84) + dy;
+        ctx.beginPath();
+        for (var x = 28; x <= W - 28; x += 1) { var y = yy + Math.sin((x - 28) * 0.21) * 4; if (x === 28) ctx.moveTo(x + dx, y); else ctx.lineTo(x + dx, y); }
+        ctx.stroke();
+        ctx.beginPath();
+        for (x = 28; x <= W - 28; x += 1) { y = yy + Math.sin((x - 28) * 0.21 + Math.PI) * 4; if (x === 28) ctx.moveTo(x + dx, y); else ctx.lineTo(x + dx, y); }
+        ctx.stroke();
+      }
+    }
+    plate(2.2, 1.6, second);
+    plate(0, 0, ink);
+    document.getElementById('app').style.setProperty('--back-img', 'url("' + cv.toDataURL('image/png') + '")');
+  } catch (e) { /* the back falls back to plain card stock */ }
+}
+
+/* =========================================================
+   Markup builders
+   ========================================================= */
+function glyph(suit) {
+  var s = '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">';
+  if (suit === 'roots') s += '<circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="3.4" fill="none" stroke="currentColor" stroke-width="1.1"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/>';
+  else if (suit === 'others') s += '<circle cx="5.6" cy="8" r="4.4" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="10.4" cy="8" r="4.4" fill="none" stroke="currentColor" stroke-width="1.3"/>';
+  else if (suit === 'time') s += '<circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8 1.8 A6.2 6.2 0 0 0 8 14.2 Z" fill="currentColor"/>';
+  else s += '<path d="M8 1.4 L13.2 8 L8 14.6 L2.8 8 Z" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/>';
+  return s + '</svg>';
+}
+function tradLine(c) { return esc(c.fam) + (c.strand && c.strand !== c.fam ? ' · ' + esc(c.strand) : ''); }
+function cardHTML(c, opts) {
+  opts = opts || {};
+  var mark = state.marks[c.id];
+  return '<article class="card suit-' + c.suit + (opts.compact ? ' compact' : '') + '"' + (opts.focusable ? ' tabindex="-1"' : '') + '>' +
+    '<header class="card-head"><span class="card-suit">' + glyph(c.suit) + '<span>' + SUITS[c.suit].name + '</span></span><span class="card-num">' + c.numeral + '</span></header>' +
+    '<div class="plate"><canvas data-pattern="' + c.id + '" aria-hidden="true"></canvas></div>' +
+    '<p class="card-q">' + esc(c.q) + '</p>' +
+    '<p class="card-src">' + esc(c.src) + '</p>' +
+    '<p class="card-ctx">' + esc(c.ctx) + '</p>' +
+    '<footer class="card-foot"><span>' + tradLine(c) + (mark ? ' <span class="mark">· ' + (mark === 'keep' ? 'Kept close' : 'Set aside') + '</span>' : '') + '</span><span class="num-flip" aria-hidden="true">' + c.numeral + '</span></footer>' +
+    '</article>';
+}
+function miniHTML(c) {
+  return '<div class="mini suit-' + c.suit + '" aria-hidden="true"><canvas data-pattern="' + c.id + '"></canvas><span class="mini-num">' + c.numeral + '</span></div>';
+}
+function markButtons(id) {
+  var m = state.marks[id];
+  return '<div class="card-actions">' +
+    '<button type="button" class="btn btn-small" data-mark="keep" data-card="' + id + '" aria-pressed="' + (m === 'keep') + '">Keep close</button>' +
+    (m === 'aside'
+      ? '<button type="button" class="btn btn-small" data-mark="restore" data-card="' + id + '">Restore to deck</button>'
+      : '<button type="button" class="btn btn-small" data-mark="aside" data-card="' + id + '">Set aside</button>') +
+    '</div>';
+}
+function regMarks() { return '<span class="reg tl"></span><span class="reg tr"></span><span class="reg bl"></span><span class="reg br"></span>'; }
+function exampleTag(r) { return r.example ? ' <span class="tag">Example</span>' : ''; }
+function savedNote() {
+  return storageOK ? 'Saved on this device.' : 'Not saved: this browser is blocking storage. Copy your data from Your data before closing the tab.';
+}
+
+/* =========================================================
+   Views
+   ========================================================= */
+var view = document.getElementById('view');
+var current = 'today';
+var order = null, shuffles = 0, shuffling = false;
+var dealtId = null, flipped = new Set();
+var putbackOpen = false;
+var bookSuit = 'all', bookFam = 'all', editing = null;
+var deckSuit = 'all', deckStatus = 'all', deckFam = 'all';
+var toast = '';
+
+function render() {
+  if (current === 'today') renderToday();
+  else if (current === 'book') renderBook();
+  else if (current === 'returning') renderReturning();
+  else if (current === 'deck') renderDeck();
+  else if (current === 'about') renderAbout();
+  else renderData();
+  paintIn(view);
+  renderBanners();
+}
+function go(name, focus) {
+  current = name;
+  $$('.nav button').forEach(function (b) { if (b.getAttribute('data-view') === name) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  render();
+  if (focus) { var h = $('.view-title', view); if (h) h.focus({ preventScroll: false }); window.scrollTo(0, 0); }
+}
+
+function renderBanners() {
+  var el = document.getElementById('banners'), html = '';
+  if (hasExamples()) {
+    html += '<div class="notice-bar" role="region" aria-label="Example data"><span class="tag">Example</span>' +
+      '<p>The book holds five example readings so you can see how the deck works. They are not yours, and they go when you clear them.</p>' +
+      '<button type="button" class="btn" data-action="clear-examples">Clear examples and start my own</button></div>';
+  }
+  if (!storageOK) {
+    html += '<div class="notice-bar" role="alert"><p>This browser is not letting the app save. Everything works, but it will be gone when you close the tab. Copy your data from Your data to keep it.</p></div>';
+  }
+  if (toast) html += '<p class="toast" role="status">' + esc(toast) + '</p>';
+  if (el.innerHTML !== html) el.innerHTML = html;
+}
+function setToast(msg) { toast = msg; renderBanners(); clearTimeout(setToast.t); setToast.t = setTimeout(function () { toast = ''; renderBanners(); }, 6000); }
+
+/* ---------- Today ---------- */
+function shuffleStatus() {
+  var n = activeIds().length, sp = SPREADS[state.draft.spread];
+  if (n < sp.count) return 'Only ' + plural(n, 'card') + ' left in the deck. Restore some in The deck to draw this spread.';
+  if (!shuffles) return n + ' cards in the deck. Shuffle at least once, then draw.';
+  var times = shuffles === 1 ? 'once' : shuffles === 2 ? 'twice' : shuffles + ' times';
+  return 'Shuffled ' + times + '. This order of ' + n + ' cards is one of about ' + ordersHTML(n) + ' possible orders.';
+}
+function slotsHTML() {
+  var d = state.draft, pos = SPREADS[d.spread].positions(d.a.trim(), d.b.trim());
+  return pos.map(function (p) { return '<li class="slot"><span class="slot-label">' + esc(p) + '</span><span class="slot-outline"></span></li>'; }).join('');
+}
+function renderToday() {
+  var r = todaysReading();
+  if (r) { renderReading(r); return; }
+  var d = state.draft, sp = SPREADS[d.spread], n = activeIds().length;
+  var backs = '';
+  for (var i = 6; i >= 0; i--) backs += '<div class="deck-card back"></div>';
+  view.innerHTML =
+    '<div class="today">' +
+      '<section class="controls" aria-labelledby="today-h">' +
+        '<div><p class="eyebrow">' + esc(fmtDate(todayKey())) + '</p><h1 class="view-title" id="today-h" tabindex="-1">Today’s draw</h1></div>' +
+        '<div class="step"><label class="step-label" for="bring"><span class="step-n">1</span>Bring something <span class="opt">(optional)</span></label>' +
+          '<textarea id="bring" rows="3" maxlength="600" placeholder="What’s on your mind? A line is enough.">' + esc(d.bring) + '</textarea></div>' +
+        '<fieldset class="step"><legend class="step-label"><span class="step-n">2</span>Choose a spread</legend>' +
+          '<div class="spreads">' + Object.keys(SPREADS).map(function (k) {
+            var s = SPREADS[k];
+            return '<label class="spread" for="sp-' + k + '"><input type="radio" name="spread" id="sp-' + k + '" value="' + k + '"' + (k === d.spread ? ' checked' : '') + '>' +
+              '<span><span class="spread-name">' + s.name + '</span><span class="spread-desc">' + esc(s.desc) + '</span></span></label>';
+          }).join('') + '</div>' +
+          '<div class="paths" id="paths"' + (d.spread === 'cross' ? '' : ' hidden') + '>' +
+            '<div class="field"><label for="path-a">Path A</label><input type="text" id="path-a" maxlength="80" value="' + esc(d.a) + '" placeholder="For example, take the new job"></div>' +
+            '<div class="field"><label for="path-b">Path B</label><input type="text" id="path-b" maxlength="80" value="' + esc(d.b) + '" placeholder="For example, stay and ask for Fridays"></div>' +
+          '</div></fieldset>' +
+        '<div class="step step-go"><p class="step-label"><span class="step-n">3</span>Shuffle and draw</p>' +
+          '<div class="btn-row"><button type="button" class="btn" id="btn-shuffle">' + (shuffles ? 'Shuffle again' : 'Shuffle the deck') + '</button>' +
+          '<button type="button" class="btn btn-primary" id="btn-draw"' + (shuffles && n >= sp.count ? '' : ' disabled') + '>Draw ' + plural(sp.count, 'card') + '</button></div>' +
+          '<p class="status" id="shuffle-status" aria-live="polite">' + shuffleStatus() + '</p></div>' +
+      '</section>' +
+      '<section class="table" aria-label="The table">' + regMarks() +
+        '<div class="table-row">' +
+          '<div class="deck-wrap"><div class="deck" id="deck" aria-hidden="true">' + backs + '</div><p class="deck-count">' + n + ' cards</p></div>' +
+          '<ol class="slots slots-' + sp.count + '" id="slots" aria-label="Spread positions">' + slotsHTML() + '</ol>' +
+          suitKeyHTML() +
+        '</div>' +
+      '</section>' +
+      latelyHTML() +
+    '</div>';
+}
+function suitKeyHTML() {
+  return '<div class="suit-key"><p class="mini-label">The four suits</p><ul>' +
+    SUIT_KEYS.map(function (s) { return '<li class="suit-' + s + '"><span class="chip-glyph">' + glyph(s) + '</span><span><b>' + SUITS[s].name + '</b>' + esc(SUITS[s].about) + '</span></li>'; }).join('') +
+    '</ul><p>Cards land face down. Turn each one over when you’re ready.</p></div>';
+}
+function updateDrawControls() {
+  var sp = SPREADS[state.draft.spread], n = activeIds().length, b = $('#btn-draw');
+  if (!b) return;
+  b.textContent = 'Draw ' + plural(sp.count, 'card');
+  b.disabled = !(shuffles && n >= sp.count);
+  var st = $('#shuffle-status'); if (st) st.innerHTML = shuffleStatus();
+  var sl = $('#slots'); if (sl) { sl.className = 'slots slots-' + sp.count; sl.innerHTML = slotsHTML(); }
+  var paths = $('#paths'); if (paths) paths.hidden = state.draft.spread !== 'cross';
+}
+function latelyHTML() {
+  var past = sortedReadings().filter(function (r) { return r.date !== todayKey() || r.example; });
+  var last = past[0], groups = returningGroups(), kept = DECK.filter(function (c) { return state.marks[c.id] === 'keep'; });
+  var html = '<section class="lately" aria-label="From your book">';
+  if (last) {
+    var pick = last.cards.filter(function (c) { return c.answer; })[0] || last.cards[0], card = BY_ID.get(pick.cardId);
+    var excerpt = pick.answer ? pick.answer.replace(/\s+/g, ' ') : '';
+    if (excerpt.length > 210) excerpt = excerpt.slice(0, 200).replace(/\s+\S*$/, '') + '…';
+    html += '<div class="lately-block"><p class="mini-label">Last reading, ' + ago(last.date) + exampleTag(last) + '</p>' +
+      '<div class="lately-row suit-' + card.suit + '">' + miniHTML(card) + '<div><p class="lately-q">' + esc(card.q) + '</p>' +
+      (excerpt ? '<p class="lately-a">“' + esc(excerpt) + '”</p>' : '<p class="lately-a">No answer written yet.</p>') + '</div></div>' +
+      '<p><button type="button" class="link-btn" data-goto="book">Open your book of answers</button></p></div>';
+  } else {
+    html += '<div class="lately-block"><p class="mini-label">Your book</p><p class="lately-a">Empty for now. Once you draw and write, your last reading shows here.</p></div>';
+  }
+  html += '<div class="lately-block"><p class="mini-label">Returning questions</p>';
+  if (groups.length) {
+    var g = groups[0], gc = BY_ID.get(g.id);
+    html += '<p class="lately-a">' + (groups.length === 1 ? 'One question has' : groups.length + ' questions have') + ' come back. Most recently: <i>' + esc(gc.q) + '</i>, drawn ' + plural(g.draws.length, 'time') + '.</p>' +
+      '<p><button type="button" class="link-btn" data-goto="returning">Compare your answers side by side</button></p>';
+  } else {
+    html += '<p class="lately-a">None yet. With ' + activeIds().length + ' cards and one card a day, there is an even chance a question returns by day ' + evenOddsDay(activeIds().length) + '.</p>';
+  }
+  if (kept.length) html += '<p class="lately-a">You keep ' + plural(kept.length, 'card') + ' close. <button type="button" class="link-btn" data-goto="deck" data-status="keep">See them</button></p>';
+  html += '</div></section>';
+  return html;
+}
+
+function renderReading(r) {
+  var sp = SPREADS[r.spread], n = r.cards.length, dealing = dealtId === r.id;
+  var allFlipped = !dealing || r.cards.every(function (c, i) { return flipped.has(i); });
+  var anyAnswer = r.cards.some(function (c) { return c.answer.trim(); });
+  view.innerHTML =
+    '<div class="reading">' +
+      '<header class="reading-head">' +
+        '<div><p class="eyebrow">' + esc(fmtDate(r.date)) + ' · ' + sp.name + '</p><h1 class="view-title" id="today-h" tabindex="-1">Today’s reading</h1></div>' +
+        '<div class="reading-note">' +
+          (r.bring ? '<p class="brought"><span class="mini-label">You brought</span>' + esc(r.bring) + '</p>' : '') +
+          '<p class="carry">Carry ' + (n === 1 ? 'this question' : 'these questions') + ' through the day. Write what you noticed whenever you like, a line or a page. At midnight the reading moves into your book of answers.</p>' +
+        '</div>' +
+      '</header>' +
+      '<section class="table" aria-label="Today’s cards">' + regMarks() +
+        (allFlipped ? '' : '<div class="turn-row" id="turn-row"><p class="status">Turn each card over when you’re ready.</p><button type="button" class="btn" id="btn-turn-all">Turn ' + (n === 1 ? 'it' : 'them all') + ' over</button></div>') +
+        '<ol class="dealt dealt-' + n + '">' + r.cards.map(function (c, i) { return dealtItem(r, c, i, dealing && !flipped.has(i)); }).join('') + '</ol>' +
+      '</section>' +
+      (anyAnswer ? '' : putbackHTML()) +
+    '</div>';
+}
+function dealtItem(r, c, i, faceDown) {
+  var card = BY_ID.get(c.cardId), pid = 'pos-' + r.id + '-' + i;
+  return '<li class="dealt-item">' +
+    '<p class="pos-label" id="' + pid + '">' + esc(c.position) + '</p>' +
+    '<div class="flip' + (faceDown ? '' : ' is-flipped static') + '" data-flip="' + i + '">' +
+      '<div class="flip-inner">' +
+        '<div class="flip-front"' + (faceDown ? ' inert' : '') + '>' + cardHTML(card, { focusable: true }) + '</div>' +
+        (faceDown ? '<button type="button" class="flip-back back" data-turn="' + i + '" aria-label="Turn over the card for ' + esc(c.position) + '"><span class="back-label">Turn over</span></button>' : '') +
+      '</div>' +
+    '</div>' +
+    '<div class="after-flip"' + (faceDown ? ' hidden' : '') + '>' + markButtons(card.id) + answerBox(r, i, 'today', pid) + '</div>' +
+  '</li>';
+}
+function answerBox(r, i, where, describedBy) {
+  var c = r.cards[i], id = 'ans-' + where + '-' + r.id + '-' + i;
+  return '<div class="answer">' +
+    '<label class="answer-label" for="' + id + '">What did you notice today?</label>' +
+    '<textarea id="' + id + '" rows="6" data-answer="' + r.id + ':' + i + '"' + (describedBy ? ' aria-describedby="' + describedBy + '"' : '') + ' placeholder="In your own words. It can wait until this evening.">' + esc(c.answer) + '</textarea>' +
+    '<p class="status small" data-status="' + r.id + ':' + i + '" aria-live="polite">' + (c.answer ? savedNote() : '') + '</p>' +
+  '</div>';
+}
+function putbackHTML() {
+  return '<div class="putback" id="putback">' +
+    (putbackOpen
+      ? '<p>Put these cards back? This removes today’s reading so you can draw again.</p><div class="putback-confirm"><button type="button" class="btn btn-small" data-action="putback-yes">Put them back</button><button type="button" class="btn btn-small" data-action="putback-no">Keep this reading</button></div>'
+      : '<p>Chose the wrong spread? Until you write an answer you can <button type="button" class="link-btn" data-action="putback">put these cards back and draw again</button>.</p>') +
+  '</div>';
+}
+
+function doShuffle() {
+  if (shuffling) return;
+  order = shuffleArr(activeIds());
+  shuffles++;
+  var finish = function () {
+    shuffling = false;
+    var b = $('#btn-shuffle'); if (b) b.textContent = 'Shuffle again';
+    updateDrawControls();
+  };
+  var cards = $$('#deck .deck-card');
+  if (reduceMotion() || !cards.length || !cards[0].animate) { finish(); return; }
+  shuffling = true;
+  var anims = cards.map(function (c, idx) {
+    var side = idx % 2 ? 1 : -1, lift = -4 - idx;
+    return c.animate([
+      { transform: 'translate(0,0) rotate(0deg)' },
+      { transform: 'translate(' + (side * 58) + '%,' + lift + 'px) rotate(' + (side * 7) + 'deg)', offset: 0.36 },
+      { transform: 'translate(' + (side * 60) + '%,' + lift + 'px) rotate(' + (side * 7.5) + 'deg)', offset: 0.5 },
+      { transform: 'translate(' + (side * 6) + '%,-2px) rotate(' + side + 'deg)', offset: 0.82 },
+      { transform: 'translate(0,0) rotate(0deg)' }
+    ], { duration: 820, delay: idx * 28, easing: 'cubic-bezier(.3,.7,.2,1)' });
+  });
+  Promise.all(anims.map(function (a) { return a.finished; })).then(finish, finish);
+}
+function doDraw() {
+  var d = state.draft, sp = SPREADS[d.spread], ids = activeIds();
+  if (!shuffles || ids.length < sp.count) return;
+  var setAside = {};
+  DECK.forEach(function (c) { if (state.marks[c.id] === 'aside') setAside[c.id] = 1; });
+  var pool = (order || shuffleArr(ids.slice())).filter(function (id) { return !setAside[id]; });
+  if (pool.length < sp.count) pool = shuffleArr(ids.slice());
+  var a = d.a.trim(), b = d.b.trim(), pos = sp.positions(a, b);
+  var r = {
+    id: uid(), date: todayKey(), createdAt: Date.now(), spread: d.spread, bring: d.bring.trim(),
+    paths: d.spread === 'cross' ? { a: a, b: b } : { a: '', b: '' }, example: false,
+    cards: pool.slice(0, sp.count).map(function (id, i) { return { cardId: id, position: pos[i], answer: '', answeredAt: null }; })
+  };
+  var deckEl = $('#deck'), from = deckEl ? deckEl.getBoundingClientRect() : null;
+  state.readings.push(r);
+  state.draft = emptyDraft();
+  save();
+  order = null; shuffles = 0; dealtId = r.id; flipped = new Set(); putbackOpen = false;
+  render();
+  animateDeal(from);
+  var h = $('#today-h'); if (h) h.focus({ preventScroll: true });
+}
+function animateDeal(from) {
+  if (!from || reduceMotion()) return;
+  $$('.dealt .flip').forEach(function (el, i) {
+    if (!el.animate) return;
+    var to = el.getBoundingClientRect();
+    if (!to.width) return;
+    var dx = from.left - to.left, dy = from.top - to.top, s = from.width / to.width;
+    el.animate([
+      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + s + ')', opacity: 0.4 },
+      { transform: 'translate(0,0) scale(1)', opacity: 1 }
+    ], { duration: 680, delay: i * 170, easing: 'cubic-bezier(.2,.75,.25,1)', fill: 'backwards' });
+  });
+}
+function turn(i, keepFocus) {
+  var el = $('.flip[data-flip="' + i + '"]');
+  if (!el || flipped.has(i)) return;
+  flipped.add(i);
+  var front = $('.flip-front', el), back = $('.flip-back', el), after = el.parentElement.querySelector('.after-flip');
+  var hadFocus = back && document.activeElement === back;
+  front.removeAttribute('inert');
+  el.classList.add('is-flipped');
+  var done = function () { if (back && back.parentNode) back.parentNode.removeChild(back); el.classList.add('static'); };
+  if (reduceMotion()) done(); else setTimeout(done, 780);
+  if (after) after.hidden = false;
+  if (hadFocus && !keepFocus) { var c = $('.card', front); if (c) c.focus({ preventScroll: true }); }
+  var r = todaysReading();
+  if (r && r.cards.every(function (c, j) { return flipped.has(j); })) { var tr = $('#turn-row'); if (tr) tr.hidden = true; }
+}
+
+/* ---------- Book of answers ---------- */
+function renderBook() {
+  var all = sortedReadings();
+  var famsPresent = Array.from(new Set([].concat.apply([], all.map(function (r) { return r.cards.map(function (c) { return BY_ID.get(c.cardId).fam; }); })))).sort();
+  if (bookFam !== 'all' && famsPresent.indexOf(bookFam) < 0) bookFam = 'all';
+  var match = function (c) { var k = BY_ID.get(c.cardId); return (bookSuit === 'all' || k.suit === bookSuit) && (bookFam === 'all' || k.fam === bookFam); };
+  var shown = all.map(function (r) { return { r: r, idx: r.cards.map(function (c, i) { return i; }).filter(function (i) { return match(r.cards[i]); }) }; }).filter(function (x) { return x.idx.length; });
+  var answers = 0, cardsShown = 0;
+  shown.forEach(function (x) { x.idx.forEach(function (i) { cardsShown++; if (x.r.cards[i].answer.trim()) answers++; }); });
+
+  var side =
+    '<aside class="book-side">' +
+      '<div><h1 class="view-title" tabindex="-1">Book of answers</h1>' +
+      '<p class="lede">Every reading you have drawn, with what you wrote. The deck supplies the questions. Everything else in this book is yours.</p></div>' +
+      '<div class="filter" role="group" aria-labelledby="book-suit-l"><span class="mini-label" id="book-suit-l">Suit</span><div class="chips">' +
+        '<button type="button" class="chip" data-book-suit="all" aria-pressed="' + (bookSuit === 'all') + '">All</button>' +
+        SUIT_KEYS.map(function (s) { return '<button type="button" class="chip suit-' + s + '" data-book-suit="' + s + '" aria-pressed="' + (bookSuit === s) + '"><span class="chip-glyph">' + glyph(s) + '</span>' + SUITS[s].name + '</button>'; }).join('') +
+      '</div></div>' +
+      '<div class="filter"><label class="mini-label" for="book-fam">Tradition</label><select id="book-fam"><option value="all">All traditions</option>' +
+        famsPresent.map(function (f) { return '<option value="' + esc(f) + '"' + (f === bookFam ? ' selected' : '') + '>' + esc(f) + '</option>'; }).join('') +
+      '</select></div>' +
+      '<p class="count" aria-live="polite">' + plural(shown.length, 'reading') + ', ' + plural(cardsShown, 'card') + ', ' + plural(answers, 'answer') + ' written</p>' +
+    '</aside>';
+
+  var pages;
+  if (!all.length) {
+    pages = '<div class="empty"><strong>Your book is empty.</strong><p>Draw today’s card and write what you notice. Each answer is kept here with the question that prompted it, so over months this becomes a book you wrote.</p><button type="button" class="btn btn-primary" data-goto="today">Go to today’s draw</button></div>';
+  } else if (!shown.length) {
+    pages = '<div class="empty"><strong>Nothing matches these filters.</strong><p>Try another suit or tradition.</p><button type="button" class="btn" data-action="book-reset">Show everything</button></div>';
+  } else {
+    pages = shown.map(function (x) { return entryHTML(x.r, x.idx); }).join('');
+  }
+  view.innerHTML = '<div class="book">' + side + '<div class="book-pages">' + pages + '</div></div>';
+}
+function entryHTML(r, idx) {
+  var sp = SPREADS[r.spread];
+  return '<article class="entry" aria-labelledby="eh-' + r.id + '">' +
+    '<header class="entry-head"><h2 class="entry-date" id="eh-' + r.id + '">' + esc(fmtDate(r.date)) + '</h2><span class="entry-spread">' + sp.name + (r.date === todayKey() && !r.example ? ' · today' : '') + '</span>' + exampleTag(r) + '</header>' +
+    (r.bring ? '<p class="entry-brought">“' + esc(r.bring) + '”</p>' : '') +
+    '<ol class="entry-cards">' + idx.map(function (i) {
+      var c = r.cards[i], card = BY_ID.get(c.cardId), key = r.id + ':' + i, isEditing = editing === key;
+      var later = c.answer && c.answeredAt && dateKey(new Date(c.answeredAt)) !== r.date ? 'Written later, on ' + fmtShort(dateKey(new Date(c.answeredAt))) + '.' : '';
+      var body;
+      if (isEditing) {
+        var id = 'ans-book-' + r.id + '-' + i;
+        body = '<div class="entry-edit"><label class="answer-label" for="' + id + '">' + (c.answer ? 'Edit your answer' : 'What did you notice?') + '</label>' +
+          '<textarea id="' + id + '" rows="7" data-answer="' + key + '">' + esc(c.answer) + '</textarea>' +
+          '<div class="btn-row"><button type="button" class="btn btn-small" data-action="edit-done" data-key="' + key + '">Done</button><p class="status small" data-status="' + key + '" aria-live="polite">' + (c.answer ? savedNote() : '') + '</p></div></div>';
+      } else {
+        body = (c.answer ? '<p class="entry-answer">' + esc(c.answer) + '</p>' : '<p class="entry-unanswered">No answer yet. It is never too late to write one.</p>') +
+          '<div class="entry-meta">' + (later ? '<span>' + later + '</span>' : '') +
+          '<button type="button" class="link-btn" data-action="edit" data-key="' + key + '">' + (c.answer ? 'Edit answer' : 'Write an answer') + '</button></div>';
+      }
+      return '<li class="entry-card suit-' + card.suit + '">' + miniHTML(card) +
+        '<div><p class="pos-label">' + esc(c.position) + '</p><p class="entry-q">' + esc(card.q) + '</p>' +
+        '<p class="entry-src"><i>' + esc(card.src) + '</i> · ' + tradLine(card) + '</p>' + body + '</div></li>';
+    }).join('') + '</ol></article>';
+}
+
+/* ---------- Returning questions ---------- */
+function renderReturning() {
+  var groups = returningGroups(), n = activeIds().length;
+  var html = '<div class="view-head"><h1 class="view-title" tabindex="-1">Returning questions</h1>' +
+    '<p class="lede">Cards you have drawn more than once, with what you wrote each time placed side by side, oldest first, so you can see how your answers have changed.</p></div>';
+  if (!groups.length) {
+    html += '<div class="empty"><strong>No question has come back yet.</strong><p>With ' + n + ' cards in the deck and one card a day, there is an even chance that a question returns by day ' + evenOddsDay(n) + '. When one does, your answers appear here next to each other.</p></div>';
+  } else {
+    html += '<div class="returns">' + groups.map(function (g) {
+      var card = BY_ID.get(g.id), first = g.draws[0].r.date, last = g.draws[g.draws.length - 1].r.date, span = daysBetween(first, last);
+      var cols = g.draws.map(function (d, k) {
+        var gap = k ? daysBetween(g.draws[k - 1].r.date, d.r.date) : 0;
+        return '<section class="answer-col suit-' + card.suit + '">' +
+          '<p class="gap">' + (k ? (gap === 0 ? 'Same day' : plural(gap, 'day') + ' later') : 'First drawn') + exampleTag(d.r) + '</p>' +
+          '<h3>' + esc(fmtDate(d.r.date)) + '</h3>' +
+          '<p class="ctx">' + SPREADS[d.r.spread].name + ' · ' + esc(d.c.position) + '</p>' +
+          (d.r.bring ? '<p class="ctx"><i>You brought: “' + esc(d.r.bring) + '”</i></p>' : '') +
+          (d.c.answer ? '<p class="ans">' + esc(d.c.answer) + '</p>' : '<p class="ctx"><i>No answer written.</i></p>') +
+        '</section>';
+      }).join('');
+      return '<article class="return" aria-label="' + esc(card.q) + '">' +
+        '<div class="return-card">' + cardHTML(card) + '<div class="return-actions">' + markButtons(card.id) + '</div></div>' +
+        '<div><p class="return-meta">Drawn ' + plural(g.draws.length, 'time') + (span ? ', ' + plural(span, 'day') + ' apart' : '') + '</p><div class="answers-row">' + cols + '</div></div>' +
+      '</article>';
+    }).join('') + '</div>';
+  }
+  view.innerHTML = html;
+}
+
+/* ---------- The deck ---------- */
+function renderDeck() {
+  var counts = drawCounts();
+  var aside = DECK.filter(function (c) { return state.marks[c.id] === 'aside'; }).length;
+  var kept = DECK.filter(function (c) { return state.marks[c.id] === 'keep'; }).length;
+  var list = DECK.filter(function (c) {
+    if (deckSuit !== 'all' && c.suit !== deckSuit) return false;
+    if (deckFam !== 'all' && c.fam !== deckFam) return false;
+    var m = state.marks[c.id];
+    if (deckStatus === 'keep') return m === 'keep';
+    if (deckStatus === 'aside') return m === 'aside';
+    if (deckStatus === 'drawn') return !!counts[c.id];
+    if (deckStatus === 'never') return !counts[c.id];
+    return true;
+  });
+  var statusOpts = [['all', 'All cards'], ['keep', 'Kept close'], ['aside', 'Set aside'], ['drawn', 'Drawn before'], ['never', 'Never drawn']];
+  view.innerHTML =
+    '<div class="view-head"><h1 class="view-title" tabindex="-1">The deck</h1>' +
+    '<p class="lede">All ' + DECK.length + ' cards, in four suits: ' + SUIT_KEYS.map(function (s) { return '<b>' + SUITS[s].name + '</b> (' + SUITS[s].about + ')'; }).join(', ') + '. Keep close the ones that feel like yours. Set aside the ones you don’t want to draw for now; they leave the deck until you restore them. Keeping a card close doesn’t make it more likely to come up.</p>' +
+    '<p class="deck-stats"><span><b>' + (DECK.length - aside) + '</b> in the deck</span><span><b>' + aside + '</b> set aside</span><span><b>' + kept + '</b> kept close</span></p></div>' +
+    '<div class="deck-tools">' +
+      '<div class="filter" role="group" aria-labelledby="deck-suit-l"><span class="mini-label" id="deck-suit-l">Suit</span><div class="chips">' +
+        '<button type="button" class="chip" data-deck-suit="all" aria-pressed="' + (deckSuit === 'all') + '">All</button>' +
+        SUIT_KEYS.map(function (s) { return '<button type="button" class="chip suit-' + s + '" data-deck-suit="' + s + '" aria-pressed="' + (deckSuit === s) + '"><span class="chip-glyph">' + glyph(s) + '</span>' + SUITS[s].name + '</button>'; }).join('') +
+      '</div></div>' +
+      '<div class="filter"><label class="mini-label" for="deck-status">Show</label><select id="deck-status">' + statusOpts.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === deckStatus ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
+      '<div class="filter"><label class="mini-label" for="deck-fam">Tradition</label><select id="deck-fam"><option value="all">All traditions</option>' + FAMILIES.map(function (f) { return '<option value="' + esc(f) + '"' + (f === deckFam ? ' selected' : '') + '>' + esc(f) + '</option>'; }).join('') + '</select></div>' +
+      '<p class="count" aria-live="polite">' + plural(list.length, 'card') + ' shown</p>' +
+    '</div>' +
+    (list.length
+      ? '<ul class="deck-grid">' + list.map(function (c) {
+          return '<li class="deck-item' + (state.marks[c.id] === 'aside' ? ' is-aside' : '') + '">' + cardHTML(c, { compact: true }) +
+            '<div class="card-actions">' + markButtons(c.id).replace('<div class="card-actions">', '').replace(/<\/div>$/, '') +
+            '<span class="drawn-count">' + (counts[c.id] ? 'Drawn ' + plural(counts[c.id], 'time') : 'Not drawn yet') + '</span></div></li>';
+        }).join('') + '</ul>'
+      : '<div class="empty"><strong>No cards match.</strong><p>Try a different suit, tradition or filter.</p><button type="button" class="btn" data-action="deck-reset">Show all cards</button></div>');
+}
+
+/* ---------- About the randomness ---------- */
+function renderAbout() {
+  var n = activeIds().length, pct1 = (100 / n).toFixed(1), pct3 = (300 / n).toFixed(1), even = evenOddsDay(n);
+  view.innerHTML =
+    '<div class="about">' +
+      '<div class="prose">' +
+        '<div><h1 class="view-title" tabindex="-1">About the randomness</h1></div>' +
+        '<p class="lede">A plain account of what the shuffle does and what it can’t do.</p>' +
+        '<h2>What the shuffle does</h2>' +
+        '<p>When you press Shuffle, the app puts the cards in a new order using your browser’s cryptographic random number generator (<code>crypto.getRandomValues</code>) and the Fisher-Yates method. Every possible order of the deck is equally likely. With ' + n + ' cards in play there are about ' + ordersHTML(n) + ' orders, so the one you get has almost certainly never been dealt before. Drawing takes cards from the top of that order.</p>' +
+        '<p>Shuffling more than once doesn’t make the order more random. One shuffle is already fair. Shuffle as many times as you like; that part is for you.</p>' +
+        '<h2>What chance knows</h2>' +
+        '<p>Nothing. It can’t see what you wrote, what day it is or how you feel. The card has no message meant for you. Its use is that you didn’t choose it. Left to ourselves we tend to pick the questions we already know how to answer, and a random card interrupts that habit by handing you one you might have avoided.</p>' +
+        '<p>If a question lands, that is because of what you brought to it. If it doesn’t, put it down, or set it aside in The deck.</p>' +
+        '<h2>Fairness</h2>' +
+        '<p>Cards you set aside are taken out until you restore them. Cards you keep close are not weighted; they have the same chance as every other card. Within one reading no card appears twice. Between readings the whole deck goes back together, so questions do return, sooner than most people expect: drawing one card a day from ' + n + ' cards, there is an even chance of a repeat by day ' + even + '. This is the birthday problem, and it is why Returning questions fills up.</p>' +
+        '<h2>An old practice</h2>' +
+        '<p>People have used chance to get unstuck for a long time. The I Ching is consulted by dividing yarrow stalks or throwing coins. In Book 8 of his Confessions, Augustine hears a child’s voice in a Milan garden saying “take up and read”, opens Paul’s letters at random and reads the first passage he sees. Tarot began as a card game in 15th-century Italy and was only later used for divination. This deck uses the same gesture without claiming the cards know anything.</p>' +
+      '</div>' +
+      '<aside class="figures" aria-label="The numbers right now"><p class="mini-label">The numbers right now</p><dl>' +
+        '<div><dt>Cards in the deck</dt><dd>' + n + '<small>' + (DECK.length - n ? (DECK.length - n) + ' set aside' : 'none set aside') + '</small></dd></div>' +
+        '<div><dt>Possible orders</dt><dd>' + ordersHTML(n) + '<small>' + n + ' factorial</small></dd></div>' +
+        '<div><dt>A given card, one-card spread</dt><dd>1 in ' + n + '<small>' + pct1 + '% per draw</small></dd></div>' +
+        '<div><dt>A given card, three-card spread</dt><dd>3 in ' + n + '<small>' + pct3 + '% per draw</small></dd></div>' +
+        '<div><dt>Even odds of a repeat</dt><dd>Day ' + even + '<small>drawing one card a day</small></dd></div>' +
+        '<div><dt>Generator in this browser</dt><dd class="dd-text">' + (HAS_CRYPTO ? 'crypto.getRandomValues' : 'Math.random') + '<small>' + (HAS_CRYPTO ? 'cryptographic, with rejection sampling so no card is favoured' : 'this browser has no cryptographic generator; draws are unpredictable but less rigorously random') + '</small></dd></div>' +
+      '</dl></aside>' +
+    '</div>';
+}
+
+/* ---------- Your data ---------- */
+function exportJSON() {
+  return JSON.stringify({ app: 'inderstanding.question-deck', exportedAt: new Date().toISOString(), data: state }, null, 2);
+}
+function renderData() {
+  view.innerHTML =
+    '<div class="view-head"><h1 class="view-title" tabindex="-1">Your data</h1>' +
+    '<p class="lede">Everything is stored in this browser on this device, under the key <code class="inline-code">' + KEY + '</code>. There are no accounts and nothing is sent anywhere. ' +
+    (storageOK ? 'Saving is working.' : 'Saving is blocked in this browser right now, so copy your data before you close the tab.') + '</p></div>' +
+    '<div class="data-grid">' +
+      '<section class="panel" aria-labelledby="ex-h"><h2 id="ex-h">Export</h2><p>All your readings, answers and card marks as JSON. Copy it somewhere safe, or paste it into Import in another browser.</p>' +
+        '<label class="mini-label" for="export-text">Your data as JSON</label><textarea id="export-text" rows="12" readonly spellcheck="false">' + esc(exportJSON()) + '</textarea>' +
+        '<div class="btn-row"><button type="button" class="btn btn-primary" data-action="copy">Copy to clipboard</button></div><p class="status" id="copy-status" aria-live="polite"></p></section>' +
+      '<section class="panel" aria-labelledby="im-h"><h2 id="im-h">Import</h2><p>Paste JSON exported from this app. It replaces everything currently stored here.</p>' +
+        '<label class="mini-label" for="import-text">Exported JSON</label><textarea id="import-text" rows="12" spellcheck="false" placeholder="{ &quot;app&quot;: &quot;inderstanding.question-deck&quot;, ... }"></textarea>' +
+        '<div class="btn-row"><button type="button" class="btn btn-primary" data-action="import">Replace my data with this</button></div><p class="status" id="import-status" aria-live="polite"></p></section>' +
+      '<section class="panel" aria-labelledby="er-h"><h2 id="er-h">Erase</h2><p>Delete every reading, answer and card mark on this device. Export first if you want to keep anything.</p>' +
+        '<div class="btn-row"><button type="button" class="btn btn-danger" data-action="erase">Erase everything on this device</button></div>' +
+        '<div class="confirm" id="erase-confirm" hidden><p>This can’t be undone. Erase all readings, answers and card marks?</p>' +
+          '<div class="btn-row"><button type="button" class="btn btn-danger-solid" data-action="erase-yes">Yes, erase everything</button><button type="button" class="btn" data-action="erase-no">Keep my data</button></div></div>' +
+        '<p class="status" id="erase-status" aria-live="polite"></p></section>' +
+    '</div>';
+}
+
+/* =========================================================
+   Events
+   ========================================================= */
+var app = document.getElementById('app');
+
+app.addEventListener('click', function (e) {
+  var t = e.target.closest('button, .deck');
+  if (!t || !app.contains(t)) return;
+
+  var v = t.getAttribute('data-view');
+  if (v) { go(v, true); return; }
+  var g = t.getAttribute('data-goto');
+  if (g) {
+    if (g === 'deck') { deckStatus = t.getAttribute('data-status') || 'all'; deckSuit = 'all'; deckFam = 'all'; }
+    go(g, true); return;
+  }
+  if (t.id === 'deck' || t.id === 'btn-shuffle') { doShuffle(); return; }
+  if (t.id === 'btn-draw') { doDraw(); return; }
+  if (t.id === 'btn-turn-all') {
+    var r = todaysReading(); if (!r) return;
+    r.cards.forEach(function (c, i) { setTimeout(function () { turn(i, true); }, reduceMotion() ? 0 : i * 220); });
+    setTimeout(function () { var c = $('.dealt .card'); if (c) c.focus({ preventScroll: true }); }, reduceMotion() ? 10 : r.cards.length * 220 + 100);
+    return;
+  }
+  var ti = t.getAttribute('data-turn');
+  if (ti !== null) { turn(Number(ti)); return; }
+
+  var mk = t.getAttribute('data-mark');
+  if (mk) {
+    var id = t.getAttribute('data-card'), cur = state.marks[id];
+    if (mk === 'keep') { if (cur === 'keep') delete state.marks[id]; else state.marks[id] = 'keep'; }
+    else if (mk === 'aside') state.marks[id] = 'aside';
+    else if (mk === 'restore') delete state.marks[id];
+    save();
+    var sel = mk === 'keep' ? '[data-mark="keep"][data-card="' + id + '"]' : '[data-card="' + id + '"][data-mark="' + (state.marks[id] === 'aside' ? 'restore' : 'aside') + '"]';
+    rerenderKeeping(sel);
+    return;
+  }
+  var bs = t.getAttribute('data-book-suit');
+  if (bs) { bookSuit = bs; rerenderKeeping('[data-book-suit="' + bs + '"]'); return; }
+  var ds = t.getAttribute('data-deck-suit');
+  if (ds) { deckSuit = ds; rerenderKeeping('[data-deck-suit="' + ds + '"]'); return; }
+
+  var act = t.getAttribute('data-action');
+  if (!act) return;
+  if (act === 'clear-examples') {
+    state.readings = state.readings.filter(function (r) { return !r.example; });
+    state.examplesCleared = true;
+    save(); render();
+    setToast('Examples cleared. Everything here from now on is yours.');
+    var h = $('.view-title', view); if (h) h.focus();
+  } else if (act === 'putback') { putbackOpen = true; rerenderKeeping('[data-action="putback-no"]'); }
+  else if (act === 'putback-no') { putbackOpen = false; rerenderKeeping('[data-action="putback"]'); }
+  else if (act === 'putback-yes') {
+    var tr = todaysReading();
+    if (tr && !tr.cards.some(function (c) { return c.answer.trim(); })) {
+      state.readings = state.readings.filter(function (r) { return r !== tr; });
+      state.draft = { bring: tr.bring, spread: tr.spread, a: tr.paths.a, b: tr.paths.b };
+      save();
+    }
+    putbackOpen = false; dealtId = null; flipped = new Set(); render();
+    var h2 = $('#today-h'); if (h2) h2.focus();
+  } else if (act === 'edit') { editing = t.getAttribute('data-key'); render(); var ta = $('textarea[data-answer="' + editing + '"]'); if (ta) ta.focus(); }
+  else if (act === 'edit-done') { var k = t.getAttribute('data-key'); editing = null; render(); var eb = $('[data-action="edit"][data-key="' + k + '"]'); if (eb) eb.focus(); }
+  else if (act === 'book-reset') { bookSuit = 'all'; bookFam = 'all'; render(); }
+  else if (act === 'deck-reset') { deckSuit = 'all'; deckFam = 'all'; deckStatus = 'all'; render(); }
+  else if (act === 'copy') {
+    var ex = $('#export-text'), st = $('#copy-status');
+    ex.value = exportJSON();
+    var fallback = function () { ex.focus(); ex.select(); st.textContent = 'Couldn’t copy automatically. The text is selected: press Ctrl+C (or Cmd+C on a Mac).'; };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(ex.value).then(function () { st.textContent = 'Copied ' + plural(state.readings.length, 'reading') + ' to the clipboard.'; }, fallback);
+      } else fallback();
+    } catch (err) { fallback(); }
+  } else if (act === 'import') {
+    var ist = $('#import-status'), txt = $('#import-text').value.trim();
+    if (!txt) { ist.textContent = 'Paste exported JSON into the box first.'; return; }
+    var parsed;
+    try { parsed = JSON.parse(txt); } catch (err) { ist.textContent = 'That isn’t valid JSON. Check that you copied the whole export, from the first { to the last }.'; return; }
+    var data = normalize(parsed && parsed.data ? parsed.data : parsed);
+    if (!data) { ist.textContent = 'That JSON doesn’t look like a Question Deck export. It needs a list of readings.'; return; }
+    state = data; dealtId = null; flipped = new Set(); save(); render();
+    var ist2 = $('#import-status');
+    if (ist2) ist2.textContent = 'Imported ' + plural(state.readings.length, 'reading') + ' and ' + plural(Object.keys(state.marks).length, 'card mark') + '.';
+  } else if (act === 'erase') { $('#erase-confirm').hidden = false; $('[data-action="erase-no"]').focus(); }
+  else if (act === 'erase-no') { $('#erase-confirm').hidden = true; $('[data-action="erase"]').focus(); }
+  else if (act === 'erase-yes') {
+    state = freshState(false); dealtId = null; flipped = new Set(); order = null; shuffles = 0;
+    try { window.localStorage.removeItem(KEY); } catch (err) { /* ignore */ }
+    save(); render();
+    var es = $('#erase-status'); if (es) es.textContent = 'Everything on this device has been erased.';
+    var eh = $('.view-title', view); if (eh) eh.focus();
+  }
+});
+
+function rerenderKeeping(selector) {
+  var y = window.scrollY;
+  render();
+  window.scrollTo(0, y);
+  var el = selector ? $(selector, view) : null;
+  if (el) el.focus({ preventScroll: true });
+}
+
+var answerTimers = {};
+app.addEventListener('input', function (e) {
+  var t = e.target;
+  if (t.id === 'bring') { state.draft.bring = t.value; saveSoon(); return; }
+  if (t.id === 'path-a' || t.id === 'path-b') {
+    state.draft[t.id === 'path-a' ? 'a' : 'b'] = t.value; saveSoon();
+    var sl = $('#slots'); if (sl) sl.innerHTML = slotsHTML();
+    return;
+  }
+  var key = t.getAttribute('data-answer');
+  if (key) {
+    var p = key.split(':'), r = findReading(p[0]), i = Number(p[1]);
+    if (!r || !r.cards[i]) return;
+    r.cards[i].answer = t.value.slice(0, 20000);
+    r.cards[i].answeredAt = Date.now();
+    var pb = $('#putback'); if (pb && t.value.trim()) pb.hidden = true;
+    clearTimeout(answerTimers[key]);
+    answerTimers[key] = setTimeout(function () {
+      save();
+      $$('[data-status="' + key + '"]').forEach(function (s) { s.textContent = savedNote(); });
+    }, 500);
+  }
+});
+app.addEventListener('change', function (e) {
+  var t = e.target;
+  if (t.name === 'spread') { state.draft.spread = t.value; saveSoon(); updateDrawControls(); return; }
+  if (t.id === 'book-fam') { bookFam = t.value; rerenderKeeping('#book-fam'); return; }
+  if (t.id === 'deck-status') { deckStatus = t.value; rerenderKeeping('#deck-status'); return; }
+  if (t.id === 'deck-fam') { deckFam = t.value; rerenderKeeping('#deck-fam'); return; }
+});
+window.addEventListener('beforeunload', function () { if (saveTimer) save(); });
+
+// Theme changes: repaint plates and backs in the new inks.
+try {
+  var mq = window.matchMedia('(prefers-color-scheme: dark)');
+  var onTheme = function () { requestAnimationFrame(repaintAll); };
+  if (mq.addEventListener) mq.addEventListener('change', onTheme); else if (mq.addListener) mq.addListener(onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+} catch (e) { /* ignore */ }
+
+// The reading is pinned for the day; at midnight it moves into the book.
+var lastDay = todayKey();
+setInterval(function () {
+  var k = todayKey();
+  if (k !== lastDay) {
+    lastDay = k;
+    var active = document.activeElement;
+    if (current === 'today' && !(active && active.tagName === 'TEXTAREA')) { dealtId = null; render(); }
+  }
+}, 60000);
+
+$('#tagline').textContent = 'Shuffle, draw one of ' + DECK.length + ' questions taken from real traditions and writers, carry it through the day, and write your own answer.';
+makeBack();
+render();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { $$('canvas[data-pattern]').forEach(paintPattern); });
+})();
+</script>
+</body>
+</html>
